@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SIAGA Web Tracker</title>
+    <!-- CSS Bootstrap 5 & FontAwesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0d14;
+            --bg-card: rgba(17, 21, 32, 0.85);
+            --primary: #3b82f6;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-color: rgba(148, 163, 184, 0.12);
+        }
+        
+        body, html { 
+            background: linear-gradient(180deg, #0a0d14 0%, #050609 100%); 
+            font-family: 'Inter', sans-serif; 
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        /* Subtle grid background */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: linear-gradient(rgba(148, 163, 184, 0.02) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(148, 163, 184, 0.02) 1px, transparent 1px);
+            background-size: 25px 25px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app-header { 
+            position: relative;
+            z-index: 10;
+            background-color: var(--bg-card); 
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 16px; 
+            text-align: center; 
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        .app-header h5 { 
+            margin: 0; 
+            font-weight: 800; 
+            letter-spacing: 1px; 
+            font-size: 16px;
+        }
+        .app-header small { 
+            font-weight: 800; 
+            letter-spacing: 0.5px; 
+            font-size: 9px;
+            text-transform: uppercase;
+        }
+        
+        .card-status { 
+            position: relative;
+            z-index: 10;
+            background: var(--bg-card); 
+            backdrop-filter: blur(16px);
+            border-radius: 16px; 
+            padding: 28px 20px; 
+            margin: 20px; 
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3); 
+            text-align: center; 
+            border: 1px solid var(--border-color); 
+        }
+        
+        .btn-track-container {
+            position: relative;
+            width: 170px;
+            height: 170px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn-track { 
+            width: 150px; 
+            height: 150px; 
+            border-radius: 50%; 
+            font-size: 18px; 
+            font-weight: 800; 
+            border: 4px solid var(--bg-dark); 
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4); 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            z-index: 5;
+            cursor: pointer;
+        }
+        .btn-start { 
+            background-color: var(--success); 
+            color: white; 
+            animation: radar-wave-idle 2s infinite;
+        }
+        .btn-stop { 
+            background-color: var(--danger); 
+            color: white; 
+            animation: radar-wave-active 1.2s infinite;
+        }
+        .btn-track:active { transform: scale(0.95); }
+        
+        .data-box { 
+            background: rgba(6, 8, 12, 0.6); 
+            padding: 16px; 
+            border-radius: 10px; 
+            margin-top: 24px; 
+            font-family: 'monospace'; 
+            font-size: 13px; 
+            text-align: left; 
+            border: 1px solid var(--border-color);
+        }
+        .data-row { display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(148, 163, 184, 0.12); padding: 8px 0; }
+        .data-row:last-child { border-bottom: none; }
+
+        /* Login Container Style */
+        .login-container {
+            position: relative;
+            z-index: 10;
+            max-width: 400px;
+            margin: 40px auto;
+            padding: 30px 24px;
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        }
+        .form-control {
+            background-color: rgba(6, 8, 12, 0.6);
+            border-color: var(--border-color);
+            color: var(--text-main);
+            padding: 12px 16px;
+            font-size: 14px;
+            border-radius: 8px;
+        }
+        .form-control:focus {
+            background-color: rgba(6, 8, 12, 0.6);
+            border-color: var(--primary);
+            color: var(--text-main);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+        }
+        .btn-login {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 700;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+            transition: all 0.2s ease;
+        }
+        .btn-login:hover {
+            background-color: #2563eb;
+            color: white;
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+        }
+        
+        /* Keyframe animations for radar rings */
+        @keyframes radar-wave-idle {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4), 0 10px 25px rgba(0, 0, 0, 0.4); }
+            70% { box-shadow: 0 0 0 16px rgba(16, 185, 129, 0), 0 10px 25px rgba(0, 0, 0, 0.4); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0), 0 10px 25px rgba(0, 0, 0, 0.4); }
+        }
+
+        @keyframes radar-wave-active {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5), 0 10px 25px rgba(0, 0, 0, 0.4); }
+            70% { box-shadow: 0 0 0 24px rgba(239, 68, 68, 0), 0 10px 25px rgba(0, 0, 0, 0.4); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0), 0 10px 25px rgba(0, 0, 0, 0.4); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header App -->
+    <div class="app-header">
+        <h5 class="m-0 text-main">SIAGA TRACKER</h5>
+        <small class="text-danger">Unit Lapangan Polda Kalsel</small>
+    </div>
+
+    <!-- Halaman Login Overlay -->
+    <div id="loginSection" class="container">
+        <div class="login-container">
+            <div class="text-center mb-4">
+                <i class="fa-solid fa-satellite-dish text-primary" style="font-size: 40px;"></i>
+                <h6 class="mt-2 fw-bold">Masuk Sistem Pelacakan</h6>
+                <small class="text-muted">Gunakan NRP dan Kata Sandi Anda</small>
+            </div>
+            
+            <div id="error-msg" class="alert alert-danger" style="display: none; font-size: 13px;"></div>
+            
+            <form id="loginForm">
+                <div class="mb-3">
+                    <label class="form-label" style="font-size: 12px; color: var(--text-muted);">NRP ANGGOTA</label>
+                    <input type="text" id="nrpInput" class="form-control" placeholder="Masukkan NRP" required>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label" style="font-size: 12px; color: var(--text-muted);">KATA SANDI</label>
+                    <input type="password" id="passwordInput" class="form-control" placeholder="Kata Sandi" required>
+                </div>
+                <button type="submit" class="btn btn-login w-100" id="btnLogin">MASUK PELACAKAN</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Halaman Dashboard Tracker -->
+    <div id="trackerSection" class="container" style="display: none;">
+        <!-- Profil Anggota -->
+        <div class="card p-3 mt-3" style="background: var(--bg-card); border: 1px solid var(--border-color);">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center" style="width: 45px; height: 45px; font-weight: bold; font-size: 18px;" id="avatarInitial">
+                    A
+                </div>
+                <div style="flex-grow: 1;">
+                    <h6 class="fw-bold mb-0" id="profileName">-</h6>
+                    <small class="text-muted" id="profileNrp">-</small>
+                </div>
+                <button class="btn btn-sm btn-outline-danger" id="btnLogout"><i class="fa-solid fa-power-off"></i></button>
+            </div>
+        </div>
+
+        <div class="card-status">
+            <h6 class="text-muted mb-4" style="font-size: 11px; letter-spacing: 1px; font-weight: 800;">STATUS TRANSMISI SATELIT GPS</h6>
+            
+            <!-- Input Giat & Kendaraan Sebelum Mulai -->
+            <div class="mb-4 text-start" id="trackerInputs">
+                <label class="form-label mb-2" style="font-size: 10px; color: var(--text-muted); font-weight: 800; letter-spacing: 0.5px;">JENIS KEGIATAN / GIAT</label>
+                <input type="text" id="giatInput" class="form-control mb-3" placeholder="Contoh: Pengamanan Wilayah Banjarbaru">
+                
+                <label class="form-label mb-2" style="font-size: 10px; color: var(--text-muted); font-weight: 800; letter-spacing: 0.5px;">KENDARAAN YANG DIGUNAKAN</label>
+                <select id="vehicleInput" class="form-select form-control">
+                    <option value="Jalan Kaki">Jalan Kaki / Mandiri</option>
+                    <option value="Sepeda Motor">Sepeda Motor Dinas</option>
+                    <option value="Mobil">Mobil Dinas / Sedan / Roda 4</option>
+                    <option value="Truk">Truk Dalmas</option>
+                    <option value="Lainnya">Lainnya (Isi Sendiri)</option>
+                </select>
+
+                <div id="otherVehicleContainer" style="display: none;" class="mt-3">
+                    <label class="form-label mb-2" style="font-size: 10px; color: var(--text-muted); font-weight: 800; letter-spacing: 0.5px;">NAMA / JENIS KENDARAAN LAINNYA</label>
+                    <input type="text" id="otherVehicleInput" class="form-control" placeholder="Contoh: HELIKOPTER, KAPAL POLAIR, MOBIL SOUND">
+                </div>
+            </div>
+            
+            <!-- Tombol Utama Tracker -->
+            <button id="btnAction" class="btn btn-track btn-start">
+                <i class="fa-solid fa-power-off d-block mb-2" style="font-size: 32px;"></i>
+                START
+            </button>
+
+            <p id="statusText" class="mt-4 fw-bold text-muted" style="font-size: 14px;">Menunggu Aktivasi...</p>
+
+            <!-- Kotak Data Kordinat -->
+            <div class="data-box">
+                <div class="data-row"><span>Latitude:</span> <b id="valLat">-</b></div>
+                <div class="data-row"><span>Longitude:</span> <b id="valLng">-</b></div>
+                <div class="data-row"><span>Akurasi GPS:</span> <b id="valAcc">-</b></div>
+            </div>
+
+            <!-- Tombol SOS Darurat -->
+            <button class="btn btn-outline-danger w-100 mt-3 fw-bold py-2" id="btnSos"><i class="fa-solid fa-triangle-exclamation me-2"></i> LAPOR INSIDEN (SOS)</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK & Logika Web Tracker -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getDatabase, ref, set, remove, onDisconnect, get, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+        // Konfigurasi Firebase SIAGA
+        const firebaseConfig = {
+            apiKey: "AIzaSyBcXluO0MGWA7QECYTy1uBdhanHYNG38_M",
+            authDomain: "siaga-polda-kalsel.firebaseapp.com",
+            databaseURL: "https://siaga-polda-kalsel-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "siaga-polda-kalsel",
+            storageBucket: "siaga-polda-kalsel.firebasestorage.app",
+            messagingSenderId: "972028267896",
+            appId: "1:972028267896:web:fd7cc50832a1ff3216cc8d"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        let userProfile = null;
+        let isTracking = false;
+        let watchId = null;
+        let currentUid = null;
+        
+        let lastFirebaseWriteTime = 0;
+        window.systemSettings = {
+            gps_interval: 10,
+            maintenance_mode: false
+        };
+
+        // Sync system settings
+        onValue(ref(db, 'system_settings'), (snapshot) => {
+            if (snapshot.exists()) {
+                const val = snapshot.val();
+                window.systemSettings = {
+                    gps_interval: (val.gps_interval !== undefined && !isNaN(parseInt(val.gps_interval))) ? parseInt(val.gps_interval) : 10,
+                    maintenance_mode: val.maintenance_mode === true
+                };
+                updateMaintenanceUI();
+            }
+        });
+
+        function updateMaintenanceUI() {
+            let overlay = document.getElementById('maintenanceOverlay');
+            if (window.systemSettings.maintenance_mode) {
+                if (!overlay) {
+                    overlay = document.createElement('div');
+                    overlay.id = 'maintenanceOverlay';
+                    overlay.className = 'position-fixed top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center text-center p-4';
+                    overlay.style.backgroundColor = 'rgba(9, 9, 11, 0.98)';
+                    overlay.style.zIndex = '9999';
+                    overlay.style.backdropFilter = 'blur(10px)';
+                    overlay.innerHTML = `
+                        <i class="fa-solid fa-gears text-warning mb-4" style="font-size: 64px;"></i>
+                        <h4 class="fw-bold text-white mb-2">Sistem Sedang Dipelihara</h4>
+                        <p class="text-muted small mb-0" style="max-width: 320px;">Layanan pelacakan unit lapangan sedang dinonaktifkan sementara untuk pemeliharaan sistem. Hubungi Posko Induk TIK jika darurat.</p>
+                    `;
+                    document.body.appendChild(overlay);
+                }
+                overlay.style.setProperty('display', 'flex', 'important');
+                
+                if (isTracking) {
+                    berhentiTracking();
+                }
+            } else {
+                if (overlay) {
+                    overlay.style.setProperty('display', 'none', 'important');
+                }
+            }
+        }
+
+        let trackingStartTime = null;
+        let trackingPositions = [];
+        let trackingDistanceTraveled = 0.0;
+        
+        // Rumus matematika Haversine untuk kalkulasi jarak penugasan
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // radius bumi dalam meter
+            const phi1 = lat1 * Math.PI/180;
+            const phi2 = lat2 * Math.PI/180;
+            const deltaPhi = (lat2-lat1) * Math.PI/180;
+            const deltaLambda = (lon2-lon1) * Math.PI/180;
+
+            const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
+                      Math.cos(phi1) * Math.cos(phi2) *
+                      Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+            return R * c; // Hasil dalam satuan meter
+        }
+
+        const loginSection = document.getElementById('loginSection');
+        const trackerSection = document.getElementById('trackerSection');
+        const loginForm = document.getElementById('loginForm');
+        const errorMsg = document.getElementById('error-msg');
+        const btnLogin = document.getElementById('btnLogin');
+        const btnAction = document.getElementById('btnAction');
+        const statusText = document.getElementById('statusText');
+        const btnLogout = document.getElementById('btnLogout');
+        const btnSos = document.getElementById('btnSos');
+
+        // Monitoring State Auth
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUid = user.uid;
+                get(ref(db, 'users/' + user.uid)).then((snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        if (data.status === 'active') {
+                            userProfile = data;
+                            
+                            document.getElementById('profileName').innerText = data.pangkat + " " + data.nama;
+                            document.getElementById('profileNrp').innerText = "NRP: " + data.nrp + " | " + data.satker;
+                            document.getElementById('avatarInitial').innerText = data.nama[0].toUpperCase();
+                            
+                            loginSection.style.display = 'none';
+                            trackerSection.style.display = 'block';
+                        } else {
+                            alert("Akun Anda berstatus: " + data.status.toUpperCase() + ". Menunggu approval admin.");
+                            signOut(auth);
+                        }
+                    } else {
+                        alert("Profil pengguna tidak ditemukan di database.");
+                        signOut(auth);
+                    }
+                }).catch((err) => {
+                    alert("Error database: " + err.message);
+                    signOut(auth);
+                });
+            } else {
+                loginSection.style.display = 'block';
+                trackerSection.style.display = 'none';
+                userProfile = null;
+                berhentiTracking();
+            }
+        });
+
+        // Event Handler Login
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nrp = document.getElementById('nrpInput').value.trim();
+            const password = document.getElementById('passwordInput').value;
+
+            btnLogin.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> MEMPROSES...';
+            btnLogin.disabled = true;
+
+            const email = nrp.includes('@') ? nrp : nrp + "@siaga.polri.go.id";
+
+            signInWithEmailAndPassword(auth, email, password)
+                .catch((err) => {
+                    errorMsg.style.display = 'block';
+                    errorMsg.innerText = "NRP atau Kata Sandi salah, atau koneksi terputus.";
+                    btnLogin.innerHTML = 'MASUK PELACAKAN';
+                    btnLogin.disabled = false;
+                });
+        });
+
+        // Event Handler Logout
+        btnLogout.addEventListener('click', () => {
+            if (confirm("Keluar dari pelacakan?")) {
+                signOut(auth);
+            }
+        });
+
+        // Toggle conditional input for Lainnya
+        const vehicleInput = document.getElementById('vehicleInput');
+        const otherVehicleContainer = document.getElementById('otherVehicleContainer');
+        const otherVehicleInput = document.getElementById('otherVehicleInput');
+
+        vehicleInput.addEventListener('change', () => {
+            if (vehicleInput.value === 'Lainnya') {
+                otherVehicleContainer.style.display = 'block';
+                otherVehicleInput.focus();
+            } else {
+                otherVehicleContainer.style.display = 'none';
+            }
+        });
+
+        // Event Handler Tracker Action
+        btnAction.addEventListener('click', () => {
+            if (!isTracking) {
+                mulaiTracking();
+            } else {
+                berhentiTracking();
+            }
+        });
+
+        // Mulai Pelacakan
+        function mulaiTracking() {
+            if (!userProfile) return;
+            if (navigator.geolocation) {
+                // Sembunyikan/nonaktifkan input saat bertugas
+                document.getElementById('giatInput').disabled = true;
+                document.getElementById('vehicleInput').disabled = true;
+                document.getElementById('otherVehicleInput').disabled = true;
+
+                // Reset session counters
+                trackingStartTime = new Date();
+                trackingPositions = [];
+                trackingDistanceTraveled = 0.0;
+
+                watchId = navigator.geolocation.watchPosition(
+                    kirimDataKeFirebase, 
+                    tampilkanError, 
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+
+                isTracking = true;
+                btnAction.classList.replace('btn-start', 'btn-stop');
+                btnAction.innerHTML = '<i class="fa-solid fa-satellite-dish fa-spin d-block mb-2" style="font-size: 32px;"></i> STOP';
+                statusText.innerText = "Mencari Sinyal Satelit...";
+                statusText.className = "mt-4 fw-bold text-warning";
+
+                const pathDatabase = ref(db, 'live_tracking/POL-' + userProfile.nrp);
+                onDisconnect(pathDatabase).remove();
+            } else {
+                alert("Geolocation tidak didukung oleh browser ini.");
+            }
+        }
+
+        // Kirim Data GPS ke Firebase
+        function kirimDataKeFirebase(position) {
+            if (!userProfile) return;
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const acc = position.coords.accuracy;
+
+            document.getElementById('valLat').innerText = lat.toFixed(6);
+            document.getElementById('valLng').innerText = lng.toFixed(6);
+            document.getElementById('valAcc').innerText = acc.toFixed(1) + " meter";
+            
+            statusText.innerText = "TRANSMISI GPS AKTIF";
+            statusText.className = "mt-4 fw-bold text-success";
+
+            // Track points & distance (Local calculations are done for accuracy on every tick)
+            if (trackingPositions.length > 0) {
+                const lastPos = trackingPositions[trackingPositions.length - 1];
+                const dist = getDistance(lastPos.lat, lastPos.lng, lat, lng);
+                // Min 1.5 meters movement threshold untuk menghindari jitter GPS
+                if (dist > 1.5) {
+                    trackingDistanceTraveled += dist;
+                    trackingPositions.push({ lat: lat, lng: lng });
+                }
+            } else {
+                trackingPositions.push({ lat: lat, lng: lng });
+            }
+
+            // Throttle database writes using systemSettings.gps_interval
+            const now = Date.now();
+            const intervalMs = (window.systemSettings?.gps_interval || 10) * 1000;
+            if (now - lastFirebaseWriteTime < intervalMs) {
+                return; // Skip Firebase update
+            }
+            lastFirebaseWriteTime = now;
+
+            const giatVal = document.getElementById('giatInput').value.trim() || 'Siaga Web Tracker';
+            const vehicleSelectVal = document.getElementById('vehicleInput').value || 'Jalan Kaki';
+            let vehicleVal = vehicleSelectVal;
+            if (vehicleSelectVal === 'Lainnya') {
+                vehicleVal = document.getElementById('otherVehicleInput').value.trim() || 'Lainnya';
+            }
+
+            const pathDatabase = ref(db, 'live_tracking/POL-' + userProfile.nrp);
+            set(pathDatabase, {
+                id_unit: 'POL-' + userProfile.nrp,
+                nama: userProfile.nama,
+                nrp: userProfile.nrp,
+                pangkat: userProfile.pangkat || '',
+                satker: userProfile.satker,
+                status: 'ACTIVE',
+                jenis_giat: giatVal,
+                vehicle: vehicleVal,
+                no_hp: userProfile.no_hp_dinas || '',
+                jumlah_personel: 1,
+                koordinat: { lat: lat, lng: lng, akurasi: acc },
+                waktu: new Date().toISOString()
+            });
+        }
+
+        // Berhenti Pelacakan
+        function berhentiTracking() {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            
+            if (isTracking && userProfile) {
+                // Simpan riwayat lengkap sesi ke database
+                const endTime = new Date();
+                const durationSeconds = Math.round((endTime - trackingStartTime) / 1000);
+                const giatVal = document.getElementById('giatInput').value.trim() || 'Siaga Web Tracker';
+                const vehicleSelectVal = document.getElementById('vehicleInput').value || 'Jalan Kaki';
+                let vehicleVal = vehicleSelectVal;
+                if (vehicleSelectVal === 'Lainnya') {
+                    vehicleVal = document.getElementById('otherVehicleInput').value.trim() || 'Lainnya';
+                }
+                
+                const targetUid = auth.currentUser ? auth.currentUser.uid : currentUid;
+                if (!targetUid) {
+                    console.error("Gagal menyimpan riwayat: UID tidak teridentifikasi.");
+                    return;
+                }
+                const historyRef = ref(db, 'users/' + targetUid + '/history');
+                push(historyRef, {
+                    opCode: 'OPS-SIAGA-001',
+                    activityType: giatVal,
+                    vehicleType: vehicleVal,
+                    commander: 'Mandiri',
+                    personnelCount: 1,
+                    description: 'Pengamanan Taktis via Web Tracker',
+                    startTime: trackingStartTime.toISOString(),
+                    endTime: endTime.toISOString(),
+                    durationSeconds: durationSeconds,
+                    distance: trackingDistanceTraveled,
+                    pointsCount: trackingPositions.length,
+                    status: 'COMPLETED'
+                }).then(() => {
+                    console.log("Riwayat tugas berhasil disimpan.");
+                }).catch(err => {
+                    console.error("Gagal menyimpan riwayat:", err);
+                });
+            }
+
+            if (userProfile) {
+                remove(ref(db, 'live_tracking/POL-' + userProfile.nrp));
+            }
+
+            // Aktifkan kembali input form
+            const giatInp = document.getElementById('giatInput');
+            const vehInp = document.getElementById('vehicleInput');
+            const otherVehInp = document.getElementById('otherVehicleInput');
+            if (giatInp) giatInp.disabled = false;
+            if (vehInp) vehInp.disabled = false;
+            if (otherVehInp) otherVehInp.disabled = false;
+
+            isTracking = false;
+            btnAction.classList.replace('btn-stop', 'btn-start');
+            btnAction.innerHTML = '<i class="fa-solid fa-power-off d-block mb-2" style="font-size: 32px;"></i> START';
+            statusText.innerText = "Pelacakan Diaktifkan.";
+            statusText.className = "mt-4 fw-bold text-danger";
+            
+            document.getElementById('valLat').innerText = "-";
+            document.getElementById('valLng').innerText = "-";
+            document.getElementById('valAcc').innerText = "-";
+        }
+
+        function tampilkanError(error) {
+            let msg = "";
+            switch(error.code) {
+                case error.PERMISSION_DENIED: msg = "Izin lokasi dibatasi."; break;
+                case error.POSITION_UNAVAILABLE: msg = "Lokasi tidak ditemukan."; break;
+                case error.TIMEOUT: msg = "Waktu permintaan lokasi habis."; break;
+            }
+            alert("Gagal membaca GPS: " + msg);
+            berhentiTracking();
+        }
+
+        // SOS Darurat
+        btnSos.addEventListener('click', () => {
+            if (!userProfile) return;
+            
+            navigator.geolocation.getCurrentPosition((pos) => {
+                if (confirm("Kirim sinyal SOS darurat dengan lokasi Anda?")) {
+                    const alertRef = ref(db, 'alerts');
+                    push(alertRef, {
+                        dari: userProfile.pangkat + " " + userProfile.nama,
+                        nrp: userProfile.nrp,
+                        tipe: 'SOS',
+                        lokasi: {
+                            lat: pos.coords.latitude,
+                            lng: pos.coords.longitude
+                        },
+                        waktu: new Date().toISOString()
+                    }).then(() => {
+                        alert("Pesan SOS Terkirim ke Posko Induk TIK!");
+                    });
+                }
+            }, (err) => {
+                alert("Gagal membaca GPS untuk SOS: " + err.message);
+            });
+        });
+
+        // Pembersihan instan saat browser/tab ditutup (Fase 6)
+        window.addEventListener('beforeunload', () => {
+            if (isTracking && userProfile) {
+                remove(ref(db, 'live_tracking/POL-' + userProfile.nrp));
+            }
+        });
+    </script>
+</body>
+</html>

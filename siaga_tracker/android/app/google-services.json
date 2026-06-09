@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "972028267896",
+    "firebase_url": "https://siaga-polda-kalsel-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "siaga-polda-kalsel",
+    "storage_bucket": "siaga-polda-kalsel.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:972028267896:android:ef9fbfa27c0dcabe16cc8d",
+        "android_client_info": {
+          "package_name": "com.example.siaga_tracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDk-eRGBJhjS080soCZkPqR2tZxawR0iY8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

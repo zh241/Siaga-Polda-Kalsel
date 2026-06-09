@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIAGA - Polda Kalsel</title>
+    <meta name="description" content="SIAGA - Sistem Informasi Aktivitas & Gerak Anggota Polda Kalimantan Selatan. Pusat kendali operasi taktis, pemantauan personel real-time, dan manajemen geofence.">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Security handled by Firebase Hosting HTTPS/HSTS and Firebase Database Rules -->
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<script>
+window.onerror = function(message, source, lineno, colno, error) {
+    const errorDiv = document.createElement('div');
+    errorDiv.style.position = 'fixed';
+    errorDiv.style.top = '0';
+    errorDiv.style.left = '0';
+    errorDiv.style.width = '100%';
+    errorDiv.style.backgroundColor = '#ef4444';
+    errorDiv.style.color = '#ffffff';
+    errorDiv.style.padding = '20px';
+    errorDiv.style.zIndex = '999999';
+    errorDiv.style.fontFamily = 'monospace';
+    errorDiv.style.fontSize = '14px';
+    errorDiv.style.wordBreak = 'break-all';
+    errorDiv.innerHTML = '<strong>JS Error:</strong> ' + message + '<br><small>Source: ' + source + ' (Line: ' + lineno + ', Col: ' + colno + ')</small>' + (error && error.stack ? '<pre style="margin:10px 0 0 0; white-space:pre-wrap; font-size:11px;">' + error.stack + '</pre>' : '');
+    document.body.appendChild(errorDiv);
+    return false;
+};
+</script>
+
+<!-- Security Gate Loading Overlay -->
+<div id="authLoadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center text-center" style="z-index: 99999; background-color: #09090b; color: #f4f4f5; transition: opacity 0.3s ease;">
+    <div class="spinner-border text-danger mb-3" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">Memuat...</span>
+    </div>
+    <h5 class="fw-bold mb-1" style="font-family: 'Inter', sans-serif;">Verifikasi Sesi</h5>
+    <p class="small mb-0" style="color: #a1a1aa; font-family: 'Inter', sans-serif;">Menghubungkan ke sistem keamanan SIAGA...</p>
+</div>
+
+<div class="wrapper" style="display: none;">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <img src="logo-tik.png" alt="Logo" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Logo_Polri.png/200px-Logo_Polri.png'">
+            <div class="brand-text"><h6>SIAGA</h6><small>DIVISI TIK POLDA KALSEL</small></div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="menu-category" id="cat-operations">OPERASI WILAYAH</div>
+            <a class="nav-item active" onclick="switchPage('peta', this)" id="menu-peta"><i class="fa-solid fa-satellite-dish"></i> <span class="nav-text">Peta Taktis</span></a>
+            <a class="nav-item" onclick="switchPage('operasi', this)" id="menu-operasi"><i class="fa-solid fa-route"></i> <span class="nav-text">Operasi Aktif</span></a>
+            <a class="nav-item" onclick="switchPage('manajemen', this)" id="menu-manajemen"><i class="fa-solid fa-users-gear"></i> <span class="nav-text">Manajemen Akun</span></a>
+            <a class="nav-item" onclick="switchPage('geofence', this)" id="menu-geofence"><i class="fa-solid fa-map-location-dot"></i> <span class="nav-text">Zona Taktis</span></a>
+            
+            <div class="menu-category" id="cat-analytics">ANALITIK</div>
+            <a class="nav-item" onclick="switchPage('riwayat', this)" id="menu-riwayat"><i class="fa-solid fa-clock-rotate-left"></i> <span class="nav-text">Riwayat Operasi</span></a>
+            <a class="nav-item" onclick="switchPage('statistik', this)" id="menu-statistik"><i class="fa-solid fa-chart-simple"></i> <span class="nav-text">Statistik Kinerja</span></a>
+            <a class="nav-item" onclick="switchPage('laporan', this)" id="menu-laporan"><i class="fa-solid fa-file-invoice"></i> <span class="nav-text">Laporan</span></a>
+            
+            <div class="menu-category" id="cat-komunikasi">KOMUNIKASI</div>
+            <a class="nav-item" onclick="switchPage('chat', this)" id="menu-chat"><i class="fa-solid fa-comments"></i> <span class="nav-text">Live Chat</span> <span class="badge bg-primary ms-auto rounded-pill" style="font-size: 9px; display:none;" id="badge-chat">0</span></a>
+            <a class="nav-item" onclick="switchPage('live', this)" id="menu-live"><i class="fa-solid fa-tower-broadcast"></i> <span class="nav-text">Live Ops</span> <span class="badge bg-danger ms-auto rounded-pill pulsing-badge" style="font-size: 9px; display:none;" id="badge-live">LIVE</span></a>
+
+            <div class="menu-category" id="cat-admin">ADMIN</div>
+            <a class="nav-item" onclick="switchPage('approval', this)" id="menu-approval"><i class="fa-solid fa-shield-halved"></i> <span class="nav-text">Approval Akun</span> <span class="badge bg-danger ms-auto rounded-pill" style="font-size: 9px; display:none;" id="badge-approval">0</span></a>
+            <a class="nav-item" onclick="switchPage('pengaturan', this)" id="menu-pengaturan"><i class="fa-solid fa-gears"></i> <span class="nav-text">Pengaturan</span></a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="document.getElementById('sidebar').classList.add('collapsed')"></div>
+        <header class="topbar">
+            <h1 class="visually-hidden">SIAGA - Bid TIK Polda Kalsel</h1>
+            <div class="topbar-left">
+                <i class="fa-solid fa-bars cursor-pointer text-muted fs-5" id="btnToggleSidebar"></i>
+                <div class="topbar-title ms-3"><h5>SIAGA MONITORING</h5><small>Pusat Kendali Operasi Anggota</small></div>
+            </div>
+            <div class="topbar-right">
+                <div class="status-badge" id="db-status-badge"><span class="status-dot"></span> <span id="db-status-text">SISTEM AKTIF</span></div>
+                <div class="clock-display ms-2" id="clock">00:00:00 WITA</div>
+                <div class="theme-toggle ms-3 me-2" id="btnThemeToggle" title="Toggle Tema"><i class="fa-solid fa-sun" id="themeIcon"></i></div>
+                <div class="dropdown border-start border-secondary ps-3 ms-1">
+                    <div class="user-profile" data-bs-toggle="dropdown">
+                        <div class="user-info"><h6>Admin TIK</h6><small>Administrator</small></div>
+                        <img src="https://ui-avatars.com/api/?name=Admin+TIK&background=0d6efd&color=fff&size=40" class="rounded-circle border border-secondary" alt="User">
+                        <i class="fa-solid fa-chevron-down ms-1 text-muted" style="font-size: 10px;"></i>
+                    </div>
+                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom mt-2">
+                        <li><a class="dropdown-item" href="#" onclick="window.tampilkanProfilSaya(event)"><i class="fa-regular fa-user me-2 w-15"></i> Profil Saya</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger fw-bold" href="#" id="btnLogout"><i class="fa-solid fa-power-off me-2 w-15"></i> Keluar Sistem</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <div id="page-peta" class="page-view active">
+            <div id="map"></div>
+            
+            <!-- Floating Member Search Bar -->
+            <div class="floating-search-container">
+                <div class="input-group shadow-sm">
+                    <span class="input-group-text map-search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" id="map-member-search" class="form-control map-search-input" placeholder="Cari Anggota (Nama/NRP)..." autocomplete="off">
+                </div>
+                <div class="search-results-dropdown shadow" id="map-search-results" style="display: none;"></div>
+            </div>
+
+            <!-- Floating Tactical Stats Wrapper -->
+            <div class="floating-stats-wrapper" id="map-stats-wrapper">
+                <div class="floating-stats-container" id="map-stats-panel">
+                    <div class="glass-card" style="border-bottom: 4px solid var(--primary);"><div class="glass-title"><span>Unit Aktif</span> <i class="fa-solid fa-car text-primary"></i></div><div class="glass-value"><span id="total-unit">0</span> <span class="glass-unit">Unit</span></div></div>
+                    <div class="glass-card" style="border-bottom: 4px solid var(--warning);"><div class="glass-title"><span>Total Personel</span> <i class="fa-solid fa-users text-warning"></i></div><div class="glass-value"><span id="total-personnel-dash">0</span> <span class="glass-unit">Anggota</span></div></div>
+                    <div class="glass-card" style="border-bottom: 4px solid var(--success);"><div class="glass-title"><span>Operasi Aktif</span> <i class="fa-solid fa-route text-success"></i></div><div class="glass-value text-success" id="total-operation" style="font-size: 22px;">0</div></div>
+                    <div class="glass-card" style="border-bottom: 4px solid var(--danger);"><div class="glass-title"><span>Zona Geofence</span> <i class="fa-solid fa-circle-radiation text-danger"></i></div><div class="glass-value text-danger" style="font-size: 18px;"><span id="dash-geo-count">0</span> <span class="glass-unit">Aktif</span></div></div>
+                </div>
+                <div class="stats-collapse-btn-wrapper">
+                    <button type="button" class="btn-stats-collapse" id="btnMapStatsToggle" onclick="window.toggleMapStats()" title="Sembunyikan Statistik">
+                        <i class="fa-solid fa-chevron-up me-1"></i> SEMBUNYIKAN INFO
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Comm-Log Overlay -->
+            <div class="live-comm-log-box shadow">
+                <div class="log-box-header d-flex justify-content-between align-items-center">
+                    <span><i class="fa-solid fa-satellite-dish text-danger fa-fade me-2"></i> LOG KOMUNIKASI</span>
+                    <button type="button" class="btn-close btn-close-white" style="font-size: 8px;" onclick="document.querySelector('.live-comm-log-box').classList.toggle('collapsed')"></button>
+                </div>
+                <div class="log-box-body" id="live-log-container">
+                    <div class="text-muted text-center py-4" style="font-size: 11px;">Menunggu transmisi log...</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-operasi" class="page-view">
+            <div class="page-header d-flex justify-content-between align-items-end flex-wrap gap-2">
+                <div>
+                    <h4>Operasi Aktif</h4>
+                    <p>Daftar operasi pengamanan dan penugasan yang sedang berlangsung.</p>
+                </div>
+                <div class="text-muted small pb-1 d-lg-none" style="font-size: 11px; font-weight: 600; letter-spacing: 0.5px;">
+                    <i class="fa-solid fa-left-right fa-fade text-warning me-1"></i> Geser tabel ke samping jika terpotong
+                </div>
+            </div>
+            <div class="dashboard-card">
+                <div class="table-responsive">
+                    <table class="table table-hover table-custom">
+                        <thead><tr><th>ID Operasi</th><th>Nama Operasi</th><th>Komandan</th><th>Area</th><th class="text-center">Status</th><th>Unit Aktif</th><th>Mulai</th><th class="text-center" style="text-align: center !important;">Aksi</th></tr></thead>
+                        <tbody id="tbody-operasi"></tbody>
+                    </table>
+                </div>
+                <div id="pagination-operasi" class="pagination-container d-flex justify-content-between align-items-center mt-3"></div>
+            </div>
+        </div>
+
+        <div id="page-manajemen" class="page-view">
+            <div class="page-header"><div><h4>Manajemen Akun Personel</h4><p>Direktori akun personel yang aktif di sistem SIAGA</p></div></div>
+            <div class="dashboard-card d-flex flex-column" style="flex-grow: 1;">
+                <div class="d-flex justify-content-between align-items-center mb-4 gap-3 flex-wrap">
+                    <div class="search-bar" style="flex-grow: 1; max-width: 350px;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" class="form-control" id="search-personel" placeholder="Cari NRP, Nama, atau Satker..."></div>
+                    <div class="satker-filter-wrapper d-flex align-items-center gap-2">
+                        <label class="form-label mb-0 text-nowrap text-muted small fw-bold">FILTER SATUAN KERJA:</label>
+                        <select class="form-select form-select-sm" id="filter-satker" style="width: 240px; border-radius: 20px;">
+                            <option value="">Semua Satuan Kerja (Satker)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Panel Rekap Personel per Satker -->
+                <div class="row g-3 mb-4" id="satker-recap-container">
+                    <!-- Akan diisi secara dinamis oleh JS -->
+                </div>
+
+                <div class="table-responsive" style="flex-grow: 1;">
+                    <table class="table table-hover table-custom">
+                        <thead><tr><th>NRP</th><th>Profil Personel</th><th>Pangkat / Jabatan</th><th>Satuan Kerja (Satker)</th><th class="text-center">Peran</th><th class="text-center">Status</th><th class="text-center">Tindakan</th></tr></thead>
+                        <tbody id="tbody-manajemen"></tbody>
+                    </table>
+                </div>
+                <div id="pagination-manajemen" class="pagination-container d-flex justify-content-between align-items-center mt-3"></div>
+            </div>
+        </div>
+
+        <div id="page-geofence" class="page-view">
+            <div class="page-header"><div><h4>Zona Taktis (Geofence)</h4><p>Atur batas area pelacakan operasional secara interaktif (Klik zona untuk mengedit)</p></div></div>
+            <div class="row h-100">
+                <div class="col-md-7 d-flex flex-column">
+                    <div class="dashboard-card p-2 d-flex flex-column" style="flex-grow: 1;">
+                        <div id="map-geofence" style="flex-grow: 1; min-height: 400px;"></div>
+                        <div class="text-center text-muted small mt-3 mb-2"><i class="fa-solid fa-mouse-pointer text-warning mx-1"></i> <b>Klik</b> zona merah di peta untuk memilihnya. <i class="fa-solid fa-arrows-up-down-left-right text-primary mx-1 ms-3"></i> <b>Geser</b> titik untuk memindah/mengubah ukuran.</div>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="dashboard-card">
+                        <h6 class="fw-bold mb-4">Kalibrasi Zona Terpilih <span id="label-zona-aktif" class="badge bg-primary ms-2">-</span></h6>
+                        <form>
+                            <div class="mb-3">
+                                <label class="form-label">Nama Zona Taktis</label>
+                                <input type="text" id="input-zona-nama" class="form-control text-white bg-dark border-secondary" placeholder="Contoh: Posko Induk, Zona Patroli A">
+                            </div>
+                            <div class="mb-3"><label class="form-label">Latitude</label><input type="text" id="input-lat" class="form-control font-monospace" readonly></div>
+                            <div class="mb-3"><label class="form-label">Longitude</label><input type="text" id="input-lng" class="form-control font-monospace" readonly></div>
+                            <div class="mb-4 mt-4">
+                                <label class="form-label d-flex justify-content-between align-items-end mb-3"><span>Radius (Meter)</span><span id="radius-val" class="text-danger fw-bold fs-5">0 m</span></label>
+                                <input type="range" class="form-range" id="input-radius" min="500" max="15000" step="100" value="3500">
+                            </div>
+                            <!-- Toggle Status Aktif Geofence -->
+                            <div class="form-check form-switch mb-4 mt-2">
+                                <input class="form-check-input cursor-pointer" type="checkbox" role="switch" id="input-geofence-status" checked>
+                                <label class="form-check-label fw-bold text-muted cursor-pointer text-nowrap" for="input-geofence-status" style="font-size: 11px; letter-spacing: 0.5px; white-space: nowrap;">GEOFENCE AKTIF</label>
+                            </div>
+                            <button type="button" class="btn btn-danger w-100 py-2 fw-bold mb-2" onclick="simpanZonaFirebase()"><i class="fa-solid fa-floppy-disk me-2"></i> KUNCI ZONA INI</button>
+                            <button type="button" class="btn btn-outline-warning w-100 py-2 mb-2 fw-bold" onclick="tambahZonaBaru()"><i class="fa-solid fa-plus me-2"></i> TAMBAH ZONA BARU</button>
+                            <button type="button" class="btn btn-outline-danger w-100 py-2 fw-bold" onclick="hapusZonaFirebase()" id="btn-hapus-zona"><i class="fa-solid fa-trash me-2"></i> HAPUS ZONA INI</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-statistik" class="page-view">
+            <div class="page-header"><div><h4>Statistik Kinerja</h4><p>Rangkuman analitik pergerakan tugas harian</p></div></div>
+            <div class="row g-4 mb-4">
+                <div class="col-md-4"><div class="dashboard-card"><h3 class="fw-bold text-primary m-0" id="stat-durasi-patroli">0 <small class="fs-6">Menit</small></h3><p class="text-muted small">RATA-RATA DURASI TUGAS</p></div></div>
+                <div class="col-md-4"><div class="dashboard-card"><h3 class="fw-bold text-success m-0" id="stat-jarak">0.0 <small class="fs-6">Km</small></h3><p class="text-muted small">TOTAL JARAK TUGAS</p></div></div>
+                <div class="col-md-4"><div class="dashboard-card"><h3 class="fw-bold text-success m-0" id="stat-kesehatan">100%</h3><p class="text-muted small">KESEHATAN KONEKSI</p></div></div>
+            </div>
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="dashboard-card" style="min-height: 380px;">
+                        <h6 class="fw-bold mb-4" style="font-size: 11px; letter-spacing: 1px; text-transform: uppercase;"><i class="fa-solid fa-chart-line text-primary me-2"></i> TREN AKTIVITAS ANGGOTA (7 HARI TERAKHIR)</h6>
+                        <div style="position: relative; height: 280px; width: 100%;">
+                            <canvas id="activePersonnelChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="dashboard-card" style="min-height: 380px;">
+                        <h6 class="fw-bold mb-4" style="font-size: 11px; letter-spacing: 1px; text-transform: uppercase;"><i class="fa-solid fa-chart-pie text-success me-2"></i> STATUS ANGGOTA SAAT INI</h6>
+                        <div style="position: relative; height: 280px; width: 100%;">
+                            <canvas id="personnelStatusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-riwayat" class="page-view">
+            <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div><h4>Riwayat Operasi</h4></div>
+                <div class="riwayat-filter-container d-flex gap-2 align-items-center flex-wrap">
+                    <div class="search-bar mb-0" style="max-width: 250px;">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" class="form-control" id="search-riwayat" placeholder="Cari Misi, NRP, Nama..." onkeyup="renderRiwayat()">
+                    </div>
+                    <div class="date-range-group d-flex gap-2 align-items-center flex-wrap">
+                        <div class="date-input-wrapper d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 text-muted small fw-bold text-nowrap" for="filter-tanggal-mulai">DARI:</label>
+                            <input type="date" id="filter-tanggal-mulai" class="form-control text-muted fw-bold" onchange="renderRiwayat()" style="width: auto;">
+                        </div>
+                        <div class="date-input-wrapper d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 text-muted small fw-bold text-nowrap" for="filter-tanggal-selesai">SAMPAI:</label>
+                            <input type="date" id="filter-tanggal-selesai" class="form-control text-muted fw-bold" onchange="renderRiwayat()" style="width: auto;">
+                        </div>
+                    </div>
+                    <button class="btn btn-success text-white fw-bold text-nowrap btn-csv" onclick="window.bukaModalUnduhCSV()"><i class="fa-solid fa-file-csv me-2"></i> Unduh CSV</button>
+                </div>
+            </div>
+            <div class="dashboard-card d-flex flex-column" style="flex-grow: 1;">
+                <div class="table-responsive" style="flex-grow: 1;">
+                    <table class="table table-hover table-custom">
+                        <thead><tr><th>Waktu Tugas</th><th>ID Misi</th><th>Pelaksana (NRP)</th><th>Kegiatan (Giat)</th><th>Komandan</th><th>Kekuatan</th><th>Durasi & Jarak</th><th>Status</th></tr></thead>
+                        <tbody id="tbody-riwayat"></tbody>
+                    </table>
+                </div>
+                <div id="pagination-riwayat" class="pagination-container d-flex justify-content-between align-items-center mt-3"></div>
+            </div>
+        </div>
+
+        <div id="page-laporan" class="page-view">
+            <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h4>Laporan Konsolidasi</h4>
+                    <p>Unduh dan cetak ringkasan laporan operasional monitoring personel.</p>
+                </div>
+                <div class="reports-filter-container d-flex gap-2 align-items-center flex-wrap">
+                    <div class="date-range-group d-flex gap-2 align-items-center flex-wrap">
+                        <div class="date-input-wrapper d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 text-muted small fw-bold text-nowrap" for="laporan-tanggal-mulai">PERIODE DARI:</label>
+                            <input type="date" id="laporan-tanggal-mulai" class="form-control text-muted fw-bold" onchange="buildLaporan()" style="width: auto;">
+                        </div>
+                        <div class="date-input-wrapper d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 text-muted small fw-bold text-nowrap" for="laporan-tanggal-selesai">SAMPAI:</label>
+                            <input type="date" id="laporan-tanggal-selesai" class="form-control text-muted fw-bold" onchange="buildLaporan()" style="width: auto;">
+                        </div>
+                    </div>
+                    <div class="button-group d-flex gap-2">
+                        <button class="btn btn-primary text-white fw-bold text-nowrap" onclick="window.cetakLaporanPDF()"><i class="fa-solid fa-print me-2"></i> Cetak Laporan (PDF)</button>
+                        <button class="btn btn-success text-white fw-bold text-nowrap" onclick="window.unduhLaporanCSV()"><i class="fa-solid fa-file-csv me-2"></i> Unduh Laporan (CSV)</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row g-3 mb-4 row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5">
+                <div class="col">
+                    <div class="dashboard-card text-center py-4 h-100">
+                        <i class="fa-solid fa-route text-success mb-2" style="font-size: 32px;"></i>
+                        <h3 class="fw-bold text-success m-0" id="rep-total-operasi">0</h3>
+                        <p class="text-muted small mb-0 mt-1">TOTAL OPERASI WILAYAH</p>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="dashboard-card text-center py-4 h-100">
+                        <i class="fa-solid fa-users text-primary mb-2" style="font-size: 32px;"></i>
+                        <h3 class="fw-bold text-primary m-0" id="rep-total-anggota">0</h3>
+                        <p class="text-muted small mb-0 mt-1">TOTAL ANGGOTA AKTIF</p>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="dashboard-card text-center py-4 h-100">
+                        <i class="fa-solid fa-hourglass-half text-warning mb-2" style="font-size: 32px;"></i>
+                        <h3 class="fw-bold text-warning m-0" id="rep-total-jam">0</h3>
+                        <p class="text-muted small mb-0 mt-1">TOTAL JAM OPERASIONAL</p>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="dashboard-card text-center py-4 h-100">
+                        <i class="fa-solid fa-road text-info mb-2" style="font-size: 32px;"></i>
+                        <h3 class="fw-bold text-info m-0" id="rep-total-jarak">0.0 <small class="fs-6">Km</small></h3>
+                        <p class="text-muted small mb-0 mt-1">TOTAL JARAK TEMPUH</p>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="dashboard-card text-center py-4 h-100">
+                        <i class="fa-solid fa-map-location-dot text-danger mb-2" style="font-size: 32px;"></i>
+                        <h3 class="fw-bold text-danger m-0" id="rep-zona-aktif">0</h3>
+                        <p class="text-muted small mb-0 mt-1">ZONA GEOFENCE AKTIF</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-card d-flex flex-column" style="flex-grow: 1;">
+                <h6 class="fw-bold mb-4" style="font-size: 11px; letter-spacing: 1px; text-transform: uppercase;"><i class="fa-solid fa-chart-bar text-primary me-2"></i> Rangkuman Operasional Personel</h6>
+                
+                <div class="d-flex justify-content-between align-items-center mb-4 gap-3 flex-wrap">
+                    <div class="search-bar" style="flex-grow: 1; max-width: 300px;">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" class="form-control" id="search-laporan" placeholder="Cari NRP, Nama, atau Satker..." onkeyup="buildLaporan()">
+                    </div>
+                </div>
+
+                <div class="table-responsive" style="flex-grow: 1;">
+                    <table class="table table-hover table-custom">
+                        <thead>
+                            <tr>
+                                <th>NRP</th>
+                                <th>Nama Personel</th>
+                                <th>Satker</th>
+                                <th class="text-center">Peran</th>
+                                <th class="text-center">Jml. Penugasan</th>
+                                <th class="text-center">Total Jarak</th>
+                                <th class="text-center">Total Waktu</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-laporan-summary">
+                            <tr><td colspan="7" class="text-center text-muted py-4">Memuat ringkasan laporan...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="pagination-laporan" class="pagination-container d-flex justify-content-between align-items-center mt-3"></div>
+            </div>
+        </div>
+
+        <div id="page-approval" class="page-view">
+            <div class="page-header"><div><h4>Approval Pendaftaran Baru <span class="badge bg-danger ms-2 rounded-pill" style="font-size: 11px; display:none;" id="title-badge-approval">0</span></h4><p>Validasi dan persetujuan pendaftaran akun personel baru</p></div></div>
+            <div class="dashboard-card d-flex flex-column" style="flex-grow: 1;">
+                <div class="d-flex justify-content-between align-items-center mb-4 gap-3 flex-wrap">
+                    <div class="search-bar" style="flex-grow: 1; max-width: 350px;">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" class="form-control" id="search-approval" placeholder="Cari NRP atau Nama..." onkeyup="renderApprovalTable()">
+                    </div>
+                </div>
+                <div class="table-responsive" style="flex-grow: 1;">
+                    <table class="table table-custom">
+                        <thead><tr><th>NRP</th><th>Nama Lengkap</th><th>Pangkat / Jabatan</th><th>Satker (Satuan Kerja)</th><th style="width: 150px;">Email</th><th>Waktu Daftar</th><th class="text-center" style="text-align: center !important;">Otorisasi</th></tr></thead>
+                        <tbody id="tbody-approval"></tbody>
+                    </table>
+                </div>
+                <div id="pagination-approval" class="pagination-container d-flex justify-content-between align-items-center mt-3"></div>
+            </div>
+        </div>
+
+        <div id="page-pengaturan" class="page-view">
+            <div class="page-header"><div><h4>Pengaturan Sistem</h4><p>Konfigurasi parameter operasional dan sinkronisasi client pelacakan</p></div></div>
+            <div class="row g-4">
+                <!-- Card 1: GPS configuration -->
+                <div class="col-12">
+                    <div class="dashboard-card">
+                        <h6 class="fw-bold mb-4" style="font-size: 11px; letter-spacing: 1px; text-transform: uppercase;"><i class="fa-solid fa-satellite text-primary me-2"></i> Konfigurasi Pelacakan GPS</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted small fw-bold">Interval Update GPS Anggota:</label>
+                                <select id="set-gps-interval" class="form-select border-secondary" style="background-color: var(--card-bg); color: var(--text-main);">
+                                    <option value="5">Sangat Cepat (5 Detik)</option>
+                                    <option value="10">Standar Update (10 Detik)</option>
+                                    <option value="30">Hemat Baterai (30 Detik)</option>
+                                    <option value="60">Sangat Hemat (60 Detik)</option>
+                                </select>
+                                <small class="text-muted d-block mt-1">Mengontrol frekuensi transmisi koordinat dari aplikasi mobile/web tracker ke Firebase.</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted small fw-bold">Batas Waktu Stale Unit (Offline Otomatis):</label>
+                                <select id="set-stale-timeout" class="form-select border-secondary" style="background-color: var(--card-bg); color: var(--text-main);">
+                                    <option value="5">Cepat (5 Menit)</option>
+                                    <option value="15">Standar (15 Menit)</option>
+                                    <option value="30">Lama (30 Menit)</option>
+                                </select>
+                                <small class="text-muted d-block mt-1">Rentang waktu toleransi sebelum sistem menghapus unit yang tidak mengirimkan GPS.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Database & Maintenance -->
+                <div class="col-12">
+                    <div class="dashboard-card">
+                        <h6 class="fw-bold mb-4" style="font-size: 11px; letter-spacing: 1px; text-transform: uppercase;"><i class="fa-solid fa-database text-danger me-2"></i> Manajemen Pemeliharaan & Database</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input cursor-pointer" type="checkbox" role="switch" id="set-maintenance-mode">
+                                    <label class="form-check-label text-white small cursor-pointer" for="set-maintenance-mode">Aktifkan Mode Pemeliharaan (Maintenance Mode)</label>
+                                    <small class="text-muted d-block">Memblokir akses pelacakan anggota lapangan sementara selama perbaikan sistem.</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6 d-flex align-items-center justify-content-md-end">
+                                <button class="btn btn-danger fw-bold" id="btn-purge-db" onclick="window.bersihkanDatabaseLama()"><i class="fa-solid fa-trash-can me-2"></i> BERSIHKAN DATA LAMA (>30 HARI)</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- HALAMAN LIVE CHAT -->
+        <!-- ============================================================ -->
+        <div id="page-chat" class="page-view" style="height:calc(100vh - 70px); overflow:hidden; padding:0;">
+            <div style="display:flex; height:100%; background:var(--bg-main);">
+
+                <!-- Sidebar Saluran -->
+                <div id="chat-channels-sidebar" style="width:220px; min-width:220px; background:var(--bg-card); border-right:1px solid var(--border-color); display:flex; flex-direction:column; overflow:hidden;">
+                    <div style="padding:16px; border-bottom:1px solid var(--border-color);">
+                        <div style="font-size:11px; font-weight:700; color:var(--text-muted); letter-spacing:1px;">SALURAN</div>
+                    </div>
+                    <div style="padding:8px;">
+                        <button class="chat-channel-btn active" id="ch-umum" onclick="switchChatChannel('umum', this)">
+                            <i class="fa-solid fa-hashtag" style="font-size:12px;"></i> Siaran Umum
+                            <span class="badge bg-primary ms-auto" id="badge-ch-umum" style="font-size:10px; display:none;">0</span>
+                        </button>
+                        <button class="chat-channel-btn" id="ch-komandan" onclick="switchChatChannel('komandan', this)">
+                            <i class="fa-solid fa-hashtag" style="font-size:12px;"></i> Komandan
+                        </button>
+                        <button class="chat-channel-btn" id="ch-admin" onclick="switchChatChannel('admin', this)">
+                            <i class="fa-solid fa-hashtag" style="font-size:12px;"></i> Admin
+                        </button>
+                    </div>
+                    <div style="margin-top:auto; padding:12px; border-top:1px solid var(--border-color);">
+                        <div style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+                            <span style="width:8px;height:8px;background:#10b981;border-radius:50%;display:inline-block;"></span>
+                            <span id="chat-online-count">0 online</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Area Chat Utama -->
+                <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+
+                    <!-- Header Channel -->
+                    <div style="padding:14px 20px; background:var(--bg-card); border-bottom:1px solid var(--border-color); display:flex; align-items:center; gap:10px;">
+                        <i class="fa-solid fa-hashtag" style="color:var(--text-muted);"></i>
+                        <div>
+                            <div style="font-size:14px; font-weight:700; color:var(--text-main);" id="chat-channel-title">Siaran Umum</div>
+                            <div style="font-size:11px; color:var(--text-muted);">Semua personel dapat melihat dan mengirim pesan</div>
+                        </div>
+                    </div>
+
+                    <!-- Pesan Area -->
+                    <div id="chat-messages-area" style="flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:12px;">
+                        <div id="chat-empty-state" style="margin:auto; text-align:center;">
+                            <i class="fa-solid fa-comments" style="font-size:48px; color:var(--text-muted); opacity:0.3;"></i>
+                            <p style="color:var(--text-muted); margin-top:12px; font-size:13px;">Belum ada pesan di saluran ini</p>
+                        </div>
+                    </div>
+
+                    <!-- Input Area -->
+                    <div style="padding:14px 20px; background:var(--bg-card); border-top:1px solid var(--border-color);">
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <div style="flex:1; background:var(--bg-main); border:1px solid var(--border-color); border-radius:10px; display:flex; align-items:center; padding:0 14px;">
+                                <input type="text" id="chat-input" placeholder="Kirim pesan ke #siaran-umum..." style="flex:1; background:transparent; border:none; outline:none; padding:12px 0; font-size:14px; color:var(--text-main); font-family:'Inter',sans-serif;" onkeydown="if(event.key==='Enter')window.kirimPesan()">
+                                <button onclick="window.lampirkanFotoChat()" style="background:none; border:none; cursor:pointer; color:var(--text-muted); padding:4px 6px; border-radius:6px;" title="Lampirkan Foto">
+                                    <i class="fa-solid fa-image" style="font-size:14px;"></i>
+                                </button>
+                            </div>
+                            <button onclick="window.kirimPesan()" id="chat-send-btn" style="width:44px;height:44px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);border:none;border-radius:10px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" title="Kirim">
+                                <i class="fa-solid fa-paper-plane" style="font-size:15px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- HALAMAN LIVE OPS -->
+        <!-- ============================================================ -->
+        <div id="page-live" class="page-view" style="height:calc(100vh - 70px); overflow:hidden; padding:0;">
+            <div style="display:flex; flex-direction:column; height:100%; background:var(--bg-main); padding:24px;">
+                
+                <!-- Header Halaman -->
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; border-bottom:1px solid var(--border-color); padding-bottom:16px; flex-shrink:0;">
+                    <div>
+                        <h4 style="margin:0; font-weight:700; color:var(--text-main);">📡 Live Ops</h4>
+                        <p style="margin:4px 0 0 0; font-size:12px; color:var(--text-muted);">Monitor video langsung dari kamera lapangan personel secara real-time</p>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); padding:6px 12px; border-radius:6px;">
+                        <span style="width:8px; height:8px; background:#ef4444; border-radius:50%; display:inline-block;" class="pulse-red"></span>
+                        <span id="live-ops-active-count" style="font-size:11px; font-weight:700; color:#ef4444;">0 SIARAN AKTIF</span>
+                    </div>
+                </div>
+
+                <!-- Grid Streaming Area -->
+                <div style="flex:1; overflow-y:auto; padding-bottom:20px;">
+                    <!-- Empty State -->
+                    <div id="live-ops-empty-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:300px; text-align:center;">
+                        <div style="width:64px; height:64px; border-radius:50%; background:rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:center; margin-bottom:16px; border:1px solid var(--border-color);">
+                            <i class="fa-solid fa-tower-broadcast" style="font-size:24px; color:var(--text-muted);"></i>
+                        </div>
+                        <h6 style="margin:0; font-weight:600; color:var(--text-main);">Tidak Ada Siaran Aktif</h6>
+                        <p style="margin:6px 0 0 0; font-size:13px; color:var(--text-muted); max-width:320px;">Saat ini tidak ada personel yang sedang menyiarkan video langsung dari lapangan.</p>
+                    </div>
+
+                    <!-- Grid Container -->
+                    <div id="live-ops-grid" class="live-grid" style="display:none; gap:20px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));">
+                        <!-- Dihasilkan secara dinamis via JS -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal Notifikasi Email Approval -->
+<div class="modal fade" id="emailApprovalModal" tabindex="-1" aria-labelledby="emailApprovalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: #18181b; border: 1px solid #27272a; color: #ffffff;">
+            <div class="modal-header" style="border-bottom: 1px solid #27272a;">
+                <h5 class="modal-title fw-bold" id="emailApprovalModalLabel"><i class="fa-solid fa-envelope-circle-check text-success me-2"></i> Notifikasi Aktivasi Akun</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">E-mail Anggota</label>
+                    <input type="text" id="modalEmailRecipient" class="form-control font-monospace text-white bg-dark border-secondary" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">Subjek Email</label>
+                    <input type="text" id="modalEmailSubject" class="form-control text-white bg-dark border-secondary" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">Isi Pesan Notifikasi</label>
+                    <textarea id="modalEmailBody" class="form-control text-white bg-dark border-secondary" rows="8" readonly style="resize: none;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #27272a;">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary fw-bold" id="btnCopyEmailText"><i class="fa-solid fa-copy me-2"></i> Salin Pesan</button>
+                <button type="button" class="btn btn-success fw-bold" id="btnSendMailto"><i class="fa-solid fa-paper-plane me-2"></i> Kirim via Email</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Kirim Komando / Broadcast Instan -->
+<div class="modal fade" id="kirimKomandoModal" tabindex="-1" aria-labelledby="kirimKomandoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: #18181b; border: 1px solid #27272a; color: #ffffff;">
+            <div class="modal-header" style="border-bottom: 1px solid #27272a;">
+                <h5 class="modal-title fw-bold" id="kirimKomandoModalLabel"><i class="fa-solid fa-paper-plane text-warning me-2"></i> Kirim Perintah Taktis Langsung</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">Penerima Komando</label>
+                    <input type="text" id="komandoTargetName" class="form-control text-white bg-dark border-secondary" readonly>
+                    <input type="hidden" id="komandoTargetNrp">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">Isi Perintah / Komando</label>
+                    <textarea id="komandoText" class="form-control text-white bg-dark border-secondary" rows="4" placeholder="Ketik perintah taktis langsung di sini..." style="resize: none;" required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #27272a;">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-warning fw-bold text-dark" id="btnKirimKomandoInstan"><i class="fa-solid fa-paper-plane me-2"></i> KIRIM PERINTAH</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Visualisasi Rute Peta Lintasan -->
+<div class="modal fade" id="routeVisualModal" tabindex="-1" aria-labelledby="routeVisualModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 650px;">
+        <div class="modal-content" style="background-color: #18181b; border: 1px solid #27272a; color: #ffffff;">
+            <div class="modal-header" style="border-bottom: 1px solid #27272a;">
+                <h5 class="modal-title fw-bold" id="routeVisualModalLabel"><i class="fa-solid fa-route text-success me-2"></i> Peta Jalur Lintasan Tugas</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" style="position: relative; height: 380px;">
+                <div id="map-route" style="width: 100%; height: 100%;"></div>
+                
+                <!-- Overlay Stats Lintasan -->
+                <div class="position-absolute bottom-0 start-0 m-3 p-3 rounded" style="background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(8px); border: 1px solid #27272a; z-index: 1000; min-width: 240px; font-size: 11px;">
+                    <h6 class="fw-bold mb-2 text-success"><i class="fa-solid fa-circle-info"></i> Info Lintasan</h6>
+                    <hr style="margin: 6px 0; border-color: rgba(255,255,255,0.1);">
+                    <div class="d-flex justify-content-between mb-1"><span>Nama:</span> <b id="route-user-name">-</b></div>
+                    <div class="d-flex justify-content-between mb-1"><span>NRP:</span> <b id="route-user-nrp">-</b></div>
+                    <div class="d-flex justify-content-between mb-1"><span>Jarak Tempuh:</span> <b id="route-distance">-</b></div>
+                    <div class="d-flex justify-content-between"><span>Durasi:</span> <b id="route-duration">-</b></div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #27272a;">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Profil Saya -->
+<div class="modal fade" id="profilSayaModal" tabindex="-1" aria-labelledby="profilSayaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: #18181b; border: 1px solid #27272a; color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+            <div class="modal-header border-0 pb-0 justify-content-end" style="position: absolute; right: 10px; top: 10px; z-index: 10;">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <!-- Header Cover -->
+                <div style="height: 120px; background: linear-gradient(135deg, #881337 0%, #ef4444 100%); position: relative;">
+                    <div class="text-center" style="position: absolute; bottom: -50px; left: 0; right: 0;">
+                        <img id="profilAvatar" src="" class="rounded-circle border border-dark border-4" style="width: 100px; height: 100px; object-fit: cover; background: #27272a;" alt="Avatar">
+                    </div>
+                </div>
+                <!-- Content -->
+                <div class="p-4 pt-5 text-center mt-2">
+                    <h5 id="profilNama" class="fw-bold mb-1">-</h5>
+                    <span id="profilRoleBadge" class="badge bg-danger bg-opacity-20 text-danger border border-danger mb-4" style="font-size: 10px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;">MEMBER</span>
+                    
+                    <div class="row g-3 text-start mt-2 px-2">
+                        <div class="col-6">
+                            <div class="p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-20">
+                                <small class="text-muted d-block" style="font-size: 9px; font-weight: 800; letter-spacing: 0.5px;">NRP / IDENTITAS</small>
+                                <span id="profilNrp" class="fw-bold fs-6 text-white">-</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-20">
+                                <small class="text-muted d-block" style="font-size: 9px; font-weight: 800; letter-spacing: 0.5px;">PANGKAT</small>
+                                <span id="profilPangkat" class="fw-bold fs-6 text-white">-</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-20">
+                                <small class="text-muted d-block" style="font-size: 9px; font-weight: 800; letter-spacing: 0.5px;">SATUAN KERJA (SATKER)</small>
+                                <span id="profilSatker" class="fw-bold fs-6 text-white">-</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-20">
+                                <small class="text-muted d-block" style="font-size: 9px; font-weight: 800; letter-spacing: 0.5px;">HAK AKSES / ROLE</small>
+                                <span id="profilRole" class="fw-bold fs-6 text-white">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0 pb-4 justify-content-center">
+                <button type="button" class="btn btn-outline-secondary px-4 fw-bold" style="border-radius: 20px; font-size: 12px;" data-bs-dismiss="modal">TUTUP</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Profil Personel -->
+<div class="modal fade" id="editPersonelModal" tabindex="-1" aria-labelledby="editPersonelModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: #18181b; border: 1px solid #27272a; color: #ffffff; border-radius: 16px;">
+            <div class="modal-header" style="border-bottom: 1px solid #27272a;">
+                <h5 class="modal-title fw-bold" id="editPersonelModalLabel"><i class="fa-solid fa-user-gear text-primary me-2"></i> Edit Profil Anggota</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-uid">
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">NRP (Identitas Login)</label>
+                    <input type="text" id="edit-nrp" class="form-control font-monospace" readonly style="background-color: #27272a; color: #a1a1aa; border-color: #3f3f46;">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">Nama Lengkap</label>
+                    <input type="text" id="edit-nama" class="form-control bg-dark text-white border-secondary" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">Pangkat</label>
+                    <input type="text" id="edit-pangkat" class="form-control bg-dark text-white border-secondary" placeholder="Contoh: BRIPDA, BRIPTU" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">Jabatan</label>
+                    <input type="text" id="edit-jabatan" class="form-control bg-dark text-white border-secondary" placeholder="Contoh: Bintara Satker" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">Satuan Kerja (Satker)</label>
+                    <input type="text" id="edit-satker" class="form-control bg-dark text-white border-secondary" placeholder="Contoh: TIK" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">No. HP / WhatsApp Aktif</label>
+                    <input type="text" id="edit-phone" class="form-control bg-dark text-white border-secondary" placeholder="Contoh: 0812..." required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">Hak Akses (Role)</label>
+                    <select id="edit-role" class="form-select bg-dark text-white border-secondary">
+                        <option value="member">Anggota</option>
+                        <option value="commander">Komandan</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <small class="text-muted d-block mt-1">Ubah hak akses personel di sistem SIAGA.</small>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #27272a;">
+                <button type="button" class="btn btn-outline-secondary px-4 fw-bold" style="border-radius: 20px; font-size: 12px;" data-bs-dismiss="modal">BATAL</button>
+                <button type="button" class="btn btn-primary px-4 fw-bold" style="border-radius: 20px; font-size: 12px;" id="btnSimpanEditPersonel"><i class="fa-solid fa-floppy-disk me-2"></i> SIMPAN</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Konfirmasi Kustom -->
+<div class="modal fade" id="customConfirmModal" tabindex="-1" aria-labelledby="customConfirmModalLabel" aria-hidden="true" style="z-index: 4000;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 450px;">
+        <div class="modal-content" style="background-color: #18181b; border: 1px solid #27272a; color: #ffffff; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+            <div class="modal-body p-4 text-center">
+                <div class="mb-3">
+                    <i class="fa-solid fa-triangle-exclamation text-warning" style="font-size: 48px;" id="confirmIcon"></i>
+                </div>
+                <h5 class="fw-bold mb-2" id="confirmTitle">Konfirmasi Tindakan</h5>
+                <p class="text-muted small mb-4" id="confirmMessage" style="font-size: 13px; line-height: 1.5;"></p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="button" class="btn btn-outline-secondary px-4 fw-bold" style="border-radius: 20px; min-width: 110px; font-size: 12px;" data-bs-dismiss="modal">BATAL</button>
+                    <button type="button" class="btn btn-danger px-4 fw-bold" style="border-radius: 20px; min-width: 110px; font-size: 12px;" id="btnCustomConfirmExecute">YA, EKSEKUSI</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Alert Kustom -->
+<div class="modal fade" id="customAlertModal" tabindex="-1" aria-labelledby="customAlertModalLabel" aria-hidden="true" style="z-index: 4001;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-content" style="background-color: #18181b; border: 1px solid #27272a; color: #ffffff; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+            <div class="modal-body p-4 text-center">
+                <div class="mb-3">
+                    <i class="fa-solid fa-circle-check text-success" style="font-size: 48px;" id="alertIcon"></i>
+                </div>
+                <h5 class="fw-bold mb-2" id="alertTitle">Notifikasi</h5>
+                <p class="text-muted small mb-4" id="alertMessage" style="font-size: 13px; line-height: 1.5;"></p>
+                <button type="button" class="btn btn-primary px-5 fw-bold" style="border-radius: 20px; font-size: 12px;" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Prompt Input Kustom -->
+<div class="modal fade" id="customPromptModal" tabindex="-1" aria-labelledby="customPromptModalLabel" aria-hidden="true" style="z-index: 4002;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 450px;">
+        <div class="modal-content" style="background-color: #18181b; border: 1px solid #27272a; color: #ffffff; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+            <div class="modal-header" style="border-bottom: 1px solid #27272a;">
+                <h5 class="modal-title fw-bold" id="promptTitle"><i class="fa-solid fa-map-location-dot text-primary me-2"></i> Tambah Zona Baru</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-2">
+                    <label class="form-label text-muted small fw-bold" id="promptLabel">Nama Zona:</label>
+                    <input type="text" id="promptInputVal" class="form-control bg-dark text-white border-secondary" placeholder="Masukkan nama zona..." required>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #27272a;">
+                <button type="button" class="btn btn-outline-secondary px-4 fw-bold" style="border-radius: 20px; font-size: 12px;" data-bs-dismiss="modal">BATAL</button>
+                <button type="button" class="btn btn-primary px-4 fw-bold" style="border-radius: 20px; font-size: 12px;" id="btnCustomPromptSubmit"><i class="fa-solid fa-floppy-disk me-2"></i> SIMPAN</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Unduh CSV -->
+<div class="modal fade" id="unduhCsvModal" tabindex="-1" aria-labelledby="unduhCsvModalLabel" aria-hidden="true" style="z-index: 4005;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 450px;">
+        <div class="modal-content" style="background-color: #18181b; border: 1px solid #27272a; color: #ffffff; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+            <div class="modal-header" style="border-bottom: 1px solid #27272a;">
+                <h5 class="modal-title fw-bold" id="unduhCsvModalLabel"><i class="fa-solid fa-file-csv text-success me-2"></i> Unduh Laporan Riwayat</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">PILIH JANGKAUAN DATA:</label>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="csvExportRange" id="csvRangeAll" value="all" checked onchange="window.toggleCsvModalDateInputs()">
+                        <label class="form-check-label text-white small cursor-pointer" for="csvRangeAll">
+                            Semua Data Riwayat
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="csvExportRange" id="csvRangeCustom" value="custom" onchange="window.toggleCsvModalDateInputs()">
+                        <label class="form-check-label text-white small cursor-pointer" for="csvRangeCustom">
+                            Rentang Tanggal Khusus
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="row g-2 mb-3" id="csvModalDateContainer" style="display: none;">
+                    <div class="col-6">
+                        <label class="form-label text-muted small fw-bold">Dari Tanggal:</label>
+                        <input type="date" id="csv-download-start" class="form-control bg-dark text-white border-secondary">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-muted small fw-bold">Sampai Tanggal:</label>
+                        <input type="date" id="csv-download-end" class="form-control bg-dark text-white border-secondary">
+                    </div>
+                </div>
+
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="csvFilterQuery" checked>
+                    <label class="form-check-label text-white small cursor-pointer" for="csvFilterQuery">
+                        Ikuti kata kunci pencarian aktif di layar
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #27272a;">
+                <button type="button" class="btn btn-outline-secondary px-4 fw-bold" style="border-radius: 20px; font-size: 12px;" data-bs-dismiss="modal">BATAL</button>
+                <button type="button" class="btn btn-success px-4 fw-bold" style="border-radius: 20px; font-size: 12px;" id="btnExecuteCsvDownload"><i class="fa-solid fa-download me-2"></i> UNDUH CSV</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- ============================================================ -->
+<!-- FLOATING CHAT BUBBLE (seluruh halaman) -->
+<!-- ============================================================ -->
+<div id="chat-float-btn" onclick="window.toggleFloatingChat()" title="Live Chat" style="display:none; position:fixed; bottom:28px; right:90px; z-index:3500; width:52px; height:52px; background:linear-gradient(135deg,#1d4ed8,#3b82f6); border-radius:50%; cursor:pointer; box-shadow:0 8px 24px rgba(59,130,246,0.45); align-items:center; justify-content:center; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+    <i class="fa-solid fa-comments" style="color:#fff; font-size:20px;"></i>
+    <span id="chat-float-badge" style="display:none; position:absolute; top:-4px; right:-4px; background:#ef4444; color:#fff; font-size:10px; font-weight:700; border-radius:50%; width:18px; height:18px; align-items:center; justify-content:center; border:2px solid #09090b;">0</span>
+</div>
+
+<!-- Floating Chat Panel -->
+<div id="chat-float-panel" style="display:none; position:fixed; bottom:90px; right:90px; z-index:3500; width:360px; height:480px; background:#18181b; border:1px solid #27272a; border-radius:16px; box-shadow:0 20px 50px rgba(0,0,0,0.6); flex-direction:column; overflow:hidden; animation:slideUpChat 0.25s ease;">
+    <!-- Header -->
+    <div style="padding:14px 16px; background:#1c1c1f; border-bottom:1px solid #27272a; display:flex; align-items:center; gap:8px;">
+        <span style="width:8px;height:8px;background:#10b981;border-radius:50%;"></span>
+        <span style="font-size:13px; font-weight:700; color:#fff; flex:1; letter-spacing:0.5px;">KOMUNIKASI SIAGA</span>
+        <button onclick="window.toggleFloatingChat()" style="background:none;border:none;cursor:pointer;color:#6b7280;padding:4px;border-radius:6px;" title="Tutup">
+            <i class="fa-solid fa-xmark" style="font-size:16px;"></i>
+        </button>
+    </div>
+    <!-- Pesan -->
+    <div id="chat-float-messages" style="flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px;">
+        <div id="chat-float-empty" style="margin:auto; text-align:center;">
+            <i class="fa-solid fa-comments" style="font-size:36px; color:#3f3f46;"></i>
+            <p style="color:#52525b; font-size:12px; margin-top:8px;">Belum ada pesan</p>
+        </div>
+    </div>
+    <!-- Input -->
+    <div style="padding:12px; border-top:1px solid #27272a; display:flex; gap:8px; align-items:center;">
+        <input type="text" id="chat-float-input" placeholder="Kirim pesan..." style="flex:1; background:#09090b; border:1px solid #27272a; border-radius:8px; padding:9px 12px; font-size:13px; color:#fff; outline:none; font-family:'Inter',sans-serif;" onkeydown="if(event.key==='Enter')window.kirimPesanFloat()">
+        <button onclick="window.kirimPesanFloat()" style="width:38px;height:38px;background:#3b82f6;border:none;border-radius:8px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fa-solid fa-paper-plane" style="font-size:13px;"></i>
+        </button>
+    </div>
+</div>
+
+
+
+
+<!-- Floating Live Stream Video Panel (Picture-in-Picture) -->
+<div id="live-floating-panel" style="display:none; position:fixed; bottom:28px; right:160px; z-index:3500; width:340px; background:#18181b; border:1px solid #27272a; border-radius:12px; box-shadow:0 20px 50px rgba(0,0,0,0.6); flex-direction:column; overflow:hidden; animation:slideUpChat 0.25s ease;">
+    <div style="padding:10px 14px; background:#1c1c1f; border-bottom:1px solid #27272a; display:flex; align-items:center; gap:8px;">
+        <span class="pulse-red" style="width:6px; height:6px; background:#ef4444; border-radius:50%;"></span>
+        <span id="live-float-title" style="font-size:12px; font-weight:700; color:#fff; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">LIVE SIARAN</span>
+        <button onclick="window.closeFloatingLiveStream()" style="background:none;border:none;cursor:pointer;color:#6b7280;padding:2px;" title="Tutup">
+            <i class="fa-solid fa-xmark" style="font-size:14px;"></i>
+        </button>
+    </div>
+    <div style="position:relative; width:100%; aspect-ratio:4/3; background:#000; display:flex; align-items:center; justify-content:center;">
+        <video id="live-float-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+        <div id="live-float-loading" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.8); gap:10px; color:#fff;">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <span style="font-size:11px; color:#a1a1aa;">Menghubungkan WebRTC...</span>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script type="module" src="app.js?v=1.1.2"></script>
+</body>
+</html>

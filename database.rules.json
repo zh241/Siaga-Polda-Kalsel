@@ -1,0 +1,73 @@
+{
+  "rules": {
+    "users": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'commander')",
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+        "role": {
+          ".validate": "newData.isString() && (newData.val() == 'member' || newData.val() == 'commander' || newData.val() == 'admin') && (root.child('users').child(auth.uid).child('role').val() == 'admin' || (!data.exists() && newData.val() == 'member'))"
+        },
+        "status": {
+          ".validate": "newData.isString() && (newData.val() == 'active' || newData.val() == 'pending' || newData.val() == 'inactive') && (root.child('users').child(auth.uid).child('role').val() == 'admin' || (!data.exists() && newData.val() == 'pending'))"
+        },
+        "history": {
+          "$hid": {
+            ".write": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+            ".validate": "newData.hasChildren(['startTime','endTime','pointsCount']) && newData.child('pointsCount').isNumber()"
+          }
+        }
+      }
+    },
+    // Email virtual berbasis NRP untuk login (e.g., 123456@siaga.polri.go.id)
+    "live_tracking": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'commander')",
+      "$device_id": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'commander' || $device_id == 'POL-' + root.child('users').child(auth.uid).child('nrp').val())",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('status').val() == 'active' && ($device_id == 'POL-' + root.child('users').child(auth.uid).child('nrp').val() || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+        ".validate": "!newData.exists() || (newData.hasChildren(['koordinat','waktu','nrp']) && newData.child('koordinat').child('lat').isNumber() && newData.child('koordinat').child('lat').val() >= -90 && newData.child('koordinat').child('lat').val() <= 90 && newData.child('koordinat').child('lng').isNumber() && newData.child('koordinat').child('lng').val() >= -180 && newData.child('koordinat').child('lng').val() <= 180 && newData.child('waktu').isString() && newData.child('nrp').isString())"
+      }
+    },
+    "geofences": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'commander')",
+      "$zoneid": {
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
+        ".validate": "!newData.exists() || (newData.hasChildren(['nama','lat','lng','radius']) && newData.child('nama').isString() && newData.child('lat').isNumber() && newData.child('lng').isNumber() && newData.child('radius').isNumber())"
+      }
+    },
+    "system_settings": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('status').val() == 'active'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
+    },
+    "alerts": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'commander')",
+      "$aid": {
+        ".write": "auth != null && root.child('users').child(auth.uid).child('status').val() == 'active'",
+        ".validate": "!newData.exists() || (newData.hasChildren(['nrp','dari','lokasi','waktu']) && newData.child('lokasi').child('lat').isNumber() && newData.child('lokasi').child('lng').isNumber())"
+      }
+    },
+    "chat": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('status').val() == 'active'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('status').val() == 'active'",
+      "$channel": {
+        "$msgId": {
+          ".validate": "newData.hasChildren(['uid','nrp','nama','pangkat','pesan','waktu']) && newData.child('uid').isString() && newData.child('nrp').isString() && newData.child('nama').isString() && newData.child('pangkat').isString() && newData.child('pesan').isString() && newData.child('pesan').val().length <= 1000 && newData.child('waktu').isString()"
+        }
+      }
+    },
+    "streams": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('status').val() == 'active'",
+      "$uid": {
+        ".read": "auth != null && root.child('users').child(auth.uid).child('status').val() == 'active'",
+        ".write": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'commander')"
+      }
+    },
+    "messages": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'commander')",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'commander')",
+      "$mid": {
+        ".validate": "newData.hasChildren(['target','pesan','waktu','oleh']) && newData.child('pesan').isString() && newData.child('pesan').val().length <= 1000"
+      }
+    }
+  }
+}
