@@ -1,7 +1,7 @@
 {
   "rules": {
     "users": {
-      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'commander')",
+      ".read": "auth != null && root.child('users').child(auth.uid).child('status').val() == 'active'",
       "$uid": {
         ".read": "auth != null && auth.uid == $uid",
         ".write": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
@@ -19,7 +19,6 @@
         }
       }
     },
-    // Email virtual berbasis NRP untuk login (e.g., 123456@siaga.polri.go.id)
     "live_tracking": {
       ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'commander')",
       "$device_id": {
@@ -48,10 +47,23 @@
     },
     "chat": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('status').val() == 'active'",
-      ".write": "auth != null && root.child('users').child(auth.uid).child('status').val() == 'active'",
-      "$channel": {
+      "umum": {
+        ".write": "auth != null && root.child('users').child(auth.uid).child('status').val() == 'active'",
+        ".indexOn": ["waktu"],
         "$msgId": {
           ".validate": "newData.hasChildren(['uid','nrp','nama','pangkat','pesan','waktu']) && newData.child('uid').isString() && newData.child('nrp').isString() && newData.child('nama').isString() && newData.child('pangkat').isString() && newData.child('pesan').isString() && newData.child('pesan').val().length <= 1000 && newData.child('waktu').isString()"
+        }
+      },
+      "dm": {
+        "$convId": {
+          ".read": "auth != null && data.child('participants').child(auth.uid).val() == true",
+          ".write": "auth != null && root.child('users').child(auth.uid).child('status').val() == 'active'",
+          "messages": {
+            ".indexOn": ["waktu"],
+            "$msgId": {
+              ".validate": "newData.hasChildren(['uid','nrp','nama','pangkat','pesan','waktu']) && newData.child('uid').isString() && newData.child('pesan').isString() && newData.child('pesan').val().length <= 1000 && newData.child('waktu').isString()"
+            }
+          }
         }
       }
     },

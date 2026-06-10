@@ -1397,6 +1397,21 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> with TickerProviderStateMixin {
   int _currentIndex = 0;
   HomeMissionState _homeState = HomeMissionState.standby;
+
+  String _getRoleDisplayName(String? role) {
+    if (role == null) return '';
+    switch (role.toLowerCase()) {
+      case 'commander':
+        return 'KOMANDAN';
+      case 'member':
+        return 'ANGGOTA';
+      case 'admin':
+        return 'ADMIN';
+      default:
+        return role.toUpperCase();
+    }
+  }
+
   late AnimationController _radarAnimationController;
 
   // Profil Data
@@ -1437,6 +1452,11 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   final TextEditingController _customVehicleController = TextEditingController();
   final TextEditingController _chatMsgController = TextEditingController();
   final ScrollController _chatScrollController = ScrollController();
+  // DM state
+  String _chatLevel = 'list'; // 'list' or 'conversation'
+  String _chatPath = 'chat/umum'; // Firebase path for current chat
+  String _dmConvId = ''; // conversation ID for DM
+  String _dmTargetName = ''; // Display name of DM target
   String _selectedVehicleCategory = 'Jalan Kaki';
   String _noHpDinas = '';
 
@@ -2463,7 +2483,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                           children: const [
                             Icon(Icons.hourglass_empty, size: 14, color: Colors.orange),
                             SizedBox(width: 5),
-                            Text('Status: PENDING APPROVAL', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.orange)),
+                            Text('Status: MENUNGGU PERSETUJUAN', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.orange)),
                           ],
                         )
                       ],
@@ -2928,6 +2948,27 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                     onPressed: _aktifkanTrackingSatelit,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      setState(() {
+                        _homeState = HomeMissionState.standby;
+                      });
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Theme.of(context).dividerColor),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87,
+                    ),
+                    child: const Text(
+                      'BATAL / KEMBALI',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ],
@@ -3943,7 +3984,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                         border: Border.all(color: Theme.of(context).dividerColor),
                       ),
                       child: Text(
-                        'RANK: ${_pangkat.isNotEmpty ? _pangkat : "BRIPDA"}',
+                        'PANGKAT: ${_pangkat.isNotEmpty ? _pangkat : "BRIPDA"}',
                         style: TextStyle(
                           fontSize: 10,
                           color: Theme.of(context).brightness == Brightness.dark ? Colors.grey : Colors.black54,
@@ -3959,7 +4000,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                         border: Border.all(color: Theme.of(context).dividerColor),
                       ),
                       child: Text(
-                        'ROLE: ${_role.toUpperCase()}',
+                        'PERAN: ${_getRoleDisplayName(_role)}',
                         style: TextStyle(
                           fontSize: 10,
                           color: Theme.of(context).brightness == Brightness.dark ? Colors.grey : Colors.black54,
@@ -4200,9 +4241,281 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   }
 
   // ============================================================================
-  // LIVE CHAT TAB
+  // LIVE CHAT TAB — Two-level: list + conversation
   // ============================================================================
   Widget _buildChatTab() {
+    if (_chatLevel == 'conversation') {
+      return _buildChatConversation();
+    }
+    return _buildChatList();
+  }
+
+  /// Level 1: Chat list — Umum + DM contacts
+  Widget _buildChatList() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF18181B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7);
+    final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await _checkStatusDanInisialisasi();
+      },
+      color: const Color(0xFF0D6EFD),
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            color: cardColor,
+            child: Row(
+              children: [
+                Container(
+                  width: 8, height: 8,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF10B981), shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'PESAN',
+                  style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w800,
+                    letterSpacing: 1.5,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: borderColor),
+
+          // Siaran Umum button
+          InkWell(
+            onTap: () {
+              setState(() {
+                _chatLevel = 'conversation';
+                _chatPath = 'chat/umum';
+                _dmConvId = '';
+                _dmTargetName = 'Siaran Umum';
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: borderColor)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: const Color(0xFF3B82F6).withValues(alpha: 0.12),
+                    ),
+                    child: const Icon(Icons.tag, color: Color(0xFF3B82F6), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Siaran Umum', style: TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white : Colors.black87,
+                        )),
+                        const SizedBox(height: 2),
+                        Text('Semua personel', style: TextStyle(
+                          fontSize: 12, color: Colors.grey[500],
+                        )),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+                ],
+              ),
+            ),
+          ),
+
+          // DM contacts section
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text('PESAN PRIBADI', style: TextStyle(
+                fontSize: 10, fontWeight: FontWeight.w700,
+                letterSpacing: 1.2, color: Colors.grey[500],
+              )),
+            ),
+          ),
+
+          // Contact list from Firebase
+          Expanded(
+            child: StreamBuilder<DatabaseEvent>(
+              stream: FirebaseDatabase.instance.ref('users').onValue,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Container(
+                      height: 250,
+                      alignment: Alignment.center,
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.error_outline, size: 40, color: Colors.orange[400]),
+                            const SizedBox(height: 8),
+                            Text('Gagal memuat kontak', style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 4),
+                            Text(snapshot.error.toString(), style: TextStyle(color: Colors.grey[500], fontSize: 10), textAlign: TextAlign.center, maxLines: 3, overflow: TextOverflow.ellipsis),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
+                  return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                }
+                final raw = Map<String, dynamic>.from(snapshot.data!.snapshot.value as Map);
+                final contacts = <Map<String, dynamic>>[];
+                raw.forEach((uid, val) {
+                  if (uid == myUid) return;
+                  if (val is! Map) return;
+                  final u = Map<String, dynamic>.from(val);
+                  if (u['status'] != 'active') return;
+                  // Members only see admin/commander
+                  if (_role == 'member' && u['role'] != 'admin' && u['role'] != 'commander') return;
+                  contacts.add({'uid': uid, ...u});
+                });
+                contacts.sort((a, b) => (a['nama'] ?? '').compareTo(b['nama'] ?? ''));
+
+                if (contacts.isEmpty) {
+                  return SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Container(
+                      height: 250,
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.people_outline, size: 40, color: Colors.grey[400]),
+                          const SizedBox(height: 8),
+                          Text('Belum ada kontak tersedia', style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: contacts.length,
+                  itemBuilder: (ctx, i) {
+                    final c = contacts[i];
+                    final fullName = '${c['pangkat'] ?? ''} ${c['nama'] ?? '?'}'.trim();
+                    final initial = ((c['nama'] ?? '?') as String).isNotEmpty
+                        ? (c['nama'] as String)[0].toUpperCase() : '?';
+                    return InkWell(
+                      onTap: () => _openDmChat(c['uid'], fullName),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border(bottom: BorderSide(color: borderColor.withValues(alpha: 0.5))),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 20,
+                              backgroundColor: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                              child: Text(initial, style: const TextStyle(
+                                color: Color(0xFF3B82F6), fontSize: 14, fontWeight: FontWeight.bold,
+                              )),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(fullName, style: TextStyle(
+                                    fontSize: 14, fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  )),
+                                  const SizedBox(height: 2),
+                                  Text(_getRoleDisplayName(c['role']?.toString()), style: TextStyle(
+                                    fontSize: 11, color: Colors.grey[500],
+                                  )),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Open or find existing DM conversation with target user
+  Future<void> _openDmChat(String targetUid, String targetName) async {
+    final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    String? convId;
+
+    // Check if conversation already exists
+    final dmSnap = await FirebaseDatabase.instance.ref('chat/dm').get();
+    if (dmSnap.exists) {
+      final dmData = Map<String, dynamic>.from(dmSnap.value as Map);
+      for (final entry in dmData.entries) {
+        final conv = Map<String, dynamic>.from(entry.value as Map);
+        final participants = conv['participants'] as Map?;
+        if (participants != null &&
+            participants[myUid] == true &&
+            participants[targetUid] == true) {
+          convId = entry.key;
+          break;
+        }
+      }
+    }
+
+    // If no conversation and user is not admin/commander, block
+    if (convId == null && _role != 'admin' && _role != 'commander') {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Hanya Komandan dan Admin yang dapat memulai pesan pribadi')),
+      );
+      return;
+    }
+
+    // Create new conversation if needed
+    if (convId == null) {
+      final newRef = FirebaseDatabase.instance.ref('chat/dm').push();
+      convId = newRef.key;
+      await newRef.set({
+        'participants': {myUid: true, targetUid: true},
+        'lastMessage': '',
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+    }
+
+    setState(() {
+      _chatLevel = 'conversation';
+      _chatPath = 'chat/dm/$convId/messages';
+      _dmConvId = convId!;
+      _dmTargetName = targetName;
+    });
+  }
+
+  /// Level 2: Chat conversation view
+  Widget _buildChatConversation() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? const Color(0xFF09090B) : const Color(0xFFF4F4F5);
     final cardColor = isDark ? const Color(0xFF18181B) : Colors.white;
@@ -4210,29 +4523,44 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
     final msgController = _chatMsgController;
     final scrollController = _chatScrollController;
+    final chatPath = _chatPath;
+    final dmConvId = _dmConvId;
 
     void sendMsg() {
       final text = msgController.text.trim();
       if (text.isEmpty) return;
       msgController.clear();
-      FirebaseDatabase.instance.ref('chat/umum').push().set({
+      FirebaseDatabase.instance.ref(chatPath).push().set({
         'uid': myUid,
         'nrp': _nrp,
         'nama': _nama,
         'pangkat': _pangkat,
         'pesan': text,
         'waktu': DateTime.now().toIso8601String(),
+      }).then((_) {
+        // Update DM metadata
+        if (dmConvId.isNotEmpty) {
+          FirebaseDatabase.instance.ref('chat/dm/$dmConvId').update({
+            'lastMessage': text.length > 80 ? text.substring(0, 80) : text,
+            'updatedAt': DateTime.now().millisecondsSinceEpoch,
+          });
+        }
       });
     }
 
     return Column(
       children: [
-        // Header
+        // Header with back button
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           color: cardColor,
           child: Row(
             children: [
+              GestureDetector(
+                onTap: () => setState(() => _chatLevel = 'list'),
+                child: Icon(Icons.arrow_back_ios, size: 18, color: isDark ? Colors.white : Colors.black87),
+              ),
+              const SizedBox(width: 8),
               Container(
                 width: 8, height: 8,
                 decoration: const BoxDecoration(
@@ -4240,16 +4568,21 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                'SIARAN UMUM',
-                style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w800,
-                  letterSpacing: 1.5,
-                  color: isDark ? Colors.white : Colors.black87,
+              Expanded(
+                child: Text(
+                  _dmTargetName,
+                  style: TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Spacer(),
-              Icon(Icons.people_outline, size: 18, color: Colors.grey[500]),
+              Icon(
+                dmConvId.isEmpty ? Icons.tag : Icons.person,
+                size: 18, color: Colors.grey[500],
+              ),
             ],
           ),
         ),
@@ -4258,11 +4591,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         // Pesan area
         Expanded(
           child: StreamBuilder<DatabaseEvent>(
-            stream: FirebaseDatabase.instance
-                .ref('chat/umum')
-                .orderByChild('waktu')
-                .limitToLast(60)
-                .onValue,
+            stream: FirebaseDatabase.instance.ref(chatPath).onValue,
             builder: (context, snapshot) {
               if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
                 return Center(
@@ -4284,7 +4613,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 m['_key'] = e.key;
                 return m;
               }).toList()
-                ..sort((a, b) => (a['waktu'] ?? '').compareTo(b['waktu'] ?? ''));
+                ..sort((a, b) => (a['_key'] ?? '').compareTo(b['_key'] ?? ''));
 
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (scrollController.hasClients) {
@@ -4319,7 +4648,6 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
                       children: [
                         if (!isMe) ...[
                           CircleAvatar(
@@ -4331,32 +4659,41 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                           ),
                           const SizedBox(width: 8),
                         ],
+                        if (isMe) const Spacer(),
                         Flexible(
-                          child: Column(
-                            crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                            children: [
-                              if (!isMe)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 3, left: 2),
-                                  child: Text(
-                                    nama,
-                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey[500]),
-                                  ),
+                          flex: 0,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+                            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+                            decoration: BoxDecoration(
+                              color: isMe ? const Color(0xFF1D4ED8) : cardColor,
+                              borderRadius: BorderRadius.only(
+                                topLeft: const Radius.circular(14),
+                                topRight: const Radius.circular(14),
+                                bottomLeft: isMe ? const Radius.circular(14) : const Radius.circular(3),
+                                bottomRight: isMe ? const Radius.circular(3) : const Radius.circular(14),
+                              ),
+                              border: isMe ? null : Border.all(color: borderColor),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
                                 ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-                                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.68),
-                                decoration: BoxDecoration(
-                                  color: isMe ? const Color(0xFF1D4ED8) : cardColor,
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: const Radius.circular(14),
-                                    topRight: const Radius.circular(14),
-                                    bottomLeft: isMe ? const Radius.circular(14) : const Radius.circular(3),
-                                    bottomRight: isMe ? const Radius.circular(3) : const Radius.circular(14),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (!isMe)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 3),
+                                    child: Text(
+                                      nama,
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF3B82F6)),
+                                    ),
                                   ),
-                                  border: isMe ? null : Border.all(color: borderColor),
-                                ),
-                                child: Text(
+                                Text(
                                   msg['pesan'] ?? '',
                                   style: TextStyle(
                                     fontSize: 14,
@@ -4364,14 +4701,16 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                                     height: 1.4,
                                   ),
                                 ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text(waktu, style: TextStyle(fontSize: 10, color: Colors.grey[600])),
-                              ),
-                            ],
+                                const SizedBox(height: 3),
+                                Align(
+                                  alignment: Alignment.bottomRight,
+                                  child: Text(waktu, style: TextStyle(fontSize: 9, color: isMe ? Colors.white70 : Colors.grey[500])),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
+                        if (!isMe) const Spacer(),
                       ],
                     ),
                   );
@@ -4479,20 +4818,20 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         }
         break;
       case 1:
+        appBarTitle = 'KOMUNIKASI';
+        bodyContent = _buildChatTab();
+        break;
+      case 2:
         appBarTitle = 'SIAGA MAPS';
         bodyContent = _buildMapsTab();
         break;
-      case 2:
+      case 3:
         appBarTitle = 'SIAGA';
         bodyContent = _buildHistoryTab();
         break;
-      case 3:
+      case 4:
         appBarTitle = 'PROFIL SAYA';
         bodyContent = _buildProfileTab();
-        break;
-      case 4:
-        appBarTitle = 'KOMUNIKASI';
-        bodyContent = _buildChatTab();
         break;
       default:
         appBarTitle = 'SIAGA';
@@ -4504,7 +4843,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     final bool hideDefaultAppBar = (_currentIndex == 0 && _homeState == HomeMissionState.active);
 
     return Scaffold(
-      resizeToAvoidBottomInset: _currentIndex != 1,
+      resizeToAvoidBottomInset: _currentIndex != 2,
       appBar: hideDefaultAppBar
           ? null
           : AppBar(
@@ -4554,10 +4893,10 @@ class CustomBottomNavBar extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final items = [
       _NavBarItem(icon: Icons.grid_view_rounded, label: 'Beranda'),
+      _NavBarItem(icon: Icons.chat_bubble_outline_rounded, label: 'Chat'),
       _NavBarItem(icon: Icons.map_outlined, label: 'Peta'),
       _NavBarItem(icon: Icons.history_rounded, label: 'Riwayat'),
       _NavBarItem(icon: Icons.person_outline_rounded, label: 'Profil'),
-      _NavBarItem(icon: Icons.chat_bubble_outline_rounded, label: 'Chat'),
     ];
 
     return Container(
@@ -5618,7 +5957,20 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
       });
 
       final Map<String, dynamic> mediaConstraints = {
-        'audio': true,
+        'audio': {
+          'echoCancellation': true,
+          'noiseSuppression': true,
+          'autoGainControl': true,
+          // Google-specific enhanced audio processing (Android WebRTC)
+          'googEchoCancellation': true,
+          'googEchoCancellation2': true,
+          'googAutoGainControl': true,
+          'googAutoGainControl2': true,
+          'googNoiseSuppression': true,
+          'googNoiseSuppression2': true,
+          'googHighpassFilter': true,
+          'googTypingNoiseDetection': true,
+        },
         'video': {
           'mandatory': {
             'minWidth': '640',

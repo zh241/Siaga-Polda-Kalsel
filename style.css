@@ -1300,8 +1300,26 @@ body, html {
 }
 .chat-channel-btn:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
 .chat-channel-btn.active { background: rgba(59,130,246,0.12); color: #3b82f6; font-weight: 600; }
-.chat-msg-row { display: flex; gap: 10px; align-items: flex-start; }
-.chat-msg-row.me { flex-direction: row-reverse; }
+.dm-contact-btn {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 8px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-main);
+    transition: background 0.15s;
+    margin-bottom: 2px;
+}
+.dm-contact-btn:hover { background: rgba(255,255,255,0.05); }
+.dm-contact-btn.active { background: rgba(59,130,246,0.12); }
+.chat-msg-row { display: flex; gap: 10px; align-items: flex-start; width: 100%; box-sizing: border-box; }
+.chat-msg-row.me { flex-direction: row-reverse; justify-content: flex-start; }
+.chat-msg-row .msg-content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.chat-msg-row.me .msg-content { align-items: flex-end; }
 .chat-avatar {
     width: 34px; height: 34px; border-radius: 50%;
     background: rgba(59,130,246,0.15); color: #3b82f6;
