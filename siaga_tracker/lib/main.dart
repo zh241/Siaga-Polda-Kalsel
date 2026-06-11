@@ -5081,7 +5081,7 @@ class _TacticalMapTabState extends State<TacticalMapTab> {
   @override
   void initState() {
     super.initState();
-    _liveTrackingStream = widget.dbRef.child('live_tracking').onValue;
+    _liveTrackingStream = widget.dbRef.child('live_tracking').onValue.asBroadcastStream();
   }
 
   @override
@@ -5219,7 +5219,7 @@ class _TacticalMapTabState extends State<TacticalMapTab> {
         _showSnackBar('Memperbarui data peta...', Colors.blue);
         setState(() {
           _mapRefreshKey++;
-          _liveTrackingStream = widget.dbRef.child('live_tracking').onValue;
+          _liveTrackingStream = widget.dbRef.child('live_tracking').onValue.asBroadcastStream();
         });
         try {
           await Geolocator.getCurrentPosition(
