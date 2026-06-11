@@ -425,12 +425,7 @@ window.simpanEditPersonel = function () {
 
 // Bind Save action listener
 document.addEventListener('DOMContentLoaded', () => {
-    // Make live floating panel draggable
-    const liveFloatingPanel = document.getElementById('live-floating-panel');
-    const liveFloatHeader = document.getElementById('live-float-header');
-    if (liveFloatingPanel && liveFloatHeader) {
-        makeElementDraggable(liveFloatingPanel, liveFloatHeader);
-    }
+    // Floating panels are now created and made draggable dynamically in createDynamicFloatingPanel
 
     const btnSimpanEdit = document.getElementById('btnSimpanEditPersonel');
     if (btnSimpanEdit) {
@@ -4460,9 +4455,54 @@ window.toggleStreamMute = function (uid) {
     }
 };
 
+function createDynamicFloatingPanel(uid, fullName) {
+    if (document.getElementById(`live-floating-panel-${uid}`)) return;
+
+    // Calculate cascading position based on how many floating panels are currently active
+    const existingPanels = document.querySelectorAll('.live-floating-panel');
+    const offset = existingPanels.length * 30; // 30px offset per panel
+    
+    // Cascading within limits so they don't slide off screen entirely
+    const bottom = 28 + (offset % 240);
+    const right = 160 + (offset % 240);
+
+    const panelHtml = `
+        <div id="live-floating-panel-${uid}" class="live-floating-panel" style="position:fixed; bottom:${bottom}px; right:${right}px; z-index:3500; width:240px; background:#18181b; border:1px solid #27272a; border-radius:8px; box-shadow:0 20px 50px rgba(0,0,0,0.6); display:flex; flex-direction:column; overflow:hidden; animation:slideUpChat 0.25s ease;">
+            <div id="live-float-header-${uid}" style="padding:6px 10px; background:#1c1c1f; border-bottom:1px solid #27272a; display:flex; align-items:center; gap:8px; cursor:move; user-select:none;">
+                <span class="pulse-red" style="width:6px; height:6px; background:#ef4444; border-radius:50%;"></span>
+                <span id="live-float-title-${uid}" style="font-size:10px; font-weight:700; color:#fff; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">LIVE: ${fullName}</span>
+                <button onclick="window.closeFloatingLiveStream('${uid}')" style="background:none;border:none;cursor:pointer;color:#6b7280;padding:2px;" title="Tutup">
+                    <i class="fa-solid fa-xmark" style="font-size:12px;"></i>
+                </button>
+            </div>
+            <div style="position:relative; width:100%; aspect-ratio:4/3; background:#000; display:flex; align-items:center; justify-content:center;">
+                <video id="live-float-video-${uid}" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+                <div id="live-float-loading-${uid}" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.8); gap:10px; color:#fff;">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span style="font-size:9px; color:#a1a1aa;">Menghubungkan WebRTC...</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Append to live-floating-container (or body if container is not found)
+    const container = document.getElementById('live-floating-container') || document.body;
+    container.insertAdjacentHTML('beforeend', panelHtml);
+
+    // Make the panel draggable using header
+    const panelEl = document.getElementById(`live-floating-panel-${uid}`);
+    const headerEl = document.getElementById(`live-float-header-${uid}`);
+    if (panelEl && headerEl) {
+        makeElementDraggable(panelEl, headerEl);
+    }
+}
+
 window.watchLiveStream = function (uid, fullName) {
     // Show peta page
     switchPage('peta', document.getElementById('menu-peta'));
+
+    // Create the dynamic floating panel if it doesn't exist yet
+    createDynamicFloatingPanel(uid, fullName);
 
     // If there's already an active connection for this stream, reuse it (swap to floating)
     if (activePeerConnections[uid]) {
@@ -4470,15 +4510,12 @@ window.watchLiveStream = function (uid, fullName) {
         const conn = activePeerConnections[uid];
         conn.isFloating = true;
 
-        // Show floating panel
-        const panel = document.getElementById('live-floating-panel');
-        const title = document.getElementById('live-float-title');
-        const loading = document.getElementById('live-float-loading');
-        if (panel) panel.style.display = 'flex';
+        const title = document.getElementById(`live-float-title-${uid}`);
+        const loading = document.getElementById(`live-float-loading-${uid}`);
         if (title) title.textContent = `LIVE: ${fullName}`;
 
         // Attach stream to floating video
-        const floatVideo = document.getElementById('live-float-video');
+        const floatVideo = document.getElementById(`live-float-video-${uid}`);
         if (floatVideo && conn.remoteStream) {
             floatVideo.srcObject = conn.remoteStream;
             floatVideo.muted = false;
@@ -4494,14 +4531,27 @@ window.watchLiveStream = function (uid, fullName) {
     startWebRTCReceiver(uid, fullName, true);
 };
 
-window.closeFloatingLiveStream = function () {
-    const panel = document.getElementById('live-floating-panel');
-    if (panel) panel.style.display = 'none';
+window.closeFloatingLiveStream = function (uid) {
+    if (uid) {
+        // Remove specific panel
+        const panel = document.getElementById(`live-floating-panel-${uid}`);
+        if (panel) panel.remove();
 
-    // Mark floating connections as non-floating (don't close them — they may be visible in Live Ops grid)
-    for (let uid in activePeerConnections) {
-        if (activePeerConnections[uid].isFloating) {
+        if (activePeerConnections[uid]) {
             activePeerConnections[uid].isFloating = false;
+        }
+        // When closing in Tactical Map, fully close the stream to save user bandwidth & battery
+        closePeerConnection(uid);
+    } else {
+        // Close all floating panels
+        const panels = document.querySelectorAll('.live-floating-panel');
+        panels.forEach(p => p.remove());
+
+        for (let id in activePeerConnections) {
+            if (activePeerConnections[id].isFloating) {
+                activePeerConnections[id].isFloating = false;
+                closePeerConnection(id);
+            }
         }
     }
     renderLiveGrid();
@@ -4523,12 +4573,7 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
     console.log(`[WebRTC] Starting receiver for ${uid} (Floating: ${isFloating})`);
 
     if (isFloating) {
-        const panel = document.getElementById('live-floating-panel');
-        const title = document.getElementById('live-float-title');
-        const loading = document.getElementById('live-float-loading');
-        if (panel) panel.style.display = 'flex';
-        if (title) title.textContent = `LIVE: ${fullName}`;
-        if (loading) loading.style.display = 'flex';
+        createDynamicFloatingPanel(uid, fullName);
     }
 
     try {
@@ -4557,7 +4602,7 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
             // Dynamically check if this connection is currently floating or in grid
             const currentlyFloating = activePeerConnections[uid] && activePeerConnections[uid].isFloating;
             const videoEl = currentlyFloating
-                ? document.getElementById('live-float-video')
+                ? document.getElementById(`live-float-video-${uid}`)
                 : document.getElementById(`video-${uid}`);
             if (videoEl) {
                 videoEl.srcObject = remoteStream;
@@ -4576,7 +4621,7 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
             }
 
             if (currentlyFloating) {
-                const loading = document.getElementById('live-float-loading');
+                const loading = document.getElementById(`live-float-loading-${uid}`);
                 if (loading) loading.style.display = 'none';
             }
         };
@@ -4711,7 +4756,7 @@ function closePeerConnection(uid) {
     }
 
     const videoEl = conn.isFloating ?
-        document.getElementById('live-float-video') :
+        document.getElementById(`live-float-video-${uid}`) :
         document.getElementById(`video-${uid}`);
     if (videoEl) {
         videoEl.srcObject = null;
@@ -4724,8 +4769,8 @@ function closePeerConnection(uid) {
     }
 
     if (conn.isFloating) {
-        const panel = document.getElementById('live-floating-panel');
-        if (panel) panel.style.display = 'none';
+        const panel = document.getElementById(`live-floating-panel-${uid}`);
+        if (panel) panel.remove();
     }
 
     delete activePeerConnections[uid];
