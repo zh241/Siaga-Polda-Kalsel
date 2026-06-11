@@ -4001,6 +4001,8 @@ window.toggleVC = async function (uid) {
             await conn.audioSender.replaceTrack(audioTrack);
         }
         conn.vcActive = true;
+        conn.micActive = true;
+        conn.camActive = true;
 
         // Update Firebase status
         await set(ref(db, `streams/${uid}/info/vcActive`), true);
@@ -4026,27 +4028,39 @@ window.toggleVC = async function (uid) {
     }
 };
 
-window.toggleVCMic = function (uid) {
+window.toggleVCMic = async function (uid) {
     const conn = activePeerConnections[uid];
     if (!conn || !window.localVCStream) return;
-    const audioTrack = window.localVCStream.getAudioTracks()[0];
-    if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        renderLiveGrid();
+    const isCurrentlyActive = conn.micActive !== false;
+    const trackToUse = isCurrentlyActive ? null : window.localVCStream.getAudioTracks()[0];
+    try {
+        if (conn.audioSender) {
+            await conn.audioSender.replaceTrack(trackToUse);
+            conn.micActive = !isCurrentlyActive;
+            renderLiveGrid();
+        }
+    } catch (e) {
+        console.error('Gagal toggle mic:', e);
     }
 };
 
 window.toggleVCCam = async function (uid) {
     const conn = activePeerConnections[uid];
     if (!conn || !window.localVCStream) return;
-    const videoTrack = window.localVCStream.getVideoTracks()[0];
-    if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        
-        // Update Firebase video status
-        await set(ref(db, `streams/${uid}/info/vcVideoActive`), videoTrack.enabled);
-        
-        renderLiveGrid();
+    const isCurrentlyActive = conn.camActive !== false;
+    const trackToUse = isCurrentlyActive ? null : window.localVCStream.getVideoTracks()[0];
+    try {
+        if (conn.videoSender) {
+            await conn.videoSender.replaceTrack(trackToUse);
+            conn.camActive = !isCurrentlyActive;
+            
+            // Update Firebase video status
+            await set(ref(db, `streams/${uid}/info/vcVideoActive`), conn.camActive);
+            
+            renderLiveGrid();
+        }
+    } catch (e) {
+        console.error('Gagal toggle kamera:', e);
     }
 };
 
@@ -4117,6 +4131,10 @@ function renderLiveGrid() {
             if (watchBtn) {
                 watchBtn.className = `stream-btn ${isWatching ? 'watching' : ''}`;
                 watchBtn.style.background = isWatching ? '#ef4444' : '#3b82f6';
+                watchBtn.style.height = '24px';
+                watchBtn.style.fontSize = '9px';
+                watchBtn.style.padding = '3px 5px';
+                watchBtn.style.borderRadius = '3px';
                 watchBtn.innerHTML = `<i class="fa-solid ${isWatching ? 'fa-stop-circle' : 'fa-play'}"></i><span>${isWatching ? 'Hentikan' : 'Tonton'}</span>`;
                 watchBtn.onclick = () => window.toggleWatchStream(uid, streamFullName);
             }
@@ -4133,27 +4151,27 @@ function renderLiveGrid() {
             if (isWatching) {
                 vcBtnContainer.style.display = 'block';
                 const vcActive = activePeerConnections[uid] && activePeerConnections[uid].vcActive;
-                const micActive = window.localVCStream ? window.localVCStream.getAudioTracks().some(t => t.enabled) : true;
-                const camActive = window.localVCStream ? window.localVCStream.getVideoTracks().some(t => t.enabled) : true;
+                const micActive = activePeerConnections[uid] && activePeerConnections[uid].micActive !== false;
+                const camActive = activePeerConnections[uid] && activePeerConnections[uid].camActive !== false;
 
                 let html = '';
                 if (vcActive) {
                     html = `
-                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:6px 8px; border:none; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:32px;">
+                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:3px 5px; border:none; border-radius:3px; cursor:pointer; font-size:9px; font-weight:600; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:24px;">
                             <i class="fa-solid fa-phone-slash"></i><span>Tutup</span>
                         </button>
-                        <div style="display:flex; gap:6px; margin-top:6px;">
-                            <button id="vc-mic-btn-${uid}" style="flex:1; padding:4px 6px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:26px;">
+                        <div style="display:flex; gap:4px; margin-top:4px;">
+                            <button id="vc-mic-btn-${uid}" style="flex:1; padding:2px 4px; border:none; border-radius:2px; cursor:pointer; font-size:8px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:2px; height:20px;">
                                 <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>${micActive ? 'Mute' : 'Unmute'}</span>
                             </button>
-                            <button id="vc-cam-btn-${uid}" style="flex:1; padding:4px 6px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${camActive ? '#18181b' : '#ef4444'}; border:1px solid ${camActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:26px;">
-                                <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>Kamera</span>
+                            <button id="vc-cam-btn-${uid}" style="flex:1; padding:2px 4px; border:none; border-radius:2px; cursor:pointer; font-size:8px; font-weight:600; background:${camActive ? '#18181b' : '#ef4444'}; border:1px solid ${camActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:2px; height:20px;">
+                                <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>Matikan</span>
                             </button>
                         </div>
                     `;
                 } else {
                     html = `
-                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:6px 8px; border:none; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; background:#10b981; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:32px;">
+                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:3px 5px; border:none; border-radius:3px; cursor:pointer; font-size:9px; font-weight:600; background:#10b981; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:24px;">
                             <i class="fa-solid fa-video"></i><span>Hubungi</span>
                         </button>
                     `;
@@ -4201,7 +4219,7 @@ function renderLiveGrid() {
                 const preview = document.getElementById(`local-preview-${uid}`);
                 const previewVideo = document.getElementById(`local-video-${uid}`);
                 if (preview && previewVideo) {
-                    if (conn.vcActive) {
+                    if (conn.vcActive && conn.camActive !== false) {
                         preview.style.display = 'block';
                         if (window.localVCStream && previewVideo.srcObject !== window.localVCStream) {
                             previewVideo.srcObject = window.localVCStream;
@@ -4224,48 +4242,54 @@ function renderLiveGrid() {
         }
         card.id = `stream-card-${uid}`;
         card.dataset.uid = uid;
+
+        const conn = activePeerConnections[uid];
+        const vcActive = conn && conn.vcActive;
+        const micActive = conn && conn.micActive !== false;
+        const camActive = conn && conn.camActive !== false;
+
         card.innerHTML = `
-            <div class="stream-video-container" style="position:relative; background:#000; aspect-ratio:4/3; overflow:hidden; border-radius:8px 8px 0 0;">
-                <div class="stream-badge" style="position:absolute; top:10px; left:10px; z-index:10; background:#ef4444; color:#fff; font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px; display:flex; align-items:center; gap:4px;">
-                    <span style="width:6px;height:6px;background:#fff;border-radius:50%;display:inline-block;"></span>LIVE
+            <div class="stream-video-container" style="position:relative; background:#000; aspect-ratio:4/3; overflow:hidden; border-radius:6px 6px 0 0;">
+                <div class="stream-badge" style="position:absolute; top:8px; left:8px; z-index:10; background:#ef4444; color:#fff; font-size:8px; font-weight:700; padding:2px 6px; border-radius:3px; display:flex; align-items:center; gap:3px;">
+                    <span style="width:4px;height:4px;background:#fff;border-radius:50%;display:inline-block;"></span>LIVE
                 </div>
-                <button id="focus-btn-${uid}" title="Fokus/Perbesar" style="position:absolute; top:10px; right:50px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:32px; height:32px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; transition:background 0.2s;">
+                <button id="focus-btn-${uid}" title="Fokus/Perbesar" style="position:absolute; top:8px; right:36px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
                     <i class="fa-solid ${uid === window.focusedStreamUid ? 'fa-compress' : 'fa-expand'}" id="focus-icon-${uid}"></i>
                 </button>
-                <button id="mute-btn-${uid}" title="Buka/Tutup Suara" style="position:absolute; top:10px; right:10px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:32px; height:32px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; transition:background 0.2s;">
+                <button id="mute-btn-${uid}" title="Buka/Tutup Suara" style="position:absolute; top:8px; right:8px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
                     <i class="fa-solid ${audioUnmuted ? 'fa-volume-high' : 'fa-volume-xmark'}" id="mute-icon-${uid}"></i>
                 </button>
-                <div id="status-overlay-${uid}" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.75); z-index:5; gap:8px;">
-                    <div style="width:36px; height:36px; border:3px solid #3b82f6; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></div>
-                    <span id="status-label-${uid}" style="font-size:11px; color:#a1a1aa;">${statusLabel}</span>
+                <div id="status-overlay-${uid}" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.75); z-index:5; gap:6px;">
+                    <div style="width:24px; height:24px; border:2px solid #3b82f6; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></div>
+                    <span id="status-label-${uid}" style="font-size:9px; color:#a1a1aa;">${statusLabel}</span>
                 </div>
-                <div id="local-preview-${uid}" style="display:none; position:absolute; bottom:10px; right:10px; width:90px; aspect-ratio:4/3; background:#000; border:1px solid rgba(255,255,255,0.4); border-radius:6px; overflow:hidden; z-index:12;">
+                <div id="local-preview-${uid}" style="display:${vcActive && camActive ? 'block' : 'none'}; position:absolute; bottom:8px; right:8px; width:60px; aspect-ratio:4/3; background:#000; border:1px solid rgba(255,255,255,0.4); border-radius:4px; overflow:hidden; z-index:12;">
                     <video id="local-video-${uid}" autoplay muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>
                 </div>
                 <video id="video-${uid}" autoplay playsinline style="width:100%; height:100%; object-fit:cover; display:block;"></video>
             </div>
-            <div class="stream-info" style="padding:10px;">
-                <h6 class="stream-title" style="margin:0 0 2px; font-weight:700; color:var(--text-main); font-size:13px;">${streamFullName}</h6>
-                <div class="stream-meta" style="margin-bottom:8px; font-size:11px; color:var(--text-muted);">NRP: ${info.nrp || '-'} | Satker: ${info.satker || 'Bid TIK'}</div>
-                <div style="display:flex; flex-direction:column; gap:6px;">
-                    <div style="display:flex; gap:6px; align-items:center;">
-                        <button class="stream-btn ${isWatching ? 'watching' : ''}" style="flex:1; padding:6px 8px; border:none; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; background:${isWatching ? '#ef4444' : '#3b82f6'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:32px;">
+            <div class="stream-info" style="padding:6px 8px;">
+                <h6 class="stream-title" style="margin:0 0 1px; font-weight:700; color:var(--text-main); font-size:11px;">${streamFullName}</h6>
+                <div class="stream-meta" style="margin-bottom:5px; font-size:9px; color:var(--text-muted);">NRP: ${info.nrp || '-'} | Satker: ${info.satker || 'Bid TIK'}</div>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <div style="display:flex; gap:4px; align-items:center;">
+                        <button class="stream-btn ${isWatching ? 'watching' : ''}" style="flex:1; padding:3px 5px; border:none; border-radius:3px; cursor:pointer; font-size:9px; font-weight:600; background:${isWatching ? '#ef4444' : '#3b82f6'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:24px;">
                             <i class="fa-solid ${isWatching ? 'fa-stop-circle' : 'fa-play'}"></i>
                             <span>${isWatching ? 'Hentikan' : 'Tonton'}</span>
                         </button>
                         ${isWatching ? `
                         <div class="vc-container" style="flex:1; display:block;">
-                            <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:6px 8px; border:none; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; background:${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:32px;">
-                                <i class="fa-solid ${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
-                                <span>${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? 'Tutup' : 'Hubungi'}</span>
+                            <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:3px 5px; border:none; border-radius:3px; cursor:pointer; font-size:9px; font-weight:600; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:24px;">
+                                <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
+                                <span>${vcActive ? 'Tutup' : 'Hubungi'}</span>
                             </button>
-                            ${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? `
-                            <div style="display:flex; gap:6px; margin-top:6px;">
-                                <button id="vc-mic-btn-${uid}" style="flex:1; padding:4px 6px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:#18181b; border:1px solid #27272a; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:26px;">
-                                    <i class="fa-solid fa-microphone"></i><span>Mute</span>
+                            ${vcActive ? `
+                            <div style="display:flex; gap:4px; margin-top:4px;">
+                                <button id="vc-mic-btn-${uid}" style="flex:1; padding:2px 4px; border:none; border-radius:2px; cursor:pointer; font-size:8px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:2px; height:20px;">
+                                    <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>${micActive ? 'Mute' : 'Unmute'}</span>
                                 </button>
-                                <button id="vc-cam-btn-${uid}" style="flex:1; padding:4px 6px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:#18181b; border:1px solid #27272a; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:26px;">
-                                    <i class="fa-solid fa-video"></i><span>Kamera</span>
+                                <button id="vc-cam-btn-${uid}" style="flex:1; padding:2px 4px; border:none; border-radius:2px; cursor:pointer; font-size:8px; font-weight:600; background:${camActive ? '#18181b' : '#ef4444'}; border:1px solid ${camActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:2px; height:20px;">
+                                    <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>Matikan</span>
                                 </button>
                             </div>
                             ` : ''}
@@ -4303,8 +4327,7 @@ function renderLiveGrid() {
             });
         }
 
-        if (isWatching && activePeerConnections[uid]) {
-            const conn = activePeerConnections[uid];
+        if (isWatching && conn) {
             const videoEl = document.getElementById(`video-${uid}`);
             if (videoEl && conn.remoteStream && conn.remoteStream.getTracks().length > 0) {
                 videoEl.srcObject = conn.remoteStream;
@@ -4317,12 +4340,14 @@ function renderLiveGrid() {
             }
             const preview = document.getElementById(`local-preview-${uid}`);
             const previewVideo = document.getElementById(`local-video-${uid}`);
-            if (preview && previewVideo && conn.vcActive) {
+            if (preview && previewVideo && vcActive && camActive) {
                 preview.style.display = 'block';
                 if (window.localVCStream) {
                     previewVideo.srcObject = window.localVCStream;
                     previewVideo.play().catch(() => {});
                 }
+            } else if (preview) {
+                preview.style.display = 'none';
             }
         }
     });

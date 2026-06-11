@@ -342,21 +342,21 @@ body, html {
     display: flex; 
     justify-content: space-between; 
     align-items: flex-end; 
-    margin-bottom: 25px; 
+    margin-bottom: 8px; 
     border-bottom: 1px solid var(--border-color); 
-    padding-bottom: 15px; 
+    padding-bottom: 4px; 
 }
 .page-header h4 { 
-    font-weight: 800; 
-    font-size: 20px; 
-    margin-bottom: 4px; 
+    font-weight: 700; 
+    font-size: 12px; 
+    margin-bottom: 1px; 
     color: var(--text-main); 
-    letter-spacing: -0.5px;
+    letter-spacing: -0.3px;
 }
 .page-header p { 
     margin: 0; 
     color: var(--text-muted); 
-    font-size: 13px; 
+    font-size: 9.5px; 
 }
 
 /* Glassmorphic & Modern Cards */
@@ -1394,13 +1394,13 @@ body, html {
 
 .live-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
 }
 .stream-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: 8px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
