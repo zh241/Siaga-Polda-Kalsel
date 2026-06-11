@@ -5919,7 +5919,9 @@ class LiveStreamingScreen extends StatefulWidget {
 
 class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
   final _localRenderer = RTCVideoRenderer();
+  final _remoteRenderer = RTCVideoRenderer();
   MediaStream? _localStream;
+  MediaStream? _remoteStream;
   RTCPeerConnection? _peerConnection;
   StreamSubscription<DatabaseEvent>? _answerSubscription;
   StreamSubscription<DatabaseEvent>? _receiverCandidatesSubscription;
@@ -5929,6 +5931,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
   bool _isConnected = false;
   String _statusText = 'Menginisialisasi Kamera...';
   bool _remoteDescriptionSet = false;
+  bool _hasRemoteVideo = false;
   final List<RTCIceCandidate> _bufferedCandidates = [];
 
   final Map<String, dynamic> _iceServers = {
@@ -5948,6 +5951,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
 
   Future<void> _initRenderers() async {
     await _localRenderer.initialize();
+    await _remoteRenderer.initialize();
   }
 
   Future<bool> _requestMediaPermissions() async {
@@ -6022,6 +6026,37 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
 
       _peerConnection = await createPeerConnection(_iceServers);
       
+      _peerConnection!.onTrack = (RTCTrackEvent event) {
+        debugPrint("Remote track received: ${event.track.kind}");
+        if (event.streams.isNotEmpty) {
+          setState(() {
+            _remoteStream = event.streams[0];
+            _remoteRenderer.srcObject = _remoteStream;
+            _hasRemoteVideo = _remoteStream!.getVideoTracks().isNotEmpty;
+          });
+        }
+      };
+
+      _peerConnection!.onAddStream = (MediaStream stream) {
+        debugPrint("Remote stream added: ${stream.id}");
+        setState(() {
+          _remoteStream = stream;
+          _remoteRenderer.srcObject = _remoteStream;
+          _hasRemoteVideo = _remoteStream!.getVideoTracks().isNotEmpty;
+        });
+      };
+
+      _peerConnection!.onRemoveStream = (MediaStream stream) {
+        debugPrint("Remote stream removed: ${stream.id}");
+        setState(() {
+          if (_remoteStream?.id == stream.id) {
+            _remoteStream = null;
+            _remoteRenderer.srcObject = null;
+            _hasRemoteVideo = false;
+          }
+        });
+      };
+      
       _localStream!.getTracks().forEach((track) {
         _peerConnection!.addTrack(track, _localStream!);
       });
@@ -6090,7 +6125,10 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         }
       });
 
-      RTCSessionDescription offer = await _peerConnection!.createOffer({});
+      RTCSessionDescription offer = await _peerConnection!.createOffer({
+        'offerToReceiveAudio': true,
+        'offerToReceiveVideo': true,
+      });
 
       await _peerConnection!.setLocalDescription(offer);
 
@@ -6158,10 +6196,16 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
     });
     _localStream?.dispose();
 
+    _remoteStream?.getTracks().forEach((track) {
+      track.stop();
+    });
+    _remoteStream?.dispose();
+
     _peerConnection?.close();
     _peerConnection?.dispose();
 
     _localRenderer.dispose();
+    _remoteRenderer.dispose();
   }
 
   @override
@@ -6186,6 +6230,102 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
                     ),
                   ),
           ),
+
+          // Video/Audio Dua Arah (Panggilan dari Komandan / Web)
+          if (_remoteStream != null)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 80,
+              right: 16,
+              child: Container(
+                width: 130,
+                height: 180,
+                decoration: BoxDecoration(
+                  color: Colors.grey[950],
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF10B981), width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    )
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Stack(
+                    children: [
+                      if (_hasRemoteVideo)
+                        RTCVideoView(
+                          _remoteRenderer,
+                          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                        )
+                      else
+                        Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.mic_none_rounded,
+                                  color: Color(0xFF10B981),
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              const Text(
+                                'KOMANDAN\n(SUARA)',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      Positioned(
+                        bottom: 6,
+                        left: 6,
+                        right: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.person_rounded,
+                                color: Color(0xFF10B981),
+                                size: 10,
+                              ),
+                              SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  'KOMANDAN',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
 
           Positioned(
             top: MediaQuery.of(context).padding.top + 16,

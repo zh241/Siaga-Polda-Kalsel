@@ -3916,6 +3916,104 @@ function initLiveOpsListener() {
     });
 }
 
+window.focusedStreamUid = null;
+window.localVCStream = null;
+
+window.toggleFocusStream = function (uid) {
+    if (window.focusedStreamUid === uid) {
+        window.focusedStreamUid = null;
+    } else {
+        window.focusedStreamUid = uid;
+    }
+    renderLiveGrid();
+};
+
+async function ensureLocalVCStream() {
+    if (window.localVCStream) return window.localVCStream;
+    try {
+        window.localVCStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true
+            },
+            video: {
+                width: { ideal: 320 },
+                height: { ideal: 240 },
+                frameRate: { ideal: 15 }
+            }
+        });
+        return window.localVCStream;
+    } catch (e) {
+        console.warn('Gagal mendapatkan local stream untuk VC:', e);
+        return null;
+    }
+}
+
+window.toggleVC = async function (uid) {
+    const conn = activePeerConnections[uid];
+    if (!conn) return;
+
+    if (conn.vcActive) {
+        console.log(`[WebRTC] Stopping two-way VC for ${uid}`);
+        if (conn.videoSender) await conn.videoSender.replaceTrack(null);
+        if (conn.audioSender) await conn.audioSender.replaceTrack(null);
+        conn.vcActive = false;
+        
+        const vcBtn = document.getElementById(`vc-btn-${uid}`);
+        if (vcBtn) {
+            vcBtn.style.background = '#10b981';
+            vcBtn.innerHTML = '<i class="fa-solid fa-video"></i><span>Hubungi Unit</span>';
+        }
+        const preview = document.getElementById(`local-preview-${uid}`);
+        if (preview) preview.style.display = 'none';
+
+        // Check if any other peer connection has an active VC
+        const anyActiveVC = Object.values(activePeerConnections).some(c => c.vcActive);
+        if (!anyActiveVC && window.localVCStream) {
+            window.localVCStream.getTracks().forEach(t => t.stop());
+            window.localVCStream = null;
+        }
+        
+        window.showToast?.('Panggilan dua arah dihentikan.', 'info');
+    } else {
+        console.log(`[WebRTC] Starting two-way VC for ${uid}`);
+        const stream = await ensureLocalVCStream();
+        if (!stream) {
+            window.showToast?.('Gagal mengakses kamera/mikrofon. Pastikan izin diberikan.', 'danger');
+            return;
+        }
+
+        stream.getAudioTracks().forEach(t => t.enabled = true);
+        stream.getVideoTracks().forEach(t => t.enabled = true);
+
+        if (conn.videoSender) {
+            const videoTrack = stream.getVideoTracks()[0];
+            await conn.videoSender.replaceTrack(videoTrack);
+        }
+        if (conn.audioSender) {
+            const audioTrack = stream.getAudioTracks()[0];
+            await conn.audioSender.replaceTrack(audioTrack);
+        }
+        conn.vcActive = true;
+
+        const vcBtn = document.getElementById(`vc-btn-${uid}`);
+        if (vcBtn) {
+            vcBtn.style.background = '#ef4444';
+            vcBtn.innerHTML = '<i class="fa-solid fa-phone-slash"></i><span>Tutup Panggilan</span>';
+        }
+
+        const preview = document.getElementById(`local-preview-${uid}`);
+        const previewVideo = document.getElementById(`local-video-${uid}`);
+        if (preview && previewVideo) {
+            preview.style.display = 'block';
+            previewVideo.srcObject = stream;
+            previewVideo.play().catch(() => {});
+        }
+        
+        window.showToast?.('Panggilan dua arah aktif! Personel lapangan dapat melihat/mendengar Anda.', 'success');
+    }
+};
+
 function renderLiveGrid() {
     const grid = document.getElementById('live-ops-grid');
     const emptyState = document.getElementById('live-ops-empty-state');
@@ -3926,21 +4024,25 @@ function renderLiveGrid() {
         grid.style.display = 'none';
         emptyState.style.display = 'flex';
         grid.innerHTML = '';
+        window.focusedStreamUid = null;
         return;
     }
 
     emptyState.style.display = 'none';
     grid.style.display = 'grid';
 
+    const hasFocus = window.focusedStreamUid && window.activeStreams[window.focusedStreamUid];
+    if (hasFocus) {
+        grid.classList.add('has-focus');
+    } else {
+        grid.classList.remove('has-focus');
+    }
+
     // Track existing card UIDs to avoid unnecessary rebuilds
-    const existingCards = new Set();
     grid.querySelectorAll('.stream-card').forEach(card => {
         const cardUid = card.dataset.uid;
         if (cardUid && !uids.includes(cardUid)) {
-            // Remove cards for streams that no longer exist
             card.remove();
-        } else if (cardUid) {
-            existingCards.add(cardUid);
         }
     });
 
@@ -3951,23 +4053,30 @@ function renderLiveGrid() {
         const audioUnmuted = activePeerConnections[uid] && activePeerConnections[uid].audioUnmuted;
         const streamFullName = ((info.pangkat || '').trim() + ' ' + (info.nama || 'Anggota')).trim();
 
-        // If card already exists, only update dynamic parts (overlay, button state, video src)
+        // If card already exists, update dynamic parts
         const existingCard = document.getElementById(`stream-card-${uid}`);
         if (existingCard) {
-            // Update overlay visibility
+            if (uid === window.focusedStreamUid) {
+                existingCard.classList.add('focused');
+            } else {
+                existingCard.classList.remove('focused');
+            }
+
+            const focusIcon = document.getElementById(`focus-icon-${uid}`);
+            if (focusIcon) {
+                focusIcon.className = `fa-solid ${uid === window.focusedStreamUid ? 'fa-compress' : 'fa-expand'}`;
+            }
+
             const overlay = document.getElementById(`status-overlay-${uid}`);
             if (overlay) overlay.style.display = isConnected ? 'none' : 'flex';
 
-            // Update status label
             const statusLabel = isConnected ? 'Terhubung' : (isWatching ? 'Menghubungkan...' : 'Menunggu');
             const statusLabelEl = document.getElementById(`status-label-${uid}`);
             if (statusLabelEl) statusLabelEl.textContent = statusLabel;
 
-            // Update mute icon
             const muteIcon = document.getElementById(`mute-icon-${uid}`);
             if (muteIcon) muteIcon.className = `fa-solid ${audioUnmuted ? 'fa-volume-high' : 'fa-volume-xmark'}`;
 
-            // Update watch button
             const watchBtn = existingCard.querySelector('.stream-btn');
             if (watchBtn) {
                 watchBtn.className = `stream-btn ${isWatching ? 'watching' : ''}`;
@@ -3976,7 +4085,43 @@ function renderLiveGrid() {
                 watchBtn.onclick = () => window.toggleWatchStream(uid, streamFullName);
             }
 
-            // Re-attach video srcObject if needed
+            let vcBtnContainer = existingCard.querySelector('.vc-container');
+            if (isWatching) {
+                if (!vcBtnContainer) {
+                    vcBtnContainer = document.createElement('div');
+                    vcBtnContainer.className = 'vc-container';
+                    vcBtnContainer.style.marginTop = '8px';
+                    vcBtnContainer.innerHTML = `
+                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:8px; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; background:${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            <i class="fa-solid ${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
+                            <span>${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? 'Tutup Panggilan' : 'Hubungi Unit'}</span>
+                        </button>
+                    `;
+                    existingCard.querySelector('.stream-info').appendChild(vcBtnContainer);
+                    
+                    const newVcBtn = document.getElementById(`vc-btn-${uid}`);
+                    if (newVcBtn) {
+                        newVcBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            window.toggleVC(uid);
+                        });
+                    }
+                } else {
+                    const vcBtn = document.getElementById(`vc-btn-${uid}`);
+                    if (vcBtn) {
+                        const vcActive = activePeerConnections[uid] && activePeerConnections[uid].vcActive;
+                        vcBtn.style.background = vcActive ? '#ef4444' : '#10b981';
+                        vcBtn.innerHTML = `<i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i><span>${vcActive ? 'Tutup Panggilan' : 'Hubungi Unit'}</span>`;
+                    }
+                }
+            } else {
+                if (vcBtnContainer) {
+                    vcBtnContainer.remove();
+                }
+                const preview = document.getElementById(`local-preview-${uid}`);
+                if (preview) preview.style.display = 'none';
+            }
+
             if (isWatching && activePeerConnections[uid]) {
                 const conn = activePeerConnections[uid];
                 const videoEl = document.getElementById(`video-${uid}`);
@@ -3985,15 +4130,30 @@ function renderLiveGrid() {
                     videoEl.muted = !audioUnmuted;
                     videoEl.play().catch(() => { });
                 }
+                const preview = document.getElementById(`local-preview-${uid}`);
+                const previewVideo = document.getElementById(`local-video-${uid}`);
+                if (preview && previewVideo) {
+                    if (conn.vcActive) {
+                        preview.style.display = 'block';
+                        if (window.localVCStream && previewVideo.srcObject !== window.localVCStream) {
+                            previewVideo.srcObject = window.localVCStream;
+                            previewVideo.play().catch(() => {});
+                        }
+                    } else {
+                        preview.style.display = 'none';
+                    }
+                }
             }
-            return; // Skip full rebuild for existing card
+            return;
         }
 
-        // Build new card only if it doesn't exist yet
+        // Build new card
         const statusLabel = isConnected ? 'Terhubung' : (isWatching ? 'Menghubungkan...' : 'Menunggu');
-
         const card = document.createElement('div');
         card.className = 'stream-card';
+        if (uid === window.focusedStreamUid) {
+            card.classList.add('focused');
+        }
         card.id = `stream-card-${uid}`;
         card.dataset.uid = uid;
         card.innerHTML = `
@@ -4001,6 +4161,9 @@ function renderLiveGrid() {
                 <div class="stream-badge" style="position:absolute; top:10px; left:10px; z-index:10; background:#ef4444; color:#fff; font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px; display:flex; align-items:center; gap:4px;">
                     <span style="width:6px;height:6px;background:#fff;border-radius:50%;display:inline-block;"></span>LIVE
                 </div>
+                <button id="focus-btn-${uid}" title="Fokus/Perbesar" style="position:absolute; top:10px; right:50px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:32px; height:32px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; transition:background 0.2s;">
+                    <i class="fa-solid ${uid === window.focusedStreamUid ? 'fa-compress' : 'fa-expand'}" id="focus-icon-${uid}"></i>
+                </button>
                 <button id="mute-btn-${uid}" title="Buka/Tutup Suara" style="position:absolute; top:10px; right:10px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:32px; height:32px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; transition:background 0.2s;">
                     <i class="fa-solid ${audioUnmuted ? 'fa-volume-high' : 'fa-volume-xmark'}" id="mute-icon-${uid}"></i>
                 </button>
@@ -4008,22 +4171,41 @@ function renderLiveGrid() {
                     <div style="width:36px; height:36px; border:3px solid #3b82f6; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></div>
                     <span id="status-label-${uid}" style="font-size:11px; color:#a1a1aa;">${statusLabel}</span>
                 </div>
+                <div id="local-preview-${uid}" style="display:none; position:absolute; bottom:10px; right:10px; width:90px; aspect-ratio:4/3; background:#000; border:1px solid rgba(255,255,255,0.4); border-radius:6px; overflow:hidden; z-index:12;">
+                    <video id="local-video-${uid}" autoplay muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+                </div>
                 <video id="video-${uid}" autoplay playsinline style="width:100%; height:100%; object-fit:cover; display:block;"></video>
             </div>
             <div class="stream-info" style="padding:14px;">
                 <h6 class="stream-title" style="margin:0 0 4px; font-weight:700; color:var(--text-main); font-size:14px;">${streamFullName}</h6>
                 <div class="stream-meta" style="margin-bottom:10px; font-size:12px; color:var(--text-muted);">NRP: ${info.nrp || '-'} | Satker: ${info.satker || 'Bid TIK'}</div>
-                <div style="display:flex; gap:8px;">
-                    <button class="stream-btn ${isWatching ? 'watching' : ''}" style="flex:1; padding:8px; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; background:${isWatching ? '#ef4444' : '#3b82f6'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:6px;">
-                        <i class="fa-solid ${isWatching ? 'fa-stop-circle' : 'fa-play'}"></i>
-                        <span>${isWatching ? 'Hentikan' : 'Tonton Siaran'}</span>
-                    </button>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <div style="display:flex; gap:8px;">
+                        <button class="stream-btn ${isWatching ? 'watching' : ''}" style="flex:1; padding:8px; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; background:${isWatching ? '#ef4444' : '#3b82f6'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            <i class="fa-solid ${isWatching ? 'fa-stop-circle' : 'fa-play'}"></i>
+                            <span>${isWatching ? 'Hentikan' : 'Tonton Siaran'}</span>
+                        </button>
+                    </div>
+                    ${isWatching ? `
+                    <div class="vc-container" style="margin-top:8px;">
+                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:8px; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; background:${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            <i class="fa-solid ${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
+                            <span>${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? 'Tutup Panggilan' : 'Hubungi Unit'}</span>
+                        </button>
+                    </div>
+                    ` : ''}
                 </div>
             </div>
         `;
         grid.appendChild(card);
 
-        // Attach event listeners via JS (more reliable than inline onclick)
+        const focusBtn = document.getElementById(`focus-btn-${uid}`);
+        if (focusBtn) {
+            focusBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                window.toggleFocusStream(uid);
+            });
+        }
         const muteBtn = document.getElementById(`mute-btn-${uid}`);
         if (muteBtn) {
             muteBtn.addEventListener('click', (e) => {
@@ -4035,8 +4217,14 @@ function renderLiveGrid() {
         if (watchBtn) {
             watchBtn.addEventListener('click', () => window.toggleWatchStream(uid, streamFullName));
         }
+        const vcBtn = document.getElementById(`vc-btn-${uid}`);
+        if (vcBtn) {
+            vcBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                window.toggleVC(uid);
+            });
+        }
 
-        // Attach stream ke video jika sudah ada
         if (isWatching && activePeerConnections[uid]) {
             const conn = activePeerConnections[uid];
             const videoEl = document.getElementById(`video-${uid}`);
@@ -4047,6 +4235,15 @@ function renderLiveGrid() {
                 if (isConnected) {
                     const overlay = document.getElementById(`status-overlay-${uid}`);
                     if (overlay) overlay.style.display = 'none';
+                }
+            }
+            const preview = document.getElementById(`local-preview-${uid}`);
+            const previewVideo = document.getElementById(`local-video-${uid}`);
+            if (preview && previewVideo && conn.vcActive) {
+                preview.style.display = 'block';
+                if (window.localVCStream) {
+                    previewVideo.srcObject = window.localVCStream;
+                    previewVideo.play().catch(() => {});
                 }
             }
         }
@@ -4230,15 +4427,19 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
         const pendingCandidates = [];
         let remoteDescSet = false;
 
-        // Tambah transceiver agar browser siap menerima video+audio
-        pc.addTransceiver('video', { direction: 'recvonly' });
-        pc.addTransceiver('audio', { direction: 'recvonly' });
+        // Tambah transceiver agar browser siap mengirim & menerima video+audio
+        const videoTransceiver = pc.addTransceiver('video', { direction: 'sendrecv' });
+        const audioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv' });
 
         activePeerConnections[uid] = {
             pc: pc,
             remoteStream: remoteStream,
             isFloating: isFloating,
-            connected: false
+            connected: false,
+            videoSender: videoTransceiver.sender,
+            audioSender: audioTransceiver.sender,
+            vcActive: false,
+            audioUnmuted: true
         };
 
         pc.ontrack = (event) => {
@@ -4407,5 +4608,12 @@ function closePeerConnection(uid) {
     }
 
     delete activePeerConnections[uid];
+
+    // Clean up local camera/mic if no other peer connection is using VC
+    const anyActiveVC = Object.values(activePeerConnections).some(c => c.vcActive);
+    if (!anyActiveVC && window.localVCStream) {
+        window.localVCStream.getTracks().forEach(t => t.stop());
+        window.localVCStream = null;
+    }
 }
 
