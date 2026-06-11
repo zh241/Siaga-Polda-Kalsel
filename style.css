@@ -1394,7 +1394,7 @@ body, html {
 
 .live-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 20px;
 }
 .stream-card {
@@ -1404,6 +1404,8 @@ body, html {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    height: auto !important;
+    min-height: min-content;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 .stream-card:hover {
@@ -1484,22 +1486,32 @@ body, html {
     100% { transform: rotate(360deg); }
 }
 
-/* Grid Focus Layout */
+/* Grid Focus Layout (Zoom-like Left Focus & Right Sidebar) */
 .live-grid.has-focus {
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+    grid-template-columns: 3fr 1fr !important;
+    grid-template-rows: auto;
 }
 .stream-card.focused {
-    grid-column: span 2;
-    grid-row: span 2;
+    grid-column: 1 !important;
+    grid-row: 1 / span 10 !important;
     border-color: rgba(16, 185, 129, 0.4) !important;
     box-shadow: 0 15px 35px rgba(0,0,0,0.5);
 }
 .stream-card.focused .stream-video-container {
     aspect-ratio: 16/9 !important;
 }
+.stream-card:not(.focused) {
+    grid-column: 2 !important;
+}
 @media (max-width: 768px) {
+    .live-grid.has-focus {
+        grid-template-columns: 1fr !important;
+    }
     .stream-card.focused {
-        grid-column: span 1;
-        grid-row: span 1;
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+    }
+    .stream-card:not(.focused) {
+        grid-column: 1 !important;
     }
 }

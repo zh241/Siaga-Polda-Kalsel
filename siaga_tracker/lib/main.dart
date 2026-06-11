@@ -5927,6 +5927,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
   StreamSubscription<DatabaseEvent>? _receiverCandidatesSubscription;
   
   bool _isMuted = false;
+  bool _isSpeakerOn = true;
   bool _isFrontCamera = false;
   bool _isConnected = false;
   String _statusText = 'Menginisialisasi Kamera...';
@@ -6034,6 +6035,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
             _remoteRenderer.srcObject = _remoteStream;
             _hasRemoteVideo = _remoteStream!.getVideoTracks().isNotEmpty;
           });
+          Helper.setSpeakerphoneOn(true);
         }
       };
 
@@ -6044,6 +6046,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
           _remoteRenderer.srcObject = _remoteStream;
           _hasRemoteVideo = _remoteStream!.getVideoTracks().isNotEmpty;
         });
+        Helper.setSpeakerphoneOn(true);
       };
 
       _peerConnection!.onRemoveStream = (MediaStream stream) {
@@ -6168,6 +6171,17 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         setState(() {});
       }
     }
+  }
+
+  Future<void> _toggleSpeaker() async {
+    _isSpeakerOn = !_isSpeakerOn;
+    if (_remoteStream != null) {
+      _remoteStream!.getAudioTracks().forEach((track) {
+        track.enabled = _isSpeakerOn;
+      });
+    }
+    await Helper.setSpeakerphoneOn(_isSpeakerOn);
+    setState(() {});
   }
 
   Future<void> _switchCamera() async {
@@ -6413,7 +6427,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
                 const SizedBox(height: 20),
 
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     FloatingActionButton(
                       heroTag: 'mute_btn',
@@ -6422,28 +6436,15 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
                       onPressed: _toggleMute,
                       child: Icon(_isMuted ? Icons.mic_off_rounded : Icons.mic_rounded),
                     ),
-
-                    SizedBox(
-                      width: 140,
-                      height: 56,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red[900],
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(28),
-                          ),
-                          elevation: 8,
-                        ),
-                        icon: const Icon(Icons.stop_circle_rounded),
-                        label: const Text(
-                          'SELESAI',
-                          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                        ),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
+                    const SizedBox(width: 20),
+                    FloatingActionButton(
+                      heroTag: 'speaker_btn',
+                      backgroundColor: _isSpeakerOn ? Colors.grey[900] : Colors.redAccent,
+                      foregroundColor: Colors.white,
+                      onPressed: _toggleSpeaker,
+                      child: Icon(_isSpeakerOn ? Icons.volume_up_rounded : Icons.volume_off_rounded),
                     ),
-
+                    const SizedBox(width: 20),
                     FloatingActionButton(
                       heroTag: 'switch_cam_btn',
                       backgroundColor: Colors.grey[900],
@@ -6452,6 +6453,27 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
                       child: const Icon(Icons.flip_camera_ios_rounded),
                     ),
                   ],
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red[900],
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(26),
+                      ),
+                      elevation: 8,
+                    ),
+                    icon: const Icon(Icons.stop_circle_rounded),
+                    label: const Text(
+                      'SELESAI TUGAS',
+                      style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
                 ),
               ],
             ),
