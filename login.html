@@ -485,7 +485,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
         // Konfigurasi SIAGA Baru
@@ -610,7 +610,7 @@
             errorMsg.style.display = 'none';
 
             // Proses Autentikasi ke Firebase
-            setPersistence(auth, browserSessionPersistence)
+            setPersistence(auth, browserLocalPersistence)
                 .then(() => {
                     return signInWithEmailAndPassword(auth, email, password);
                 })
@@ -624,6 +624,9 @@
                             const userData = snapshot.val();
                             if (userData.status === 'active') {
                                 if (userData.role === 'admin' || userData.role === 'commander') {
+                                    // Set session cookie
+                                    document.cookie = "session_active=true; path=/";
+                                    
                                     // Simpan detail di localStorage
                                     localStorage.setItem('user_role', userData.role);
                                     localStorage.setItem('user_name', userData.nama);

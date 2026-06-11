@@ -81,8 +81,9 @@ setTimeout(() => {
             setTimeout(() => {
                 const btnForce = document.getElementById('btnForceLogout');
                 if (btnForce) {
-                    btnForce.addEventListener('click', (e) => {
+                        btnForce.addEventListener('click', (e) => {
                         e.preventDefault();
+                        document.cookie = "session_active=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
                         localStorage.clear();
                         signOut(auth).then(() => {
                             window.location.href = "login.html";
@@ -102,6 +103,14 @@ onAuthStateChanged(auth, (user) => {
         localStorage.clear();
         window.location.href = "login.html";
     } else {
+        // Cek apakah cookie sesi aktif (jika tidak, ini adalah sesi browser baru dan user harus login ulang)
+        if (!document.cookie.includes("session_active=true")) {
+            console.log("[Auth] Browser session expired (no session cookie). Logging out.");
+            localStorage.clear();
+            window.authVerified = false;
+            signOut(auth).then(() => { window.location.href = "login.html"; });
+            return;
+        }
         // Segera tampilkan dashboard - Firebase Auth sudah memverifikasi user
         window.authVerified = true;
 
@@ -190,6 +199,7 @@ onAuthStateChanged(auth, (user) => {
 // Penanganan Logout
 const handleLogout = (e) => {
     e.preventDefault();
+    document.cookie = "session_active=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     signOut(auth).then(() => {
         localStorage.clear();
         window.location.href = "login.html";

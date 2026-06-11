@@ -283,7 +283,7 @@
     <!-- Firebase SDK & Logika Web Tracker -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getDatabase, ref, set, remove, onDisconnect, get, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
         // Konfigurasi Firebase SIAGA
@@ -386,6 +386,11 @@
         // Monitoring State Auth
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                // Cek cookie sesi
+                if (!document.cookie.includes("session_active=true")) {
+                    signOut(auth);
+                    return;
+                }
                 currentUid = user.uid;
                 get(ref(db, 'users/' + user.uid)).then((snapshot) => {
                     if (snapshot.exists()) {
@@ -430,9 +435,12 @@
 
             const email = nrp.includes('@') ? nrp : nrp + "@siaga.polri.go.id";
 
-            setPersistence(auth, browserSessionPersistence)
+            setPersistence(auth, browserLocalPersistence)
                 .then(() => {
                     return signInWithEmailAndPassword(auth, email, password);
+                })
+                .then(() => {
+                    document.cookie = "session_active=true; path=/";
                 })
                 .catch((err) => {
                     errorMsg.style.display = 'block';
@@ -445,6 +453,7 @@
         // Event Handler Logout
         btnLogout.addEventListener('click', () => {
             if (confirm("Keluar dari pelacakan?")) {
+                document.cookie = "session_active=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
                 signOut(auth);
             }
         });
