@@ -599,9 +599,9 @@ body, html {
     background-color: var(--map-bg); 
 }
 #map-geofence { 
-    height: 450px; 
+    height: 350px; 
     width: 100%; 
-    border-radius: 12px; 
+    border-radius: 8px; 
     z-index: 1; 
     background-color: var(--map-bg); 
     border: 1px solid var(--border-color); 
