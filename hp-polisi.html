@@ -283,7 +283,7 @@
     <!-- Firebase SDK & Logika Web Tracker -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getDatabase, ref, set, remove, onDisconnect, get, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
         // Konfigurasi Firebase SIAGA
@@ -430,7 +430,10 @@
 
             const email = nrp.includes('@') ? nrp : nrp + "@siaga.polri.go.id";
 
-            signInWithEmailAndPassword(auth, email, password)
+            setPersistence(auth, browserSessionPersistence)
+                .then(() => {
+                    return signInWithEmailAndPassword(auth, email, password);
+                })
                 .catch((err) => {
                     errorMsg.style.display = 'block';
                     errorMsg.innerText = "NRP atau Kata Sandi salah, atau koneksi terputus.";

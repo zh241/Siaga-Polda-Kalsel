@@ -485,7 +485,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
         // Konfigurasi SIAGA Baru
@@ -610,7 +610,10 @@
             errorMsg.style.display = 'none';
 
             // Proses Autentikasi ke Firebase
-            signInWithEmailAndPassword(auth, email, password)
+            setPersistence(auth, browserSessionPersistence)
+                .then(() => {
+                    return signInWithEmailAndPassword(auth, email, password);
+                })
                 .then((userCredential) => {
                     const user = userCredential.user;
                     
