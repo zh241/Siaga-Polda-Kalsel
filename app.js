@@ -4467,7 +4467,7 @@ function createDynamicFloatingPanel(uid, fullName) {
     const right = 160 + (offset % 240);
 
     const panelHtml = `
-        <div id="live-floating-panel-${uid}" class="live-floating-panel" style="position:fixed; bottom:${bottom}px; right:${right}px; z-index:3500; width:240px; background:#18181b; border:1px solid #27272a; border-radius:8px; box-shadow:0 20px 50px rgba(0,0,0,0.6); display:flex; flex-direction:column; overflow:hidden; animation:slideUpChat 0.25s ease;">
+        <div id="live-floating-panel-${uid}" class="live-floating-panel" style="position:fixed; bottom:${bottom}px; right:${right}px; z-index:3500; width:180px; background:#18181b; border:1px solid #27272a; border-radius:8px; box-shadow:0 20px 50px rgba(0,0,0,0.6); display:flex; flex-direction:column; overflow:hidden; animation:slideUpChat 0.25s ease;">
             <div id="live-float-header-${uid}" style="padding:6px 10px; background:#1c1c1f; border-bottom:1px solid #27272a; display:flex; align-items:center; gap:8px; cursor:move; user-select:none;">
                 <span class="pulse-red" style="width:6px; height:6px; background:#ef4444; border-radius:50%;"></span>
                 <span id="live-float-title-${uid}" style="font-size:10px; font-weight:700; color:#fff; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">LIVE: ${fullName}</span>
@@ -4475,7 +4475,7 @@ function createDynamicFloatingPanel(uid, fullName) {
                     <i class="fa-solid fa-xmark" style="font-size:12px;"></i>
                 </button>
             </div>
-            <div style="position:relative; width:100%; aspect-ratio:4/3; background:#000; display:flex; align-items:center; justify-content:center;">
+            <div style="position:relative; width:100%; aspect-ratio:3/4; background:#000; display:flex; align-items:center; justify-content:center;">
                 <video id="live-float-video-${uid}" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
                 <div id="live-float-loading-${uid}" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.8); gap:10px; color:#fff;">
                     <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
