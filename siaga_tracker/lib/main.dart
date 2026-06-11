@@ -5081,7 +5081,7 @@ class _TacticalMapTabState extends State<TacticalMapTab> {
   @override
   void initState() {
     super.initState();
-    _liveTrackingStream = widget.dbRef.child('live_tracking').onValue.asBroadcastStream();
+    _liveTrackingStream = widget.dbRef.child('live_tracking').onValue;
   }
 
   @override
@@ -5219,7 +5219,7 @@ class _TacticalMapTabState extends State<TacticalMapTab> {
         _showSnackBar('Memperbarui data peta...', Colors.blue);
         setState(() {
           _mapRefreshKey++;
-          _liveTrackingStream = widget.dbRef.child('live_tracking').onValue.asBroadcastStream();
+          _liveTrackingStream = widget.dbRef.child('live_tracking').onValue;
         });
         try {
           await Geolocator.getCurrentPosition(
@@ -5446,7 +5446,7 @@ class _TacticalMapTabState extends State<TacticalMapTab> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.only(topLeft: Radius.circular(15), topRight: Radius.circular(15))),
       builder: (context) {
         return StreamBuilder<DatabaseEvent>(
-          stream: _liveTrackingStream,
+          stream: widget.dbRef.child('live_tracking').onValue,
           builder: (context, snapshot) {
             if (snapshot.hasError) {
               return Center(
