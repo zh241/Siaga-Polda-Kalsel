@@ -4117,12 +4117,21 @@ function renderLiveGrid() {
             if (watchBtn) {
                 watchBtn.className = `stream-btn ${isWatching ? 'watching' : ''}`;
                 watchBtn.style.background = isWatching ? '#ef4444' : '#3b82f6';
-                watchBtn.innerHTML = `<i class="fa-solid ${isWatching ? 'fa-stop-circle' : 'fa-play'}"></i><span>${isWatching ? 'Hentikan' : 'Tonton Siaran'}</span>`;
+                watchBtn.innerHTML = `<i class="fa-solid ${isWatching ? 'fa-stop-circle' : 'fa-play'}"></i><span>${isWatching ? 'Hentikan' : 'Tonton'}</span>`;
                 watchBtn.onclick = () => window.toggleWatchStream(uid, streamFullName);
             }
 
             let vcBtnContainer = existingCard.querySelector('.vc-container');
+            if (!vcBtnContainer) {
+                vcBtnContainer = document.createElement('div');
+                vcBtnContainer.className = 'vc-container';
+                vcBtnContainer.style.flex = '1';
+                const row = existingCard.querySelector('.stream-info > div > div');
+                if (row) row.appendChild(vcBtnContainer);
+            }
+
             if (isWatching) {
+                vcBtnContainer.style.display = 'block';
                 const vcActive = activePeerConnections[uid] && activePeerConnections[uid].vcActive;
                 const micActive = window.localVCStream ? window.localVCStream.getAudioTracks().some(t => t.enabled) : true;
                 const camActive = window.localVCStream ? window.localVCStream.getVideoTracks().some(t => t.enabled) : true;
@@ -4130,31 +4139,24 @@ function renderLiveGrid() {
                 let html = '';
                 if (vcActive) {
                     html = `
-                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:8px; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; gap:6px;">
-                            <i class="fa-solid fa-phone-slash"></i><span>Tutup Panggilan</span>
+                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:6px 8px; border:none; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:32px;">
+                            <i class="fa-solid fa-phone-slash"></i><span>Tutup</span>
                         </button>
-                        <div style="display:flex; gap:8px; margin-top:8px;">
-                            <button id="vc-mic-btn-${uid}" style="flex:1; padding:6px; border:none; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px;">
+                        <div style="display:flex; gap:6px; margin-top:6px;">
+                            <button id="vc-mic-btn-${uid}" style="flex:1; padding:4px 6px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:26px;">
                                 <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>${micActive ? 'Mute' : 'Unmute'}</span>
                             </button>
-                            <button id="vc-cam-btn-${uid}" style="flex:1; padding:6px; border:none; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; background:${camActive ? '#18181b' : '#ef4444'}; border:1px solid ${camActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px;">
+                            <button id="vc-cam-btn-${uid}" style="flex:1; padding:4px 6px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${camActive ? '#18181b' : '#ef4444'}; border:1px solid ${camActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:26px;">
                                 <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>Kamera</span>
                             </button>
                         </div>
                     `;
                 } else {
                     html = `
-                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:8px; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; background:#10b981; color:#fff; display:flex; align-items:center; justify-content:center; gap:6px;">
-                            <i class="fa-solid fa-video"></i><span>Hubungi Unit</span>
+                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:6px 8px; border:none; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; background:#10b981; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:32px;">
+                            <i class="fa-solid fa-video"></i><span>Hubungi</span>
                         </button>
                     `;
-                }
-
-                if (!vcBtnContainer) {
-                    vcBtnContainer = document.createElement('div');
-                    vcBtnContainer.className = 'vc-container';
-                    vcBtnContainer.style.marginTop = '8px';
-                    existingCard.querySelector('.stream-info').appendChild(vcBtnContainer);
                 }
                 
                 vcBtnContainer.innerHTML = html;
@@ -4182,9 +4184,8 @@ function renderLiveGrid() {
                     };
                 }
             } else {
-                if (vcBtnContainer) {
-                    vcBtnContainer.remove();
-                }
+                vcBtnContainer.style.display = 'none';
+                vcBtnContainer.innerHTML = '';
                 const preview = document.getElementById(`local-preview-${uid}`);
                 if (preview) preview.style.display = 'none';
             }
@@ -4243,24 +4244,34 @@ function renderLiveGrid() {
                 </div>
                 <video id="video-${uid}" autoplay playsinline style="width:100%; height:100%; object-fit:cover; display:block;"></video>
             </div>
-            <div class="stream-info" style="padding:14px;">
-                <h6 class="stream-title" style="margin:0 0 4px; font-weight:700; color:var(--text-main); font-size:14px;">${streamFullName}</h6>
-                <div class="stream-meta" style="margin-bottom:10px; font-size:12px; color:var(--text-muted);">NRP: ${info.nrp || '-'} | Satker: ${info.satker || 'Bid TIK'}</div>
-                <div style="display:flex; flex-direction:column; gap:8px;">
-                    <div style="display:flex; gap:8px;">
-                        <button class="stream-btn ${isWatching ? 'watching' : ''}" style="flex:1; padding:8px; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; background:${isWatching ? '#ef4444' : '#3b82f6'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:6px;">
+            <div class="stream-info" style="padding:10px;">
+                <h6 class="stream-title" style="margin:0 0 2px; font-weight:700; color:var(--text-main); font-size:13px;">${streamFullName}</h6>
+                <div class="stream-meta" style="margin-bottom:8px; font-size:11px; color:var(--text-muted);">NRP: ${info.nrp || '-'} | Satker: ${info.satker || 'Bid TIK'}</div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <button class="stream-btn ${isWatching ? 'watching' : ''}" style="flex:1; padding:6px 8px; border:none; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; background:${isWatching ? '#ef4444' : '#3b82f6'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:32px;">
                             <i class="fa-solid ${isWatching ? 'fa-stop-circle' : 'fa-play'}"></i>
-                            <span>${isWatching ? 'Hentikan' : 'Tonton Siaran'}</span>
+                            <span>${isWatching ? 'Hentikan' : 'Tonton'}</span>
                         </button>
+                        ${isWatching ? `
+                        <div class="vc-container" style="flex:1; display:block;">
+                            <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:6px 8px; border:none; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; background:${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:32px;">
+                                <i class="fa-solid ${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
+                                <span>${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? 'Tutup' : 'Hubungi'}</span>
+                            </button>
+                            ${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? `
+                            <div style="display:flex; gap:6px; margin-top:6px;">
+                                <button id="vc-mic-btn-${uid}" style="flex:1; padding:4px 6px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:#18181b; border:1px solid #27272a; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:26px;">
+                                    <i class="fa-solid fa-microphone"></i><span>Mute</span>
+                                </button>
+                                <button id="vc-cam-btn-${uid}" style="flex:1; padding:4px 6px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:#18181b; border:1px solid #27272a; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:26px;">
+                                    <i class="fa-solid fa-video"></i><span>Kamera</span>
+                                </button>
+                            </div>
+                            ` : ''}
+                        </div>
+                        ` : '<div class="vc-container" style="flex:1; display:none;"></div>'}
                     </div>
-                    ${isWatching ? `
-                    <div class="vc-container" style="margin-top:8px;">
-                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:8px; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; background:${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:6px;">
-                            <i class="fa-solid ${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
-                            <span>${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? 'Tutup Panggilan' : 'Hubungi Unit'}</span>
-                        </button>
-                    </div>
-                    ` : ''}
                 </div>
             </div>
         `;
@@ -4494,19 +4505,13 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
         const pendingCandidates = [];
         let remoteDescSet = false;
 
-        // Tambah transceiver agar browser siap mengirim & menerima video+audio
-        // Buat dummy stream agar browser mobile menerima event.streams[0] yang valid
-        const dummyStream = new MediaStream();
-        const videoTransceiver = pc.addTransceiver('video', { direction: 'sendrecv', streams: [dummyStream] });
-        const audioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv', streams: [dummyStream] });
-
         activePeerConnections[uid] = {
             pc: pc,
             remoteStream: remoteStream,
             isFloating: isFloating,
             connected: false,
-            videoSender: videoTransceiver.sender,
-            audioSender: audioTransceiver.sender,
+            videoSender: null,
+            audioSender: null,
             vcActive: false,
             audioUnmuted: true
         };
@@ -4616,6 +4621,17 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
             try {
                 await pc.setRemoteDescription(new RTCSessionDescription(offerVal));
                 remoteDescSet = true;
+
+                // Ambil senders dari transceivers yang otomatis dibuat oleh browser dari SDP Offer
+                pc.getTransceivers().forEach(transceiver => {
+                    transceiver.direction = 'sendrecv';
+                    const kind = transceiver.receiver.track.kind;
+                    if (kind === 'video') {
+                        activePeerConnections[uid].videoSender = transceiver.sender;
+                    } else if (kind === 'audio') {
+                        activePeerConnections[uid].audioSender = transceiver.sender;
+                    }
+                });
 
                 // Tambahkan candidates yang tertunda
                 for (const cand of pendingCandidates) {

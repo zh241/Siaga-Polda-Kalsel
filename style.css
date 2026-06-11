@@ -1491,27 +1491,27 @@ body, html {
     grid-template-columns: 3fr 1fr !important;
     grid-template-rows: auto;
 }
-.stream-card.focused {
+.live-grid.has-focus .stream-card.focused {
     grid-column: 1 !important;
     grid-row: 1 / span 10 !important;
     border-color: rgba(16, 185, 129, 0.4) !important;
     box-shadow: 0 15px 35px rgba(0,0,0,0.5);
 }
-.stream-card.focused .stream-video-container {
+.live-grid.has-focus .stream-card.focused .stream-video-container {
     aspect-ratio: 16/9 !important;
 }
-.stream-card:not(.focused) {
+.live-grid.has-focus .stream-card:not(.focused) {
     grid-column: 2 !important;
 }
 @media (max-width: 768px) {
     .live-grid.has-focus {
         grid-template-columns: 1fr !important;
     }
-    .stream-card.focused {
+    .live-grid.has-focus .stream-card.focused {
         grid-column: 1 !important;
         grid-row: 1 !important;
     }
-    .stream-card:not(.focused) {
+    .live-grid.has-focus .stream-card:not(.focused) {
         grid-column: 1 !important;
     }
 }
