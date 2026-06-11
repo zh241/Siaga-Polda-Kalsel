@@ -197,27 +197,33 @@ window.onerror = function(message, source, lineno, colno, error) {
                     </div>
                 </div>
                 <div class="col-md-5">
-                    <div class="dashboard-card">
-                        <h6 class="fw-bold mb-4">Kalibrasi Zona Terpilih <span id="label-zona-aktif" class="badge bg-primary ms-2">-</span></h6>
+                    <div class="dashboard-card" style="padding: 16px;">
+                        <h6 class="fw-bold mb-3" style="font-size: 13px; margin-bottom: 12px !important;">Kalibrasi Zona Terpilih <span id="label-zona-aktif" class="badge bg-primary ms-2">-</span></h6>
                         <form>
-                            <div class="mb-3">
-                                <label class="form-label">Nama Zona Taktis</label>
-                                <input type="text" id="input-zona-nama" class="form-control text-white bg-dark border-secondary" placeholder="Contoh: Posko Induk, Zona Patroli A">
+                            <div style="margin-bottom: 8px;">
+                                <label class="form-label mb-1" style="font-size: 11px;">Nama Zona Taktis</label>
+                                <input type="text" id="input-zona-nama" class="form-control text-white bg-dark border-secondary" placeholder="Contoh: Posko Induk, Zona Patroli A" style="height: 30px; font-size: 11px; padding: 4px 8px;">
                             </div>
-                            <div class="mb-3"><label class="form-label">Latitude</label><input type="text" id="input-lat" class="form-control font-monospace" readonly></div>
-                            <div class="mb-3"><label class="form-label">Longitude</label><input type="text" id="input-lng" class="form-control font-monospace" readonly></div>
-                            <div class="mb-4 mt-4">
-                                <label class="form-label d-flex justify-content-between align-items-end mb-3"><span>Radius (Meter)</span><span id="radius-val" class="text-danger fw-bold fs-5">0 m</span></label>
-                                <input type="range" class="form-range" id="input-radius" min="500" max="15000" step="100" value="3500">
+                            <div style="margin-bottom: 8px;">
+                                <label class="form-label mb-1" style="font-size: 11px;">Latitude</label>
+                                <input type="text" id="input-lat" class="form-control font-monospace" readonly style="height: 30px; font-size: 11px; padding: 4px 8px;">
+                            </div>
+                            <div style="margin-bottom: 8px;">
+                                <label class="form-label mb-1" style="font-size: 11px;">Longitude</label>
+                                <input type="text" id="input-lng" class="form-control font-monospace" readonly style="height: 30px; font-size: 11px; padding: 4px 8px;">
+                            </div>
+                            <div style="margin: 12px 0 10px 0;">
+                                <label class="form-label d-flex justify-content-between align-items-center mb-1" style="font-size: 11px;"><span>Radius (Meter)</span><span id="radius-val" class="text-danger fw-bold" style="font-size: 13px;">0 m</span></label>
+                                <input type="range" class="form-range" id="input-radius" min="500" max="15000" step="100" value="3500" style="height: 12px;">
                             </div>
                             <!-- Toggle Status Aktif Geofence -->
-                            <div class="form-check form-switch mb-4 mt-2">
-                                <input class="form-check-input cursor-pointer" type="checkbox" role="switch" id="input-geofence-status" checked>
-                                <label class="form-check-label fw-bold text-muted cursor-pointer text-nowrap" for="input-geofence-status" style="font-size: 11px; letter-spacing: 0.5px; white-space: nowrap;">GEOFENCE AKTIF</label>
+                            <div class="form-check form-switch" style="margin-bottom: 12px; margin-top: 6px;">
+                                <input class="form-check-input cursor-pointer" type="checkbox" role="switch" id="input-geofence-status" checked style="height: 16px; width: 32px;">
+                                <label class="form-check-label fw-bold text-muted cursor-pointer text-nowrap" for="input-geofence-status" style="font-size: 10px; letter-spacing: 0.5px; margin-left: 6px; padding-top: 2px;">GEOFENCE AKTIF</label>
                             </div>
-                            <button type="button" class="btn btn-danger w-100 py-2 fw-bold mb-2" onclick="simpanZonaFirebase()"><i class="fa-solid fa-floppy-disk me-2"></i> KUNCI ZONA INI</button>
-                            <button type="button" class="btn btn-outline-warning w-100 py-2 mb-2 fw-bold" onclick="tambahZonaBaru()"><i class="fa-solid fa-plus me-2"></i> TAMBAH ZONA BARU</button>
-                            <button type="button" class="btn btn-outline-danger w-100 py-2 fw-bold" onclick="hapusZonaFirebase()" id="btn-hapus-zona"><i class="fa-solid fa-trash me-2"></i> HAPUS ZONA INI</button>
+                            <button type="button" class="btn btn-danger w-100 fw-bold" style="height: 30px; font-size: 10px; display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 6px;" onclick="simpanZonaFirebase()"><i class="fa-solid fa-floppy-disk"></i> KUNCI ZONA INI</button>
+                            <button type="button" class="btn btn-outline-warning w-100 fw-bold" style="height: 30px; font-size: 10px; display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 6px;" onclick="tambahZonaBaru()"><i class="fa-solid fa-plus"></i> TAMBAH ZONA BARU</button>
+                            <button type="button" class="btn btn-outline-danger w-100 fw-bold" style="height: 30px; font-size: 10px; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="hapusZonaFirebase()" id="btn-hapus-zona"><i class="fa-solid fa-trash"></i> HAPUS ZONA INI</button>
                         </form>
                     </div>
                 </div>
