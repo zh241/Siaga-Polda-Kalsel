@@ -425,6 +425,13 @@ window.simpanEditPersonel = function () {
 
 // Bind Save action listener
 document.addEventListener('DOMContentLoaded', () => {
+    // Make live floating panel draggable
+    const liveFloatingPanel = document.getElementById('live-floating-panel');
+    const liveFloatHeader = document.getElementById('live-float-header');
+    if (liveFloatingPanel && liveFloatHeader) {
+        makeElementDraggable(liveFloatingPanel, liveFloatHeader);
+    }
+
     const btnSimpanEdit = document.getElementById('btnSimpanEditPersonel');
     if (btnSimpanEdit) {
         btnSimpanEdit.addEventListener('click', window.simpanEditPersonel);
@@ -4728,6 +4735,44 @@ function closePeerConnection(uid) {
     if (!anyActiveVC && window.localVCStream) {
         window.localVCStream.getTracks().forEach(t => t.stop());
         window.localVCStream = null;
+    }
+}
+
+function makeElementDraggable(elmnt, header) {
+    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    if (header) {
+        header.onmousedown = dragMouseDown;
+    } else {
+        elmnt.onmousedown = dragMouseDown;
+    }
+
+    function dragMouseDown(e) {
+        e = e || window.event;
+        // Don't drag if clicking buttons inside header
+        if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+    }
+
+    function elementDrag(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        elmnt.style.bottom = 'auto';
+        elmnt.style.right = 'auto';
+    }
+
+    function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
     }
 }
 
