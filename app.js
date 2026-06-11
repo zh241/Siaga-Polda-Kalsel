@@ -1193,7 +1193,7 @@ let edgeMarker = L.marker([-3.4428, 114.8606], { draggable: true, icon: eIcon })
 
 let zones = {};
 let activeZoneKey = null;
-let markerGroup = L.layerGroup().addTo(map);
+let markerGroup = L.markerClusterGroup({ disableClusteringAtZoom: 18 }).addTo(map);
 
 function calcEdge(center, r) {
     return L.latLng(center.lat, center.lng + (r / (6378137 * Math.cos(Math.PI * center.lat / 180))) * 180 / Math.PI);

@@ -5446,8 +5446,25 @@ class _TacticalMapTabState extends State<TacticalMapTab> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.only(topLeft: Radius.circular(15), topRight: Radius.circular(15))),
       builder: (context) {
         return StreamBuilder<DatabaseEvent>(
-          stream: widget.dbRef.child('live_tracking').onValue,
+          stream: _liveTrackingStream,
           builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 40, color: Colors.orange[400]),
+                      const SizedBox(height: 8),
+                      Text('Gagal memuat daftar unit', style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                      Text(snapshot.error.toString(), style: TextStyle(color: Colors.grey[500], fontSize: 10), textAlign: TextAlign.center),
+                    ],
+                  ),
+                ),
+              );
+            }
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
@@ -5457,9 +5474,23 @@ class _TacticalMapTabState extends State<TacticalMapTab> {
               if (raw is Map) {
                 raw.forEach((key, val) {
                   if (val is Map) {
-                    activeList.add(Map<String, dynamic>.from(val));
+                    try {
+                      activeList.add(Map<String, dynamic>.from(val));
+                    } catch (e) {
+                      debugPrint('Error parsing active unit: $e');
+                    }
                   }
                 });
+              } else if (raw is List) {
+                for (var val in raw) {
+                  if (val is Map) {
+                    try {
+                      activeList.add(Map<String, dynamic>.from(val));
+                    } catch (e) {
+                      debugPrint('Error parsing active unit: $e');
+                    }
+                  }
+                }
               }
             }
 
