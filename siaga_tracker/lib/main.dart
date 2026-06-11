@@ -5925,6 +5925,10 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
   RTCPeerConnection? _peerConnection;
   StreamSubscription<DatabaseEvent>? _answerSubscription;
   StreamSubscription<DatabaseEvent>? _receiverCandidatesSubscription;
+  bool _isVCActive = false;
+  bool _isVCVideoActive = true;
+  StreamSubscription<DatabaseEvent>? _vcActiveSubscription;
+  StreamSubscription<DatabaseEvent>? _vcVideoActiveSubscription;
   
   bool _isMuted = false;
   bool _isSpeakerOn = true;
@@ -5932,7 +5936,6 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
   bool _isConnected = false;
   String _statusText = 'Menginisialisasi Kamera...';
   bool _remoteDescriptionSet = false;
-  bool _hasRemoteVideo = false;
   final List<RTCIceCandidate> _bufferedCandidates = [];
 
   final Map<String, dynamic> _iceServers = {
@@ -6027,16 +6030,21 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
 
       _peerConnection = await createPeerConnection(_iceServers);
       
-      _peerConnection!.onTrack = (RTCTrackEvent event) {
+      _peerConnection!.onTrack = (RTCTrackEvent event) async {
         debugPrint("Remote track received: ${event.track.kind}");
+        MediaStream? stream;
         if (event.streams.isNotEmpty) {
-          setState(() {
-            _remoteStream = event.streams[0];
-            _remoteRenderer.srcObject = _remoteStream;
-            _hasRemoteVideo = _remoteStream!.getVideoTracks().isNotEmpty;
-          });
-          Helper.setSpeakerphoneOn(true);
+          stream = event.streams[0];
+        } else {
+          _remoteStream ??= await createLocalMediaStream('remote_stream');
+          _remoteStream!.addTrack(event.track);
+          stream = _remoteStream;
         }
+        setState(() {
+          _remoteStream = stream;
+          _remoteRenderer.srcObject = _remoteStream;
+        });
+        Helper.setSpeakerphoneOn(true);
       };
 
       _peerConnection!.onAddStream = (MediaStream stream) {
@@ -6044,7 +6052,6 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         setState(() {
           _remoteStream = stream;
           _remoteRenderer.srcObject = _remoteStream;
-          _hasRemoteVideo = _remoteStream!.getVideoTracks().isNotEmpty;
         });
         Helper.setSpeakerphoneOn(true);
       };
@@ -6055,7 +6062,6 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
           if (_remoteStream?.id == stream.id) {
             _remoteStream = null;
             _remoteRenderer.srcObject = null;
-            _hasRemoteVideo = false;
           }
         });
       };
@@ -6126,6 +6132,22 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         if (mounted) {
           setState(() => _statusText = 'Handshake berhasil, menunggu koneksi...');
         }
+      });
+
+      _vcActiveSubscription = streamRef.child('info/vcActive').onValue.listen((event) {
+        if (!mounted) return;
+        final val = event.snapshot.value;
+        setState(() {
+          _isVCActive = val == true;
+        });
+      });
+
+      _vcVideoActiveSubscription = streamRef.child('info/vcVideoActive').onValue.listen((event) {
+        if (!mounted) return;
+        final val = event.snapshot.value;
+        setState(() {
+          _isVCVideoActive = val != false;
+        });
       });
 
       RTCSessionDescription offer = await _peerConnection!.createOffer({
@@ -6204,6 +6226,8 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
 
     _answerSubscription?.cancel();
     _receiverCandidatesSubscription?.cancel();
+    _vcActiveSubscription?.cancel();
+    _vcVideoActiveSubscription?.cancel();
 
     _localStream?.getTracks().forEach((track) {
       track.stop();
@@ -6246,7 +6270,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
           ),
 
           // Video/Audio Dua Arah (Panggilan dari Komandan / Web)
-          if (_remoteStream != null)
+          if (_isVCActive)
             Positioned(
               top: MediaQuery.of(context).padding.top + 80,
               right: 16,
@@ -6269,10 +6293,16 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
                   borderRadius: BorderRadius.circular(14),
                   child: Stack(
                     children: [
-                      if (_hasRemoteVideo)
+                      if (_isVCVideoActive && _remoteStream != null)
                         RTCVideoView(
                           _remoteRenderer,
                           objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                        )
+                      else if (_isVCVideoActive && _remoteStream == null)
+                        const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF10B981),
+                          ),
                         )
                       else
                         Center(

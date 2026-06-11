@@ -3959,6 +3959,10 @@ window.toggleVC = async function (uid) {
         if (conn.audioSender) await conn.audioSender.replaceTrack(null);
         conn.vcActive = false;
         
+        // Update Firebase status
+        await set(ref(db, `streams/${uid}/info/vcActive`), false);
+        await set(ref(db, `streams/${uid}/info/vcVideoActive`), false);
+
         const vcBtn = document.getElementById(`vc-btn-${uid}`);
         if (vcBtn) {
             vcBtn.style.background = '#10b981';
@@ -3973,6 +3977,8 @@ window.toggleVC = async function (uid) {
             window.localVCStream.getTracks().forEach(t => t.stop());
             window.localVCStream = null;
         }
+
+        renderLiveGrid();
         
         window.showToast?.('Panggilan dua arah dihentikan.', 'info');
     } else {
@@ -3996,6 +4002,10 @@ window.toggleVC = async function (uid) {
         }
         conn.vcActive = true;
 
+        // Update Firebase status
+        await set(ref(db, `streams/${uid}/info/vcActive`), true);
+        await set(ref(db, `streams/${uid}/info/vcVideoActive`), true);
+
         const vcBtn = document.getElementById(`vc-btn-${uid}`);
         if (vcBtn) {
             vcBtn.style.background = '#ef4444';
@@ -4009,8 +4019,34 @@ window.toggleVC = async function (uid) {
             previewVideo.srcObject = stream;
             previewVideo.play().catch(() => {});
         }
+
+        renderLiveGrid();
         
         window.showToast?.('Panggilan dua arah aktif! Personel lapangan dapat melihat/mendengar Anda.', 'success');
+    }
+};
+
+window.toggleVCMic = function (uid) {
+    const conn = activePeerConnections[uid];
+    if (!conn || !window.localVCStream) return;
+    const audioTrack = window.localVCStream.getAudioTracks()[0];
+    if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        renderLiveGrid();
+    }
+};
+
+window.toggleVCCam = async function (uid) {
+    const conn = activePeerConnections[uid];
+    if (!conn || !window.localVCStream) return;
+    const videoTrack = window.localVCStream.getVideoTracks()[0];
+    if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        
+        // Update Firebase video status
+        await set(ref(db, `streams/${uid}/info/vcVideoActive`), videoTrack.enabled);
+        
+        renderLiveGrid();
     }
 };
 
@@ -4087,32 +4123,63 @@ function renderLiveGrid() {
 
             let vcBtnContainer = existingCard.querySelector('.vc-container');
             if (isWatching) {
+                const vcActive = activePeerConnections[uid] && activePeerConnections[uid].vcActive;
+                const micActive = window.localVCStream ? window.localVCStream.getAudioTracks().some(t => t.enabled) : true;
+                const camActive = window.localVCStream ? window.localVCStream.getVideoTracks().some(t => t.enabled) : true;
+
+                let html = '';
+                if (vcActive) {
+                    html = `
+                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:8px; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            <i class="fa-solid fa-phone-slash"></i><span>Tutup Panggilan</span>
+                        </button>
+                        <div style="display:flex; gap:8px; margin-top:8px;">
+                            <button id="vc-mic-btn-${uid}" style="flex:1; padding:6px; border:none; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px;">
+                                <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>${micActive ? 'Mute' : 'Unmute'}</span>
+                            </button>
+                            <button id="vc-cam-btn-${uid}" style="flex:1; padding:6px; border:none; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; background:${camActive ? '#18181b' : '#ef4444'}; border:1px solid ${camActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px;">
+                                <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>Kamera</span>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    html = `
+                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:8px; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; background:#10b981; color:#fff; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            <i class="fa-solid fa-video"></i><span>Hubungi Unit</span>
+                        </button>
+                    `;
+                }
+
                 if (!vcBtnContainer) {
                     vcBtnContainer = document.createElement('div');
                     vcBtnContainer.className = 'vc-container';
                     vcBtnContainer.style.marginTop = '8px';
-                    vcBtnContainer.innerHTML = `
-                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:8px; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; background:${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:6px;">
-                            <i class="fa-solid ${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
-                            <span>${activePeerConnections[uid] && activePeerConnections[uid].vcActive ? 'Tutup Panggilan' : 'Hubungi Unit'}</span>
-                        </button>
-                    `;
                     existingCard.querySelector('.stream-info').appendChild(vcBtnContainer);
-                    
-                    const newVcBtn = document.getElementById(`vc-btn-${uid}`);
-                    if (newVcBtn) {
-                        newVcBtn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            window.toggleVC(uid);
-                        });
-                    }
-                } else {
-                    const vcBtn = document.getElementById(`vc-btn-${uid}`);
-                    if (vcBtn) {
-                        const vcActive = activePeerConnections[uid] && activePeerConnections[uid].vcActive;
-                        vcBtn.style.background = vcActive ? '#ef4444' : '#10b981';
-                        vcBtn.innerHTML = `<i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i><span>${vcActive ? 'Tutup Panggilan' : 'Hubungi Unit'}</span>`;
-                    }
+                }
+                
+                vcBtnContainer.innerHTML = html;
+
+                // Bind event listeners
+                const vcBtn = document.getElementById(`vc-btn-${uid}`);
+                if (vcBtn) {
+                    vcBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        window.toggleVC(uid);
+                    };
+                }
+                const micBtn = document.getElementById(`vc-mic-btn-${uid}`);
+                if (micBtn) {
+                    micBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        window.toggleVCMic(uid);
+                    };
+                }
+                const camBtn = document.getElementById(`vc-cam-btn-${uid}`);
+                if (camBtn) {
+                    camBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        window.toggleVCCam(uid);
+                    };
                 }
             } else {
                 if (vcBtnContainer) {
@@ -4428,8 +4495,10 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
         let remoteDescSet = false;
 
         // Tambah transceiver agar browser siap mengirim & menerima video+audio
-        const videoTransceiver = pc.addTransceiver('video', { direction: 'sendrecv' });
-        const audioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv' });
+        // Buat dummy stream agar browser mobile menerima event.streams[0] yang valid
+        const dummyStream = new MediaStream();
+        const videoTransceiver = pc.addTransceiver('video', { direction: 'sendrecv', streams: [dummyStream] });
+        const audioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv', streams: [dummyStream] });
 
         activePeerConnections[uid] = {
             pc: pc,
@@ -4581,6 +4650,10 @@ function closePeerConnection(uid) {
     if (!conn) return;
 
     console.log(`Closing peer connection for ${uid}`);
+
+    // Clean up Firebase VC status
+    set(ref(db, `streams/${uid}/info/vcActive`), null);
+    set(ref(db, `streams/${uid}/info/vcVideoActive`), null);
 
     if (conn.candidateListener) conn.candidateListener();
     if (conn.offerListener) conn.offerListener();
