@@ -3461,7 +3461,9 @@ function renderChatFromMemory(msgsObj, container, emptyId, isFloat) {
         container.appendChild(row);
     });
 
-    container.scrollTop = container.scrollHeight;
+    setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+    }, 50);
 }
 
 function renderChatMessages(snap, container, emptyId, isFloat) {
@@ -3527,7 +3529,9 @@ function renderChatMessages(snap, container, emptyId, isFloat) {
     });
 
     // Auto scroll ke bawah
-    container.scrollTop = container.scrollHeight;
+    setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+    }, 50);
 }
 
 function escapeHtml(text) {
@@ -3788,6 +3792,14 @@ window.toggleFloatingChat = function () {
         _chatUnread = 0;
         const badge = document.getElementById('chat-float-badge');
         if (badge) { badge.style.display = 'none'; badge.textContent = '0'; }
+        
+        // Auto scroll to bottom when panel is shown
+        const floatArea = document.getElementById('chat-float-messages');
+        if (floatArea) {
+            setTimeout(() => {
+                floatArea.scrollTop = floatArea.scrollHeight;
+            }, 50);
+        }
     } else {
         panel.style.display = 'none';
     }
