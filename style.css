@@ -578,6 +578,13 @@ body, html {
     background-color: var(--input-readonly); 
     color: var(--text-muted); 
 }
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.2);
+    cursor: pointer;
+}
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}
 .form-label { 
     font-size: 11px; 
     font-weight: 700; 
@@ -912,33 +919,33 @@ body, html {
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7) !important;
 }
 .modal-header, .modal-footer {
-    border-color: rgba(255, 255, 255, 0.05) !important;
+    border-color: var(--border-color) !important;
 }
 
 /* Modal form input premium fields */
 .modal-body .form-control {
-    background-color: rgba(10, 10, 12, 0.6) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    color: #ffffff !important;
+    background-color: var(--bg-main) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
     border-radius: 8px;
     padding: 10px 14px;
     transition: all 0.25s ease;
 }
 .modal-body .form-control:focus {
     border-color: var(--primary) !important;
-    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15) !important;
-    background-color: rgba(10, 10, 12, 0.8) !important;
+    box-shadow: 0 0 0 2px var(--primary-glow) !important;
+    background-color: var(--bg-main) !important;
 }
 .modal-body .form-control[readonly] {
-    background-color: rgba(255, 255, 255, 0.03) !important;
-    border-color: rgba(255, 255, 255, 0.05) !important;
+    background-color: var(--input-readonly) !important;
+    border-color: var(--border-color) !important;
     color: var(--text-muted) !important;
 }
 
 /* Table Row Actions Styles */
 .table-custom .form-select-sm {
-    background-color: rgba(10, 10, 12, 0.6) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background-color: var(--bg-main) !important;
+    border: 1px solid var(--border-color) !important;
     color: var(--text-main) !important;
     border-radius: 12px;
     padding: 4px 10px;

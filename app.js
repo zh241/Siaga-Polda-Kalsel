@@ -447,6 +447,11 @@ document.addEventListener('DOMContentLoaded', () => {
         btnExecuteCsvDownload.addEventListener('click', window.prosesUnduhCSV);
     }
 
+    const btnExecutePdfPrint = document.getElementById('btnExecutePdfPrint');
+    if (btnExecutePdfPrint) {
+        btnExecutePdfPrint.addEventListener('click', window.prosesCetakPDF);
+    }
+
     // Reset page index on history filter change
     const filterStart = document.getElementById('filter-tanggal-mulai');
     if (filterStart) {
@@ -1902,8 +1907,8 @@ function playGeofenceAlert() {
 // =========================================================================
 let localHistoryList = [];
 window.renderRiwayat = function () {
-    const filterStart = document.getElementById('filter-tanggal-mulai').value;
-    const filterEnd = document.getElementById('filter-tanggal-selesai').value;
+    const filterStart = document.getElementById('filter-tanggal-mulai') ? document.getElementById('filter-tanggal-mulai').value : '';
+    const filterEnd = document.getElementById('filter-tanggal-selesai') ? document.getElementById('filter-tanggal-selesai').value : '';
     const query = document.getElementById('search-riwayat') ? document.getElementById('search-riwayat').value.toLowerCase().trim() : '';
     const tbody = document.getElementById('tbody-riwayat');
     if (!tbody) return;
@@ -2039,8 +2044,8 @@ window.renderRiwayat = function () {
 };
 
 window.bukaModalUnduhCSV = function () {
-    const screenStart = document.getElementById('filter-tanggal-mulai').value;
-    const screenEnd = document.getElementById('filter-tanggal-selesai').value;
+    const screenStart = document.getElementById('filter-tanggal-mulai') ? document.getElementById('filter-tanggal-mulai').value : '';
+    const screenEnd = document.getElementById('filter-tanggal-selesai') ? document.getElementById('filter-tanggal-selesai').value : '';
 
     const radioAll = document.getElementById('csvRangeAll');
     const radioCustom = document.getElementById('csvRangeCustom');
@@ -2188,9 +2193,19 @@ window.switchPage = function (pageId, element) {
     if (pageId === 'peta') setTimeout(() => { map.invalidateSize(); }, 200);
     if (pageId === 'geofence') setTimeout(() => { mapGeo.invalidateSize(); }, 200);
     if (pageId === 'riwayat') renderRiwayat();
-    if (pageId === 'laporan') buildLaporan();
+    if (pageId === 'statistik') buildStatistik();
     if (pageId === 'chat') {
         if (typeof initChatListener === 'function') initChatListener();
+        window.forceScrollToBottom(document.getElementById('chat-messages-area'));
+        if (typeof _chatChannel !== 'undefined' && _chatChannel === 'umum') {
+            _chatUnread = 0;
+            const b1 = document.getElementById('badge-chat');
+            const b2 = document.getElementById('badge-ch-umum');
+            const b3 = document.getElementById('chat-float-badge');
+            if (b1) { b1.style.display = 'none'; b1.textContent = '0'; }
+            if (b2) { b2.style.display = 'none'; b2.textContent = '0'; }
+            if (b3) { b3.style.display = 'none'; b3.textContent = '0'; }
+        }
     }
 
     // Auto hide/show floating chat bubble depending on current page to avoid double UI
@@ -2777,29 +2792,23 @@ window.bersihkanDatabaseLama = function () {
 };
 
 // =========================================================================
-// 10. LAPORAN KONSOLIDASI & EKSPOR DATA
+// 10. STATISTIK KINERJA & CETAK RIWAYAT
 // =========================================================================
-window.buildLaporan = function () {
-    const tbodySummary = document.getElementById('tbody-laporan-summary');
-    if (!tbodySummary) return;
-    tbodySummary.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4"><i class="fa-solid fa-circle-notch fa-spin me-2"></i> Mengompilasi data laporan...</td></tr>`;
-
-    const filterStart = document.getElementById('laporan-tanggal-mulai') ? document.getElementById('laporan-tanggal-mulai').value : '';
-    const filterEnd = document.getElementById('laporan-tanggal-selesai') ? document.getElementById('laporan-tanggal-selesai').value : '';
-    const query = document.getElementById('search-laporan') ? document.getElementById('search-laporan').value.toLowerCase().trim() : '';
+window.buildStatistik = function () {
+    const statOps = document.getElementById('stat-total-operasi');
+    const statAng = document.getElementById('stat-total-anggota');
+    const statJam = document.getElementById('stat-total-jam');
+    const statJar = document.getElementById('stat-total-jarak');
+    const statZon = document.getElementById('stat-zona-aktif');
 
     get(refUsers).then((snapshot) => {
         const users = snapshot.val();
-        if (!users) {
-            tbodySummary.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">Tidak ada data pengguna.</td></tr>`;
-            return;
-        }
+        if (!users) return;
 
         let activeCount = 0;
         let totalHistoryCount = 0;
         let totalJarakMeter = 0;
         let totalDurasiDetik = 0;
-        let userSummaries = [];
 
         let activeZonesCount = 0;
         for (let key in zones) {
@@ -2813,189 +2822,170 @@ window.buildLaporan = function () {
             if (u.status !== 'active') continue;
             activeCount++;
 
-            let userHistoryCount = 0;
-            let userJarakMeter = 0;
-            let userDurasiDetik = 0;
-
-            let commanders = new Set();
-            let personnelCounts = new Set();
-
             if (u.history) {
                 for (let histKey in u.history) {
                     let h = u.history[histKey];
-                    const opDate = h.startTime || h.waktuMulai || '';
-                    if (filterStart && opDate && opDate.split('T')[0] < filterStart) continue;
-                    if (filterEnd && opDate && opDate.split('T')[0] > filterEnd) continue;
-
-                    userHistoryCount++;
-                    userJarakMeter += h.distance !== undefined ? h.distance : (h.jarakMeter || 0);
-                    userDurasiDetik += h.durationSeconds !== undefined ? h.durationSeconds : (h.durasiDetik || 0);
-
-                    commanders.add(h.commander || 'Mandiri');
-                    personnelCounts.add(h.personnelCount || 1);
+                    totalHistoryCount++;
+                    totalJarakMeter += h.distance !== undefined ? h.distance : (h.jarakMeter || 0);
+                    totalDurasiDetik += h.durationSeconds !== undefined ? h.durationSeconds : (h.durasiDetik || 0);
                 }
             }
-
-            totalHistoryCount += userHistoryCount;
-            totalJarakMeter += userJarakMeter;
-            totalDurasiDetik += userDurasiDetik;
-
-            let sortedCounts = Array.from(personnelCounts).sort((a, b) => a - b);
-            let personnelText = sortedCounts.length > 0 ? (sortedCounts.join('-') + ' Orang') : '-';
-            let commanderText = Array.from(commanders).join(', ') || '-';
-
-            userSummaries.push({
-                nrp: u.nrp || '-',
-                nama: `${u.pangkat || ''} ${u.nama || ''}`.trim() || 'Anggota',
-                satker: u.satker || '-',
-                role: u.role || 'member',
-                totalOps: userHistoryCount,
-                totalJarakMeter: userJarakMeter,
-                totalDurasiDetik: userDurasiDetik
-            });
         }
 
-        // Tampilkan metrik utama
-        const repOps = document.getElementById('rep-total-operasi');
-        const repAng = document.getElementById('rep-total-anggota');
-        const repJam = document.getElementById('rep-total-jam');
-        const repJar = document.getElementById('rep-total-jarak');
-        const repZon = document.getElementById('rep-zona-aktif');
-
-        if (repOps) repOps.innerText = totalHistoryCount;
-        if (repAng) repAng.innerText = activeCount;
-        if (repJam) repJam.innerText = (totalDurasiDetik / 3600).toFixed(1);
-        if (repJar) repJar.innerHTML = `${(totalJarakMeter / 1000).toFixed(1)} <small class="fs-6">Km</small>`;
-        if (repZon) repZon.innerText = activeZonesCount;
-
-        // Filter kueri pencarian teks
-        if (query) {
-            userSummaries = userSummaries.filter(s =>
-                s.nrp.toLowerCase().includes(query) ||
-                s.nama.toLowerCase().includes(query) ||
-                s.satker.toLowerCase().includes(query)
-            );
-        }
-
-        // Pagination setup
-        const page = currentPages.laporan || 1;
-        const limit = limitPages.laporan;
-        const startIdx = (page - 1) * limit;
-        const endIdx = startIdx + limit;
-        const pagedSummaries = userSummaries.slice(startIdx, endIdx);
-
-        // Render tabel ringkasan
-        tbodySummary.innerHTML = '';
-        if (pagedSummaries.length === 0) {
-            tbodySummary.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">Tidak ada data personel aktif yang cocok.</td></tr>`;
-        } else {
-            pagedSummaries.forEach(s => {
-                const ops = s.totalOps || 0;
-                const opsDisplay = ops > 0 ? ops : '-';
-                const jarakKm = s.totalJarakMeter > 0 ? (s.totalJarakMeter / 1000).toFixed(2) + ' Km' : '-';
-                const durasiMin = s.totalDurasiDetik > 0 ? Math.round(s.totalDurasiDetik / 60) + ' Mnt' : '-';
-                const roleBadge = s.role === 'admin' ? 'ADMIN' : (s.role === 'commander' ? 'KOMANDAN' : 'ANGGOTA');
-
-                tbodySummary.innerHTML += `
-                    <tr>
-                        <td class="fw-bold font-monospace">${s.nrp}</td>
-                        <td><div class="fw-bold">${s.nama}</div></td>
-                        <td>${s.satker}</td>
-                        <td class="text-center"><span class="badge bg-primary bg-opacity-10 text-primary border border-primary">${roleBadge}</span></td>
-                        <td class="text-center">${opsDisplay}</td>
-                        <td class="text-center">${jarakKm}</td>
-                        <td class="text-center">${durasiMin}</td>
-                    </tr>
-                `;
-            });
-        }
-
-        window.setupPagination('tbody-laporan-summary', userSummaries, page, limit, 'pagination-laporan', window.buildLaporan);
+        if (statOps) statOps.innerText = totalHistoryCount;
+        if (statAng) statAng.innerText = activeCount;
+        if (statJam) statJam.innerText = (totalDurasiDetik / 3600).toFixed(1);
+        if (statJar) statJar.innerHTML = `${(totalJarakMeter / 1000).toFixed(1)} <small class="fs-6">Km</small>`;
+        if (statZon) statZon.innerText = activeZonesCount;
     }).catch(err => {
-        tbodySummary.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">Gagal memuat data laporan: ${err.message}</td></tr>`;
+        console.error("Gagal menghitung statistik:", err);
     });
 };
 
-window.cetakLaporanPDF = function () {
-    const filterStart = document.getElementById('laporan-tanggal-mulai') ? document.getElementById('laporan-tanggal-mulai').value : '';
-    const filterEnd = document.getElementById('laporan-tanggal-selesai') ? document.getElementById('laporan-tanggal-selesai').value : '';
+window.bukaModalCetakPDF = function () {
+    const screenStart = document.getElementById('filter-tanggal-mulai') ? document.getElementById('filter-tanggal-mulai').value : '';
+    const screenEnd = document.getElementById('filter-tanggal-selesai') ? document.getElementById('filter-tanggal-selesai').value : '';
+
+    const radioAll = document.getElementById('pdfRangeAll');
+    const radioCustom = document.getElementById('pdfRangeCustom');
+    const modalStart = document.getElementById('pdf-download-start');
+    const modalEnd = document.getElementById('pdf-download-end');
+    const dateContainer = document.getElementById('pdfModalDateContainer');
+
+    if (screenStart || screenEnd) {
+        if (radioCustom) radioCustom.checked = true;
+        if (dateContainer) dateContainer.style.display = 'flex';
+        if (modalStart) modalStart.value = screenStart;
+        if (modalEnd) modalEnd.value = screenEnd;
+    } else {
+        if (radioAll) radioAll.checked = true;
+        if (dateContainer) dateContainer.style.display = 'none';
+        if (modalStart) modalStart.value = '';
+        if (modalEnd) modalEnd.value = '';
+    }
+
+    const modalEl = document.getElementById('unduhPdfModal');
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+};
+
+window.togglePdfModalDateInputs = function () {
+    const radioCustom = document.getElementById('pdfRangeCustom');
+    const dateContainer = document.getElementById('pdfModalDateContainer');
+    if (radioCustom && radioCustom.checked) {
+        dateContainer.style.display = 'flex';
+    } else if (dateContainer) {
+        dateContainer.style.display = 'none';
+    }
+};
+
+window.prosesCetakPDF = function () {
+    const getBaseUrl = () => {
+        let loc = window.location.href;
+        loc = loc.split('?')[0].split('#')[0];
+        if (loc.endsWith('.html') || loc.endsWith('.php')) {
+            return loc.substring(0, loc.lastIndexOf('/'));
+        }
+        return loc.endsWith('/') ? loc.slice(0, -1) : loc;
+    };
+    const logoPoldaUrl = getBaseUrl() + '/assets/logo_polda.png';
+    const logoTikUrl = getBaseUrl() + '/assets/logo-tik.png';
+
+    const isCustom = document.getElementById('pdfRangeCustom').checked;
+    const filterStart = isCustom ? document.getElementById('pdf-download-start').value : '';
+    const filterEnd = isCustom ? document.getElementById('pdf-download-end').value : '';
+    const followQuery = document.getElementById('pdfFilterQuery').checked;
+    const query = (followQuery && document.getElementById('search-riwayat')) ? document.getElementById('search-riwayat').value.toLowerCase().trim() : '';
 
     get(refUsers).then((snapshot) => {
         const users = snapshot.val();
-        if (!users) return alert("Tidak ada data untuk dicetak!");
+        if (!users) return alert("Tidak ada data pengguna.", "Pemberitahuan", "warning");
 
-        let activeCount = 0;
-        let totalHistoryCount = 0;
-        let totalJarakMeter = 0;
-        let totalDurasiDetik = 0;
-        let userTableHtml = '';
-
-        let activeZonesCount = 0;
-        for (let key in zones) {
-            if (zones[key] && zones[key].aktif !== false) {
-                activeZonesCount++;
-            }
-        }
-
+        let allHistory = [];
         for (let uid in users) {
             let u = users[uid];
-            if (u.status !== 'active') continue;
-            activeCount++;
-
-            let userHistoryCount = 0;
-            let userJarakMeter = 0;
-            let userDurasiDetik = 0;
-
-            let commanders = new Set();
-            let personnelCounts = new Set();
-
             if (u.history) {
                 for (let histKey in u.history) {
                     let h = u.history[histKey];
-                    const opDate = h.startTime || h.waktuMulai || '';
-                    if (filterStart && opDate && opDate.split('T')[0] < filterStart) continue;
-                    if (filterEnd && opDate && opDate.split('T')[0] > filterEnd) continue;
-
-                    userHistoryCount++;
-                    userJarakMeter += h.distance !== undefined ? h.distance : (h.jarakMeter || 0);
-                    userDurasiDetik += h.durationSeconds !== undefined ? h.durationSeconds : (h.durasiDetik || 0);
-
-                    commanders.add(h.commander || 'Mandiri');
-                    personnelCounts.add(h.personnelCount || 1);
+                    allHistory.push({
+                        userNrp: u.nrp || '',
+                        userNama: `${u.pangkat || ''} ${u.nama || ''}`.trim() || 'Anggota',
+                        opCode: h.opCode || 'OPS-SIAGA-001',
+                        jenisGiat: h.activityType || h.jenisGiat || 'Pengamanan Wilayah',
+                        waktuMulai: h.startTime || h.waktuMulai || '',
+                        waktuSelesai: h.endTime || h.waktuSelesai || '',
+                        durasiDetik: h.durationSeconds !== undefined ? h.durationSeconds : (h.durasiDetik || 0),
+                        jarakMeter: h.distance !== undefined ? h.distance : (h.jarakMeter || 0),
+                        commander: h.commander || 'Mandiri',
+                        personnelCount: h.personnelCount || 1
+                    });
                 }
             }
-
-            totalHistoryCount += userHistoryCount;
-            totalJarakMeter += userJarakMeter;
-            totalDurasiDetik += userDurasiDetik;
-
-            const distanceKm = (userJarakMeter / 1000).toFixed(2);
-            const durationMin = Math.round(userDurasiDetik / 60);
-            const roleText = u.role === 'admin' ? 'ADMIN' : (u.role === 'commander' ? 'KOMANDAN' : 'ANGGOTA');
-            const userNama = `${u.pangkat || ''} ${u.nama || ''}`.trim() || 'Anggota';
-
-            let sortedCounts = Array.from(personnelCounts).sort((a, b) => a - b);
-            let personnelText = sortedCounts.length > 0 ? (sortedCounts.join('-') + ' Orang') : '-';
-            let commanderText = Array.from(commanders).join(', ') || '-';
-
-            userTableHtml += `
-                <tr>
-                    <td>${u.nrp || '-'}</td>
-                    <td><b>${userNama}</b></td>
-                    <td>${u.satker || '-'}</td>
-                    <td>${roleText}</td>
-                    <td><b>${commanderText}</b></td>
-                    <td>${personnelText}</td>
-                    <td>${userHistoryCount} Misi</td>
-                    <td>${distanceKm} Km</td>
-                    <td>${durationMin} Menit</td>
-                </tr>`;
         }
 
-        const totalJam = (totalDurasiDetik / 3600).toFixed(1);
-        const totalJarakKm = (totalJarakMeter / 1000).toFixed(2);
-        const curDate = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        // Sort
+        allHistory.sort((a, b) => new Date(b.waktuMulai) - new Date(a.waktuMulai));
 
+        // Filter date range
+        if (filterStart) {
+            allHistory = allHistory.filter(h => h.waktuMulai && h.waktuMulai.split('T')[0] >= filterStart);
+        }
+        if (filterEnd) {
+            allHistory = allHistory.filter(h => h.waktuMulai && h.waktuMulai.split('T')[0] <= filterEnd);
+        }
+
+        // Filter query
+        if (query) {
+            allHistory = allHistory.filter(h =>
+                h.opCode.toLowerCase().includes(query) ||
+                h.userNrp.toLowerCase().includes(query) ||
+                h.userNama.toLowerCase().includes(query) ||
+                h.jenisGiat.toLowerCase().includes(query)
+            );
+        }
+
+        if (allHistory.length === 0) {
+            alert("Tidak ada data riwayat untuk dicetak!");
+            return;
+        }
+
+        let tableRowsHtml = '';
+        
+        const formatWaktu = (dateStr) => {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return '-';
+            return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WITA';
+        };
+
+        const formatTanggal = (dateStr) => {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return '-';
+            return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        };
+
+        allHistory.forEach(h => {
+            const durasiMin = Math.round(h.durasiDetik / 60);
+            const jarakKm = (h.jarakMeter / 1000).toFixed(2);
+            const waktuTampil = `${formatTanggal(h.waktuMulai)}<br><small style="color: #666;">${formatWaktu(h.waktuMulai)} - ${h.waktuSelesai ? formatWaktu(h.waktuSelesai) : 'Selesai'}</small>`;
+
+            tableRowsHtml += `
+                <tr>
+                    <td>${waktuTampil}</td>
+                    <td><span style="font-family: monospace; font-weight: bold;">${h.opCode}</span></td>
+                    <td>
+                        <b>${h.userNama}</b><br>
+                        <small style="color: #666;">NRP: ${h.userNrp}</small>
+                    </td>
+                    <td>${h.jenisGiat}</td>
+                    <td>${h.commander || 'Mandiri'}</td>
+                    <td>${h.personnelCount || 1} Orang</td>
+                    <td>${durasiMin} Menit / ${jarakKm} Km</td>
+                </tr>`;
+        });
+
+        const curDate = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         let rangeText = "Semua Periode";
         if (filterStart && filterEnd) {
             rangeText = `Periode: ${filterStart} s/d ${filterEnd}`;
@@ -3005,17 +2995,32 @@ window.cetakLaporanPDF = function () {
             rangeText = `Periode Sampai: ${filterEnd}`;
         }
 
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow.document;
+        doc.write(`
             <html>
             <head>
-                <title>Laporan Ringkasan Operasional SIAGA - Polda Kalsel</title>
+                <title>&nbsp;</title>
                 <style>
+                    @page {
+                        size: A4;
+                        margin: 2.5cm 2cm 2.5cm 2cm; /* Margin resmi di setiap lembar kertas (Atas, Kanan, Bawah, Kiri) */
+                    }
                     body {
                         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                         color: #333;
-                        padding: 40px;
+                        margin: 0;
+                        padding: 0;
                         line-height: 1.4;
+                        background-color: #fff;
                     }
                     .header-container {
                         display: flex;
@@ -3038,286 +3043,127 @@ window.cetakLaporanPDF = function () {
                         flex-grow: 1;
                         padding: 0 20px;
                     }
-                    .header-text h2 {
+                    .header-text h2 { margin: 0; font-size: 16px; text-transform: uppercase; font-weight: bold; }
+                    .header-text h3 { margin: 5px 0 0; font-size: 12px; text-transform: uppercase; font-weight: normal; }
+                    .header-text p { margin: 5px 0 0; font-size: 9px; color: #333; font-weight: bold; line-height: 1.3; }
+                    .report-title-section {
+                        text-align: center;
+                        margin-bottom: 25px;
+                    }
+                    .report-title-section h4 {
                         margin: 0;
                         font-size: 15px;
-                        font-weight: 800;
-                        letter-spacing: 0.5px;
-                    }
-                    .header-text h3 {
-                        margin: 4px 0 0 0;
-                        font-size: 11px;
-                        font-weight: 700;
-                        color: #111;
-                    }
-                    .header-text p {
-                        margin: 4px 0 0 0;
-                        font-size: 9px;
-                        color: #555;
-                    }
-                    .title-section {
-                        text-align: center;
-                        margin-bottom: 30px;
-                    }
-                    .title-section h1 {
-                        font-size: 20px;
-                        margin: 0 0 10px 0;
                         text-transform: uppercase;
-                        font-weight: 800;
-                        letter-spacing: 0.5px;
-                    }
-                    .title-section p {
-                        font-size: 11px;
-                        color: #555;
-                        margin: 0;
+                        text-decoration: underline;
                         font-weight: bold;
                     }
-                    .summary-grid {
-                        display: flex;
-                        justify-content: space-between;
-                        gap: 15px;
-                        margin-bottom: 30px;
-                    }
-                    .summary-card {
-                        flex: 1;
-                        border: 1px solid #ddd;
-                        padding: 12px;
-                        text-align: center;
-                        border-radius: 6px;
-                        background-color: #f8f9fa;
-                    }
-                    .summary-card .value {
-                        font-size: 22px;
+                    .report-title-section p {
+                        margin: 5px 0 0;
+                        font-size: 12px;
                         font-weight: bold;
-                        margin-bottom: 3px;
-                        color: #1a365d;
+                        color: #0d6efd;
                     }
-                    .summary-card .label {
-                        font-size: 9px;
-                        font-weight: 700;
-                        color: #555;
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
-                    }
-                    table {
+                    .report-table {
                         width: 100%;
                         border-collapse: collapse;
-                        margin-bottom: 40px;
-                        page-break-inside: auto;
-                    }
-                    tr {
-                        page-break-inside: avoid;
-                        page-break-after: auto;
-                    }
-                    thead {
-                        display: table-header-group;
-                    }
-                    th, td {
-                        border: 1px solid #ddd;
-                        padding: 10px;
-                        text-align: left;
+                        margin-bottom: 30px;
                         font-size: 11px;
                     }
-                    th {
-                        background-color: #f1f3f5;
+                    .report-table th {
+                        background-color: #f3f4f6;
+                        border: 1px solid #d1d5db;
+                        padding: 10px 8px;
+                        text-align: left;
                         font-weight: bold;
+                        text-transform: uppercase;
                     }
-                    tr:nth-child(even) {
-                        background-color: #fdfdfd;
+                    .report-table td {
+                        border: 1px solid #d1d5db;
+                        padding: 10px 8px;
+                        vertical-align: top;
                     }
-                    .footer-signature {
+                    .report-table tr:nth-child(even) {
+                        background-color: #f9fafb;
+                    }
+                    .footer-section {
+                        margin-top: 40px;
                         display: flex;
                         justify-content: flex-end;
-                        margin-top: 50px;
-                        page-break-inside: avoid;
                     }
                     .signature-box {
                         text-align: center;
                         width: 250px;
                         font-size: 11px;
                     }
-                    .signature-space {
-                        height: 60px;
-                    }
-                    @page {
-                        size: A4;
-                        margin: 15mm 20mm 15mm 20mm;
+                    .signature-box p {
+                        margin: 0;
                     }
                     @media print {
-                        body { padding: 0 !important; margin: 0 !important; }
-                        .summary-card { background-color: #f8f9fa !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                        body { padding: 0; }
+                        .no-print { display: none; }
                     }
                 </style>
             </head>
             <body>
                 <div class="header-container">
-                    <img class="header-logo-left" src="assets/logo_polda.png" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Logo_Polri.png/200px-Logo_Polri.png'">
+                    <img class="header-logo-left" src="${logoPoldaUrl}" alt="Logo Polda" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Logo_Polri.png/200px-Logo_Polri.png'">
                     <div class="header-text">
                         <h2>KEPOLISIAN NEGARA REPUBLIK INDONESIA</h2>
-                        <h3>DAERAH KALIMANTAN SELATAN - BIDANG TEKNOLOGI INFORMASI DAN KOMUNIKASI</h3>
-                        <p>Jalan Bina Praja Timur, Kelurahan Sungai Tiung, Kecamatan Cempaka, Kota Banjarbaru, Kalimantan Selatan 70734</p>
+                        <h3>DAERAH KALIMANTAN SELATAN</h3>
+                        <p>Jalan Bina Praja Timur, Kelurahan Sungai Tiung, Kecamatan Cempaka, Kota Banjarbaru – Kalimantan Selatan – Indonesia</p>
                     </div>
-                    <img class="header-logo-right" src="assets/logo-tik.png" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Logo_Polri.png/200px-Logo_Polri.png'">
-                </div>
-                
-                <div class="title-section">
-                    <h1>LAPORAN OPERASIONAL KONSOLIDASI SIAGA</h1>
-                    <p style="color: #0d6efd; margin-bottom: 5px;">${rangeText}</p>
-                    <p style="font-weight: normal; color: #777;">Dicetak Pada: ${curDate}</p>
-                </div>
-                
-                <div class="summary-grid">
-                    <div class="summary-card">
-                        <div class="value">${totalHistoryCount}</div>
-                        <div class="label">Total Operasi</div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="value">${activeCount}</div>
-                        <div class="label">Anggota Aktif</div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="value">${totalJam} Jam</div>
-                        <div class="label">Total Durasi</div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="value">${totalJarakKm} Km</div>
-                        <div class="label">Total Jarak</div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="value">${activeZonesCount}</div>
-                        <div class="label">Zona Geofence</div>
-                    </div>
+                    <img class="header-logo-right" src="${logoTikUrl}" alt="Logo TIK" onerror="this.style.display='none'">
                 </div>
 
-                <h3 style="font-size: 14px; border-bottom: 2px solid #ccc; padding-bottom: 5px; margin-bottom: 15px;">Kinerja Personel Aktif</h3>
-                <table>
+                <div class="report-title-section">
+                    <h4>LAPORAN RIWAYAT OPERASI PERSONEL SIAGA</h4>
+                    <p>${rangeText}</p>
+                </div>
+
+                <table class="report-table">
                     <thead>
                         <tr>
-                            <th>NRP</th>
-                            <th>Nama Personel</th>
-                            <th>Satuan Kerja</th>
-                            <th>Peran</th>
-                            <th>Komandan Giat</th>
-                            <th>Kekuatan (Pers)</th>
-                            <th>Jumlah Misi</th>
-                            <th>Total Jarak</th>
-                            <th>Total Waktu</th>
+                            <th>Waktu Tugas</th>
+                            <th>ID Misi</th>
+                            <th>Pelaksana (NRP)</th>
+                            <th>Kegiatan (Giat)</th>
+                            <th>Komandan</th>
+                            <th>Kekuatan</th>
+                            <th>Durasi / Jarak</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${userTableHtml || '<tr><td colspan="9" style="text-align:center;">Tidak ada data personel aktif.</td></tr>'}
+                        ${tableRowsHtml}
                     </tbody>
                 </table>
-                
-                <div class="footer-signature">
+
+                <div class="footer-section">
                     <div class="signature-box">
-                        <p>Banjarbaru, ${curDate.split(',')[1] || curDate}</p>
-                        <p><b>Kepala Bidang TIK Polda Kalsel</b></p>
-                        <div class="signature-space"></div>
-                        <p style="text-decoration: underline; font-weight: bold;">( .................................................. )</p>
-                        <p>KOMBES POL / NRP. ...........................</p>
+                        <p>Banjarmasin, ${curDate}</p>
+                        <p style="margin-bottom: 70px;">Administrator Utama SIAGA,</p>
+                        <p><b>BID TIK POLDA KALSEL</b></p>
                     </div>
                 </div>
-                
-                <script>
-                    window.onload = function() {
-                        setTimeout(function() {
-                            window.print();
-                        }, 500);
-                    }
-                </script>
             </body>
             </html>
         `);
-        printWindow.document.close();
+        doc.close();
+
+        // Tunggu sebentar agar resource logo selesai dimuat di iframe, lalu jalankan print
+        setTimeout(() => {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+            }, 1000);
+        }, 500);
+
+        // Close modal
+        const modalEl = document.getElementById('unduhPdfModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
     }).catch(err => {
-        alert("Gagal mencetak PDF: " + err.message);
-    });
-};
-
-window.unduhLaporanCSV = function () {
-    const filterStart = document.getElementById('laporan-tanggal-mulai') ? document.getElementById('laporan-tanggal-mulai').value : '';
-    const filterEnd = document.getElementById('laporan-tanggal-selesai') ? document.getElementById('laporan-tanggal-selesai').value : '';
-
-    get(refUsers).then((snapshot) => {
-        const users = snapshot.val();
-        if (!users) return alert("Tidak ada data untuk diunduh!");
-
-        let csvData = [];
-        for (let uid in users) {
-            let u = users[uid];
-            if (u.status !== 'active') continue;
-
-            let userHistoryCount = 0;
-            let userJarakMeter = 0;
-            let userDurasiDetik = 0;
-
-            let commanders = new Set();
-            let personnelCounts = new Set();
-
-            if (u.history) {
-                for (let histKey in u.history) {
-                    let h = u.history[histKey];
-                    const opDate = h.startTime || h.waktuMulai || '';
-                    if (filterStart && opDate && opDate.split('T')[0] < filterStart) continue;
-                    if (filterEnd && opDate && opDate.split('T')[0] > filterEnd) continue;
-
-                    userHistoryCount++;
-                    userJarakMeter += h.distance !== undefined ? h.distance : (h.jarakMeter || 0);
-                    userDurasiDetik += h.durationSeconds !== undefined ? h.durationSeconds : (h.durasiDetik || 0);
-
-                    commanders.add(h.commander || 'Mandiri');
-                    personnelCounts.add(h.personnelCount || 1);
-                }
-            }
-
-            const distanceKm = (userJarakMeter / 1000).toFixed(2);
-            const durationMin = Math.round(userDurasiDetik / 60);
-            const roleText = u.role === 'admin' ? 'ADMIN' : (u.role === 'commander' ? 'KOMANDAN' : 'ANGGOTA');
-            const userNama = `${u.pangkat || ''} ${u.nama || ''}`.trim() || 'Anggota';
-
-            let sortedCounts = Array.from(personnelCounts).sort((a, b) => a - b);
-            let personnelText = sortedCounts.length > 0 ? (sortedCounts.join('-') + ' Orang') : '-';
-            let commanderText = Array.from(commanders).join(', ') || '-';
-
-            csvData.push({
-                "NRP": u.nrp || '',
-                "Nama": userNama,
-                "Satker": u.satker || '',
-                "Peran": roleText,
-                "Komandan Giat": commanderText,
-                "Kekuatan": personnelText,
-                "Jumlah Operasi": userHistoryCount,
-                "Total Jarak (Km)": distanceKm,
-                "Total Durasi (Menit)": durationMin
-            });
-        }
-
-        if (csvData.length === 0) {
-            return alert("Tidak ada data personel untuk diekspor.");
-        }
-
-        const headers = Object.keys(csvData[0]).join(",");
-        const rows = csvData.map(row =>
-            Object.values(row).map(val => `"${val}"`).join(",")
-        );
-
-        let rangeFilename = "semua_periode";
-        if (filterStart && filterEnd) rangeFilename = `${filterStart}_s_d_${filterEnd}`;
-        else if (filterStart) rangeFilename = `sejak_${filterStart}`;
-        else if (filterEnd) rangeFilename = `sampai_${filterEnd}`;
-
-        // Include UTF-8 BOM for Excel compatibility
-        const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers, ...rows].join("\n");
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `laporan_kinerja_siaga_${rangeFilename}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }).catch(err => {
-        alert("Gagal mengunduh CSV: " + err.message);
+        alert("Gagal memuat data cetak: " + err.message);
     });
 };
 
@@ -3356,6 +3202,15 @@ window.switchChatChannel = function (channel, btn) {
     if (sub) sub.textContent = 'Semua personel dapat melihat dan mengirim pesan';
     if (icon) { icon.className = 'fa-solid fa-hashtag'; icon.style.color = 'var(--text-muted)'; }
     if (inp) inp.placeholder = 'Kirim pesan ke #siaran-umum...';
+    
+    _chatUnread = 0;
+    const b1 = document.getElementById('badge-chat');
+    const b2 = document.getElementById('badge-ch-umum');
+    const b3 = document.getElementById('chat-float-badge');
+    if (b1) { b1.style.display = 'none'; b1.textContent = '0'; }
+    if (b2) { b2.style.display = 'none'; b2.textContent = '0'; }
+    if (b3) { b3.style.display = 'none'; b3.textContent = '0'; }
+
     initChatListener();
 };
 
@@ -3409,9 +3264,25 @@ function initChatListener() {
             }
         }
         doRender();
+
+        // Mark as read if we are in this DM conversation
+        if (_currentDmConvId) {
+            const lastReadKey = `dm_last_read_${_currentDmConvId}`;
+            localStorage.setItem(lastReadKey, Date.now().toString());
+        }
     }, err => console.error('[Chat] onValue error:', err));
     _chatUnsubs.push(unsubValue);
 }
+
+window.forceScrollToBottom = function(container) {
+    if (!container) return;
+    const scroll = () => { container.scrollTop = container.scrollHeight; };
+    scroll();
+    setTimeout(scroll, 50);
+    setTimeout(scroll, 150);
+    setTimeout(scroll, 300);
+    setTimeout(scroll, 600);
+};
 
 // Render chat messages from in-memory object (used by onChildAdded approach)
 function renderChatFromMemory(msgsObj, container, emptyId, isFloat) {
@@ -3471,9 +3342,7 @@ function renderChatFromMemory(msgsObj, container, emptyId, isFloat) {
         container.appendChild(row);
     });
 
-    setTimeout(() => {
-        container.scrollTop = container.scrollHeight;
-    }, 50);
+    window.forceScrollToBottom(container);
 }
 
 function renderChatMessages(snap, container, emptyId, isFloat) {
@@ -3539,9 +3408,7 @@ function renderChatMessages(snap, container, emptyId, isFloat) {
     });
 
     // Auto scroll ke bawah
-    setTimeout(() => {
-        container.scrollTop = container.scrollHeight;
-    }, 50);
+    window.forceScrollToBottom(container);
 }
 
 function escapeHtml(text) {
@@ -3572,7 +3439,8 @@ window.kirimPesan = function () {
         if (_currentDmConvId) {
             update(ref(db, `chat/dm/${_currentDmConvId}`), {
                 lastMessage: teks.substring(0, 80),
-                updatedAt: Date.now()
+                updatedAt: Date.now(),
+                lastSender: auth.currentUser.uid
             });
         }
     }).catch(err => {
@@ -3753,13 +3621,23 @@ function listenDmPreviews(myUid, users) {
 
             // Unread logic: compare updatedAt with stored last-read timestamp
             const lastReadKey = `dm_last_read_${child.key}`;
-            const lastRead = parseInt(localStorage.getItem(lastReadKey) || '0', 10);
+            let lastRead = parseInt(localStorage.getItem(lastReadKey) || '0', 10);
             const updatedAt = conv.updatedAt || 0;
+            const lastSender = conv.lastSender || '';
+
+            // Auto-read if currently viewing
+            if (_currentDmTargetUid === otherUid) {
+                const newRead = Math.max(Date.now(), updatedAt);
+                localStorage.setItem(lastReadKey, newRead.toString());
+                lastRead = newRead;
+            }
 
             const badgeEl = document.getElementById(`dm-badge-${otherUid}`);
             if (badgeEl) {
-                // Show "new" indicator if conv updated after last read AND user is not viewing this conv
-                if (updatedAt > lastRead && _currentDmTargetUid !== otherUid) {
+                // Show "new" indicator if conv updated after last read AND user is not viewing this conv AND last sender is not current user
+                const hasMessage = conv.lastMessage && conv.lastMessage !== '-';
+                const isFromOther = lastSender ? lastSender !== myUid : false;
+                if (hasMessage && isFromOther && updatedAt > lastRead && _currentDmTargetUid !== otherUid) {
                     badgeEl.style.display = 'flex';
                     badgeEl.textContent = '!';
                 } else {
@@ -3806,9 +3684,7 @@ window.toggleFloatingChat = function () {
         // Auto scroll to bottom when panel is shown
         const floatArea = document.getElementById('chat-float-messages');
         if (floatArea) {
-            setTimeout(() => {
-                floatArea.scrollTop = floatArea.scrollHeight;
-            }, 50);
+            window.forceScrollToBottom(floatArea);
         }
     } else {
         panel.style.display = 'none';
@@ -3865,10 +3741,21 @@ function initChatUI() {
         } else {
             // Check for new messages (not in current store) — count as unread
             for (const key in newMessages) {
-                if (!floatMessages[key] && !_chatFloatOpen) {
+                const activePage = document.querySelector('.page-view.active');
+                const isViewingUmum = (activePage && activePage.id === 'page-chat' && _chatChannel === 'umum');
+                
+                if (!floatMessages[key] && !_chatFloatOpen && !isViewingUmum) {
                     _chatUnread++;
+                    const badgeText = _chatUnread > 99 ? '99+' : _chatUnread;
+                    
                     const badge = document.getElementById('chat-float-badge');
-                    if (badge) { badge.style.display = 'flex'; badge.textContent = _chatUnread > 99 ? '99+' : _chatUnread; }
+                    if (badge) { badge.style.display = 'flex'; badge.textContent = badgeText; }
+                    
+                    const badgeMain = document.getElementById('badge-chat');
+                    if (badgeMain) { badgeMain.style.display = 'inline-block'; badgeMain.textContent = badgeText; }
+                    
+                    const badgeUmum = document.getElementById('badge-ch-umum');
+                    if (badgeUmum) { badgeUmum.style.display = 'inline-block'; badgeUmum.textContent = badgeText; }
                 }
                 floatMessages[key] = newMessages[key];
             }
@@ -4174,56 +4061,60 @@ function renderLiveGrid() {
 
             if (isWatching) {
                 vcBtnContainer.style.display = 'block';
-                const vcActive = activePeerConnections[uid] && activePeerConnections[uid].vcActive;
-                const micActive = activePeerConnections[uid] && activePeerConnections[uid].micActive !== false;
-                const camActive = activePeerConnections[uid] && activePeerConnections[uid].camActive !== false;
-
-                let html = '';
-                if (vcActive) {
-                    html = `
-                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:3px 5px; border:none; border-radius:3px; cursor:pointer; font-size:9px; font-weight:600; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:24px;">
-                            <i class="fa-solid fa-phone-slash"></i><span>Tutup</span>
-                        </button>
-                        <div style="display:flex; gap:4px; margin-top:4px;">
-                            <button id="vc-mic-btn-${uid}" style="flex:1; padding:2px 4px; border:none; border-radius:2px; cursor:pointer; font-size:8px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:2px; height:20px;">
-                                <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>${micActive ? 'Mute' : 'Unmute'}</span>
-                            </button>
-                            <button id="vc-cam-btn-${uid}" style="flex:1; padding:2px 4px; border:none; border-radius:2px; cursor:pointer; font-size:8px; font-weight:600; background:${camActive ? '#18181b' : '#ef4444'}; border:1px solid ${camActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:2px; height:20px;">
-                                <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>Matikan</span>
-                            </button>
-                        </div>
-                    `;
+                if (userRole !== 'admin') {
+                    vcBtnContainer.innerHTML = `<div style="width:100%; text-align:center; padding:3px 5px; border-radius:3px; font-size:9px; font-weight:600; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-muted); display:flex; align-items:center; justify-content:center; height:24px;">Mode Pantau</div>`;
                 } else {
-                    html = `
-                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:3px 5px; border:none; border-radius:3px; cursor:pointer; font-size:9px; font-weight:600; background:#10b981; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:24px;">
-                            <i class="fa-solid fa-video"></i><span>Hubungi</span>
-                        </button>
-                    `;
-                }
-                
-                vcBtnContainer.innerHTML = html;
+                    const vcActive = activePeerConnections[uid] && activePeerConnections[uid].vcActive;
+                    const micActive = activePeerConnections[uid] && activePeerConnections[uid].micActive !== false;
+                    const camActive = activePeerConnections[uid] && activePeerConnections[uid].camActive !== false;
 
-                // Bind event listeners
-                const vcBtn = document.getElementById(`vc-btn-${uid}`);
-                if (vcBtn) {
-                    vcBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        window.toggleVC(uid);
-                    };
-                }
-                const micBtn = document.getElementById(`vc-mic-btn-${uid}`);
-                if (micBtn) {
-                    micBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        window.toggleVCMic(uid);
-                    };
-                }
-                const camBtn = document.getElementById(`vc-cam-btn-${uid}`);
-                if (camBtn) {
-                    camBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        window.toggleVCCam(uid);
-                    };
+                    let html = '';
+                    if (vcActive) {
+                        html = `
+                            <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:3px 5px; border:none; border-radius:3px; cursor:pointer; font-size:9px; font-weight:600; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:24px;">
+                                <i class="fa-solid fa-phone-slash"></i><span>Tutup</span>
+                            </button>
+                            <div style="display:flex; gap:4px; margin-top:4px;">
+                                <button id="vc-mic-btn-${uid}" style="flex:1; padding:2px 4px; border:none; border-radius:2px; cursor:pointer; font-size:8px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:2px; height:20px;">
+                                    <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>${micActive ? 'Mute' : 'Unmute'}</span>
+                                </button>
+                                <button id="vc-cam-btn-${uid}" style="flex:1; padding:2px 4px; border:none; border-radius:2px; cursor:pointer; font-size:8px; font-weight:600; background:${camActive ? '#18181b' : '#ef4444'}; border:1px solid ${camActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:2px; height:20px;">
+                                    <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>Matikan</span>
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        html = `
+                            <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:3px 5px; border:none; border-radius:3px; cursor:pointer; font-size:9px; font-weight:600; background:#10b981; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:24px;">
+                                <i class="fa-solid fa-video"></i><span>Hubungi</span>
+                            </button>
+                        `;
+                    }
+                    
+                    vcBtnContainer.innerHTML = html;
+
+                    // Bind event listeners
+                    const vcBtn = document.getElementById(`vc-btn-${uid}`);
+                    if (vcBtn) {
+                        vcBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            window.toggleVC(uid);
+                        };
+                    }
+                    const micBtn = document.getElementById(`vc-mic-btn-${uid}`);
+                    if (micBtn) {
+                        micBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            window.toggleVCMic(uid);
+                        };
+                    }
+                    const camBtn = document.getElementById(`vc-cam-btn-${uid}`);
+                    if (camBtn) {
+                        camBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            window.toggleVCCam(uid);
+                        };
+                    }
                 }
             } else {
                 vcBtnContainer.style.display = 'none';
@@ -4300,23 +4191,26 @@ function renderLiveGrid() {
                         <button class="stream-btn ${isWatching ? 'watching' : ''}" style="flex:1; padding:3px 5px; border:none; border-radius:3px; cursor:pointer; font-size:9px; font-weight:600; background:${isWatching ? '#ef4444' : '#3b82f6'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:24px;">
                             <i class="fa-solid ${isWatching ? 'fa-stop-circle' : 'fa-play'}"></i>
                             <span>${isWatching ? 'Hentikan' : 'Tonton'}</span>
-                        </button>
-                        ${isWatching ? `
+                                ${isWatching ? `
                         <div class="vc-container" style="flex:1; display:block;">
-                            <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:3px 5px; border:none; border-radius:3px; cursor:pointer; font-size:9px; font-weight:600; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:24px;">
-                                <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
-                                <span>${vcActive ? 'Tutup' : 'Hubungi'}</span>
-                            </button>
-                            ${vcActive ? `
-                            <div style="display:flex; gap:4px; margin-top:4px;">
-                                <button id="vc-mic-btn-${uid}" style="flex:1; padding:2px 4px; border:none; border-radius:2px; cursor:pointer; font-size:8px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:2px; height:20px;">
-                                    <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>${micActive ? 'Mute' : 'Unmute'}</span>
+                            ${userRole !== 'admin' ? `
+                                <div style="width:100%; text-align:center; padding:3px 5px; border-radius:3px; font-size:9px; font-weight:600; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-muted); display:flex; align-items:center; justify-content:center; height:24px;">Mode Pantau</div>
+                            ` : `
+                                <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:3px 5px; border:none; border-radius:3px; cursor:pointer; font-size:9px; font-weight:600; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:24px;">
+                                    <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
+                                    <span>${vcActive ? 'Tutup' : 'Hubungi'}</span>
                                 </button>
-                                <button id="vc-cam-btn-${uid}" style="flex:1; padding:2px 4px; border:none; border-radius:2px; cursor:pointer; font-size:8px; font-weight:600; background:${camActive ? '#18181b' : '#ef4444'}; border:1px solid ${camActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:2px; height:20px;">
-                                    <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>Matikan</span>
-                                </button>
-                            </div>
-                            ` : ''}
+                                ${vcActive ? `
+                                <div style="display:flex; gap:4px; margin-top:4px;">
+                                    <button id="vc-mic-btn-${uid}" style="flex:1; padding:2px 4px; border:none; border-radius:2px; cursor:pointer; font-size:8px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:2px; height:20px;">
+                                        <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>${micActive ? 'Mute' : 'Unmute'}</span>
+                                    </button>
+                                    <button id="vc-cam-btn-${uid}" style="flex:1; padding:2px 4px; border:none; border-radius:2px; cursor:pointer; font-size:8px; font-weight:600; background:${camActive ? '#18181b' : '#ef4444'}; border:1px solid ${camActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:2px; height:20px;">
+                                        <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>Matikan</span>
+                                    </button>
+                                </div>
+                                ` : ''}
+                            `}
                         </div>
                         ` : '<div class="vc-container" style="flex:1; display:none;"></div>'}
                     </div>
@@ -4324,7 +4218,7 @@ function renderLiveGrid() {
             </div>
         `;
         grid.appendChild(card);
-
+ 
         const focusBtn = document.getElementById(`focus-btn-${uid}`);
         if (focusBtn) {
             focusBtn.addEventListener('click', (e) => {
@@ -4343,12 +4237,14 @@ function renderLiveGrid() {
         if (watchBtn) {
             watchBtn.addEventListener('click', () => window.toggleWatchStream(uid, streamFullName));
         }
-        const vcBtn = document.getElementById(`vc-btn-${uid}`);
-        if (vcBtn) {
-            vcBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                window.toggleVC(uid);
-            });
+        if (userRole === 'admin') {
+            const vcBtn = document.getElementById(`vc-btn-${uid}`);
+            if (vcBtn) {
+                vcBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    window.toggleVC(uid);
+                });
+            }
         }
 
         if (isWatching && conn) {
@@ -4592,7 +4488,10 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
         closePeerConnection(uid);
     }
 
-    console.log(`[WebRTC] Starting receiver for ${uid} (Floating: ${isFloating})`);
+    const myUid = auth.currentUser ? auth.currentUser.uid : '';
+    const myViewerId = myUid || 'viewer_' + Math.random().toString(36).substr(2, 9);
+
+    console.log(`[WebRTC] Starting receiver for ${uid} (Floating: ${isFloating}, ViewerId: ${myViewerId})`);
 
     if (isFloating) {
         createDynamicFloatingPanel(uid, fullName);
@@ -4612,8 +4511,20 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
             videoSender: null,
             audioSender: null,
             vcActive: false,
-            audioUnmuted: true
+            audioUnmuted: true,
+            viewerId: myViewerId
         };
+
+        const viewerStatusRef = ref(db, `streams/${uid}/viewers/${myViewerId}/status`);
+        await set(viewerStatusRef, 'request');
+
+        activePeerConnections[uid].statusListener = onValue(viewerStatusRef, (snapshot) => {
+            const status = snapshot.val();
+            if (status === 'rejected_full') {
+                alert(`Siaran Penuh: Jumlah penonton untuk ${fullName} sudah penuh (Maksimal 3 Komandan).`);
+                closePeerConnection(uid);
+            }
+        });
 
         pc.ontrack = (event) => {
             console.log(`[WebRTC] Track received: ${event.track.kind}`);
@@ -4673,13 +4584,13 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
         };
 
         // Bersihkan answer & receiver candidates lama (JANGAN hapus candidates/streamer - itu milik streamer dan masih valid)
-        await set(ref(db, `streams/${uid}/sdp/answer`), null);
-        await set(ref(db, `streams/${uid}/candidates/receiver`), null);
+        await set(ref(db, `streams/${uid}/viewers/${myViewerId}/sdp/answer`), null);
+        await set(ref(db, `streams/${uid}/viewers/${myViewerId}/candidates/receiver`), null);
 
         pc.onicecandidate = (event) => {
             if (event.candidate) {
                 console.log(`[WebRTC] Local ICE candidate: ${event.candidate.candidate.substring(0, 60)}...`);
-                const candidateRef = push(ref(db, `streams/${uid}/candidates/receiver`));
+                const candidateRef = push(ref(db, `streams/${uid}/viewers/${myViewerId}/candidates/receiver`));
                 set(candidateRef, event.candidate.toJSON());
             } else {
                 console.log('[WebRTC] ICE gathering complete (null candidate).');
@@ -4687,7 +4598,7 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
         };
 
         // Dengarkan ICE candidates dari streamer (HP)
-        const streamerCandidatesRef = ref(db, `streams/${uid}/candidates/streamer`);
+        const streamerCandidatesRef = ref(db, `streams/${uid}/viewers/${myViewerId}/candidates/streamer`);
         activePeerConnections[uid].candidateListener = onValue(streamerCandidatesRef, (snapshot) => {
             const data = snapshot.val();
             if (!data) return;
@@ -4704,7 +4615,7 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
         });
 
         // Dengarkan SDP Offer dari streamer (HP)
-        const offerRef = ref(db, `streams/${uid}/sdp/offer`);
+        const offerRef = ref(db, `streams/${uid}/viewers/${myViewerId}/sdp/offer`);
         activePeerConnections[uid].offerListener = onValue(offerRef, async (snapshot) => {
             const offerVal = snapshot.val();
             if (!offerVal || !offerVal.sdp) {
@@ -4742,7 +4653,7 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
 
-                await set(ref(db, `streams/${uid}/sdp/answer`), {
+                await set(ref(db, `streams/${uid}/viewers/${myViewerId}/sdp/answer`), {
                     type: answer.type,
                     sdp: answer.sdp
                 });
@@ -4772,6 +4683,11 @@ function closePeerConnection(uid) {
 
     if (conn.candidateListener) conn.candidateListener();
     if (conn.offerListener) conn.offerListener();
+    if (conn.statusListener) conn.statusListener();
+
+    if (conn.viewerId) {
+        remove(ref(db, `streams/${uid}/viewers/${conn.viewerId}`));
+    }
 
     if (conn.pc) {
         conn.pc.close();

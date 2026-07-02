@@ -48,13 +48,12 @@ window.onerror = function(message, source, lineno, colno, error) {
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand">
             <img src="assets/logo-tik.png" alt="Logo" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Logo_Polri.png/200px-Logo_Polri.png'">
-            <div class="brand-text"><h6>SIAGA</h6><small>DIVISI TIK POLDA KALSEL</small></div>
+            <div class="brand-text"><h6>SIAGA</h6><small>BID TIK POLDA KALSEL</small></div>
         </div>
         <nav class="sidebar-nav">
             <div class="menu-category" id="cat-operations">OPERASI WILAYAH</div>
             <a class="nav-item active" onclick="switchPage('peta', this)" id="menu-peta"><i class="fa-solid fa-satellite-dish"></i> <span class="nav-text">Peta Taktis</span></a>
             <a class="nav-item" onclick="switchPage('operasi', this)" id="menu-operasi"><i class="fa-solid fa-route"></i> <span class="nav-text">Operasi Aktif</span></a>
-            <a class="nav-item" onclick="switchPage('manajemen', this)" id="menu-manajemen"><i class="fa-solid fa-users-gear"></i> <span class="nav-text">Manajemen Akun</span></a>
             <a class="nav-item" onclick="switchPage('geofence', this)" id="menu-geofence"><i class="fa-solid fa-map-location-dot"></i> <span class="nav-text">Zona Taktis</span></a>
             
             <div class="menu-category" id="cat-komunikasi">KOMUNIKASI</div>
@@ -64,9 +63,9 @@ window.onerror = function(message, source, lineno, colno, error) {
             <div class="menu-category" id="cat-analytics">ANALITIK</div>
             <a class="nav-item" onclick="switchPage('riwayat', this)" id="menu-riwayat"><i class="fa-solid fa-clock-rotate-left"></i> <span class="nav-text">Riwayat Operasi</span></a>
             <a class="nav-item" onclick="switchPage('statistik', this)" id="menu-statistik"><i class="fa-solid fa-chart-simple"></i> <span class="nav-text">Statistik Kinerja</span></a>
-            <a class="nav-item" onclick="switchPage('laporan', this)" id="menu-laporan"><i class="fa-solid fa-file-invoice"></i> <span class="nav-text">Laporan</span></a>
 
             <div class="menu-category" id="cat-admin">ADMIN</div>
+            <a class="nav-item" onclick="switchPage('manajemen', this)" id="menu-manajemen"><i class="fa-solid fa-users-gear"></i> <span class="nav-text">Manajemen Akun</span></a>
             <a class="nav-item" onclick="switchPage('approval', this)" id="menu-approval"><i class="fa-solid fa-shield-halved"></i> <span class="nav-text">Persetujuan Akun</span> <span class="badge bg-danger ms-auto rounded-pill" style="font-size: 9px; display:none;" id="badge-approval">0</span></a>
             <a class="nav-item" onclick="switchPage('pengaturan', this)" id="menu-pengaturan"><i class="fa-solid fa-gears"></i> <span class="nav-text">Pengaturan</span></a>
         </nav>
@@ -232,10 +231,42 @@ window.onerror = function(message, source, lineno, colno, error) {
 
         <div id="page-statistik" class="page-view">
             <div class="page-header"><div><h4>Statistik Kinerja</h4><p>Rangkuman analitik pergerakan tugas harian</p></div></div>
-            <div class="row g-4 mb-4">
-                <div class="col-md-4"><div class="dashboard-card"><h3 class="fw-bold text-primary m-0" id="stat-durasi-patroli">0 <small class="fs-6">Menit</small></h3><p class="text-muted small">RATA-RATA DURASI TUGAS</p></div></div>
-                <div class="col-md-4"><div class="dashboard-card"><h3 class="fw-bold text-success m-0" id="stat-jarak">0.0 <small class="fs-6">Km</small></h3><p class="text-muted small">TOTAL JARAK TUGAS</p></div></div>
-                <div class="col-md-4"><div class="dashboard-card"><h3 class="fw-bold text-success m-0" id="stat-kesehatan">100%</h3><p class="text-muted small">KESEHATAN KONEKSI</p></div></div>
+            <div class="row g-3 mb-4 row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5">
+                <div class="col">
+                    <div class="dashboard-card text-center py-4 h-100">
+                        <i class="fa-solid fa-route text-success mb-2" style="font-size: 32px;"></i>
+                        <h3 class="fw-bold text-success m-0" id="stat-total-operasi">0</h3>
+                        <p class="text-muted small mb-0 mt-1">TOTAL OPERASI WILAYAH</p>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="dashboard-card text-center py-4 h-100">
+                        <i class="fa-solid fa-users text-primary mb-2" style="font-size: 32px;"></i>
+                        <h3 class="fw-bold text-primary m-0" id="stat-total-anggota">0</h3>
+                        <p class="text-muted small mb-0 mt-1">TOTAL ANGGOTA AKTIF</p>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="dashboard-card text-center py-4 h-100">
+                        <i class="fa-solid fa-hourglass-half text-warning mb-2" style="font-size: 32px;"></i>
+                        <h3 class="fw-bold text-warning m-0" id="stat-total-jam">0</h3>
+                        <p class="text-muted small mb-0 mt-1">TOTAL JAM OPERASIONAL</p>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="dashboard-card text-center py-4 h-100">
+                        <i class="fa-solid fa-road text-info mb-2" style="font-size: 32px;"></i>
+                        <h3 class="fw-bold text-info m-0" id="stat-total-jarak">0.0 <small class="fs-6">Km</small></h3>
+                        <p class="text-muted small mb-0 mt-1">TOTAL JARAK TEMPUH</p>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="dashboard-card text-center py-4 h-100">
+                        <i class="fa-solid fa-map-location-dot text-danger mb-2" style="font-size: 32px;"></i>
+                        <h3 class="fw-bold text-danger m-0" id="stat-zona-aktif">0</h3>
+                        <p class="text-muted small mb-0 mt-1">ZONA GEOFENCE AKTIF</p>
+                    </div>
+                </div>
             </div>
             <div class="row g-4">
                 <div class="col-lg-8">
@@ -258,27 +289,30 @@ window.onerror = function(message, source, lineno, colno, error) {
         </div>
 
         <div id="page-riwayat" class="page-view">
-            <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <div><h4>Riwayat Operasi</h4></div>
-                <div class="riwayat-filter-container d-flex gap-2 align-items-center flex-wrap">
-                    <div class="search-bar mb-0" style="max-width: 250px;">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" class="form-control" id="search-riwayat" placeholder="Cari Misi, NRP, Nama..." onkeyup="renderRiwayat()">
-                    </div>
-                    <div class="date-range-group d-flex gap-2 align-items-center flex-wrap">
-                        <div class="date-input-wrapper d-flex align-items-center gap-2">
-                            <label class="form-label mb-0 text-muted small fw-bold text-nowrap" for="filter-tanggal-mulai">DARI:</label>
-                            <input type="date" id="filter-tanggal-mulai" class="form-control text-muted fw-bold" onchange="renderRiwayat()" style="width: auto;">
-                        </div>
-                        <div class="date-input-wrapper d-flex align-items-center gap-2">
-                            <label class="form-label mb-0 text-muted small fw-bold text-nowrap" for="filter-tanggal-selesai">SAMPAI:</label>
-                            <input type="date" id="filter-tanggal-selesai" class="form-control text-muted fw-bold" onchange="renderRiwayat()" style="width: auto;">
-                        </div>
-                    </div>
-                    <button class="btn btn-success text-white fw-bold text-nowrap btn-csv" onclick="window.bukaModalUnduhCSV()"><i class="fa-solid fa-file-csv me-2"></i> Unduh CSV</button>
+            <div class="page-header">
+                <div>
+                    <h4>Riwayat Operasi</h4>
+                    <p>Logbook dan riwayat penugasan patroli seluruh personel</p>
                 </div>
             </div>
             <div class="dashboard-card d-flex flex-column" style="flex-grow: 1;">
+                <div class="d-flex justify-content-between align-items-center mb-4 gap-3 flex-wrap">
+                    <div class="d-flex gap-2 align-items-center flex-wrap" style="flex-grow: 1;">
+                        <div class="search-bar mb-0" style="max-width: 250px; flex-grow: 1;">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" class="form-control" id="search-riwayat" placeholder="Cari Misi, NRP, Nama..." onkeyup="renderRiwayat()">
+                        </div>
+                        <div class="d-flex align-items-center gap-1 px-3 py-1.5 rounded-pill border" style="background-color: var(--bg-main); border-color: var(--border-color) !important; height: 38px;">
+                            <input type="date" id="filter-tanggal-mulai" class="bg-transparent border-0" onchange="renderRiwayat()" style="outline: none; color: var(--text-muted) !important; width: 130px; font-size: 13px; cursor: pointer;">
+                            <span class="text-muted small px-1 fw-bold">s/d</span>
+                            <input type="date" id="filter-tanggal-selesai" class="bg-transparent border-0" onchange="renderRiwayat()" style="outline: none; color: var(--text-muted) !important; width: 130px; font-size: 13px; cursor: pointer;">
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <button class="btn btn-primary text-white fw-bold text-nowrap" onclick="window.bukaModalCetakPDF()"><i class="fa-solid fa-print me-2"></i> Cetak PDF</button>
+                        <button class="btn btn-success text-white fw-bold text-nowrap btn-csv" onclick="window.bukaModalUnduhCSV()"><i class="fa-solid fa-file-csv me-2"></i> Unduh CSV</button>
+                    </div>
+                </div>
                 <div class="table-responsive" style="flex-grow: 1;">
                     <table class="table table-hover table-custom">
                         <thead><tr><th>Waktu Tugas</th><th>ID Misi</th><th>Pelaksana (NRP)</th><th>Kegiatan (Giat)</th><th>Komandan</th><th>Kekuatan</th><th>Durasi & Jarak</th><th>Status</th></tr></thead>
@@ -286,100 +320,6 @@ window.onerror = function(message, source, lineno, colno, error) {
                     </table>
                 </div>
                 <div id="pagination-riwayat" class="pagination-container d-flex justify-content-between align-items-center mt-3"></div>
-            </div>
-        </div>
-
-        <div id="page-laporan" class="page-view">
-            <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <div>
-                    <h4>Laporan Konsolidasi</h4>
-                    <p>Unduh dan cetak ringkasan laporan operasional monitoring personel.</p>
-                </div>
-                <div class="reports-filter-container d-flex gap-2 align-items-center flex-wrap">
-                    <div class="date-range-group d-flex gap-2 align-items-center flex-wrap">
-                        <div class="date-input-wrapper d-flex align-items-center gap-2">
-                            <label class="form-label mb-0 text-muted small fw-bold text-nowrap" for="laporan-tanggal-mulai">PERIODE DARI:</label>
-                            <input type="date" id="laporan-tanggal-mulai" class="form-control text-muted fw-bold" onchange="buildLaporan()" style="width: auto;">
-                        </div>
-                        <div class="date-input-wrapper d-flex align-items-center gap-2">
-                            <label class="form-label mb-0 text-muted small fw-bold text-nowrap" for="laporan-tanggal-selesai">SAMPAI:</label>
-                            <input type="date" id="laporan-tanggal-selesai" class="form-control text-muted fw-bold" onchange="buildLaporan()" style="width: auto;">
-                        </div>
-                    </div>
-                    <div class="button-group d-flex gap-2">
-                        <button class="btn btn-primary text-white fw-bold text-nowrap" onclick="window.cetakLaporanPDF()"><i class="fa-solid fa-print me-2"></i> Cetak Laporan (PDF)</button>
-                        <button class="btn btn-success text-white fw-bold text-nowrap" onclick="window.unduhLaporanCSV()"><i class="fa-solid fa-file-csv me-2"></i> Unduh Laporan (CSV)</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row g-3 mb-4 row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5">
-                <div class="col">
-                    <div class="dashboard-card text-center py-4 h-100">
-                        <i class="fa-solid fa-route text-success mb-2" style="font-size: 32px;"></i>
-                        <h3 class="fw-bold text-success m-0" id="rep-total-operasi">0</h3>
-                        <p class="text-muted small mb-0 mt-1">TOTAL OPERASI WILAYAH</p>
-                    </div>
-                </div>
-                <div class="col">
-                    <div class="dashboard-card text-center py-4 h-100">
-                        <i class="fa-solid fa-users text-primary mb-2" style="font-size: 32px;"></i>
-                        <h3 class="fw-bold text-primary m-0" id="rep-total-anggota">0</h3>
-                        <p class="text-muted small mb-0 mt-1">TOTAL ANGGOTA AKTIF</p>
-                    </div>
-                </div>
-                <div class="col">
-                    <div class="dashboard-card text-center py-4 h-100">
-                        <i class="fa-solid fa-hourglass-half text-warning mb-2" style="font-size: 32px;"></i>
-                        <h3 class="fw-bold text-warning m-0" id="rep-total-jam">0</h3>
-                        <p class="text-muted small mb-0 mt-1">TOTAL JAM OPERASIONAL</p>
-                    </div>
-                </div>
-                <div class="col">
-                    <div class="dashboard-card text-center py-4 h-100">
-                        <i class="fa-solid fa-road text-info mb-2" style="font-size: 32px;"></i>
-                        <h3 class="fw-bold text-info m-0" id="rep-total-jarak">0.0 <small class="fs-6">Km</small></h3>
-                        <p class="text-muted small mb-0 mt-1">TOTAL JARAK TEMPUH</p>
-                    </div>
-                </div>
-                <div class="col">
-                    <div class="dashboard-card text-center py-4 h-100">
-                        <i class="fa-solid fa-map-location-dot text-danger mb-2" style="font-size: 32px;"></i>
-                        <h3 class="fw-bold text-danger m-0" id="rep-zona-aktif">0</h3>
-                        <p class="text-muted small mb-0 mt-1">ZONA GEOFENCE AKTIF</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="dashboard-card d-flex flex-column" style="flex-grow: 1;">
-                <h6 class="fw-bold mb-4" style="font-size: 11px; letter-spacing: 1px; text-transform: uppercase;"><i class="fa-solid fa-chart-bar text-primary me-2"></i> Rangkuman Operasional Personel</h6>
-                
-                <div class="d-flex justify-content-between align-items-center mb-4 gap-3 flex-wrap">
-                    <div class="search-bar" style="flex-grow: 1; max-width: 300px;">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" class="form-control" id="search-laporan" placeholder="Cari NRP, Nama, atau Satker..." onkeyup="buildLaporan()">
-                    </div>
-                </div>
-
-                <div class="table-responsive" style="flex-grow: 1;">
-                    <table class="table table-hover table-custom">
-                        <thead>
-                            <tr>
-                                <th>NRP</th>
-                                <th>Nama Personel</th>
-                                <th>Satker</th>
-                                <th class="text-center">Peran</th>
-                                <th class="text-center">Jml. Penugasan</th>
-                                <th class="text-center">Total Jarak</th>
-                                <th class="text-center">Total Waktu</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbody-laporan-summary">
-                            <tr><td colspan="7" class="text-center text-muted py-4">Memuat ringkasan laporan...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div id="pagination-laporan" class="pagination-container d-flex justify-content-between align-items-center mt-3"></div>
             </div>
         </div>
 
@@ -805,6 +745,7 @@ window.onerror = function(message, source, lineno, colno, error) {
     </div>
 </div>
 
+
 <!-- Modal Unduh CSV -->
 <div class="modal fade" id="unduhCsvModal" tabindex="-1" aria-labelledby="unduhCsvModalLabel" aria-hidden="true" style="z-index: 4005;">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 450px;">
@@ -851,6 +792,57 @@ window.onerror = function(message, source, lineno, colno, error) {
             <div class="modal-footer" style="border-top: 1px solid #27272a;">
                 <button type="button" class="btn btn-outline-secondary px-4 fw-bold" style="border-radius: 20px; font-size: 12px;" data-bs-dismiss="modal">BATAL</button>
                 <button type="button" class="btn btn-success px-4 fw-bold" style="border-radius: 20px; font-size: 12px;" id="btnExecuteCsvDownload"><i class="fa-solid fa-download me-2"></i> UNDUH CSV</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Cetak PDF -->
+<div class="modal fade" id="unduhPdfModal" tabindex="-1" aria-labelledby="unduhPdfModalLabel" aria-hidden="true" style="z-index: 4005;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 450px;">
+        <div class="modal-content" style="background-color: #18181b; border: 1px solid #27272a; color: #ffffff; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+            <div class="modal-header" style="border-bottom: 1px solid #27272a;">
+                <h5 class="modal-title fw-bold" id="unduhPdfModalLabel"><i class="fa-solid fa-print text-primary me-2"></i> Cetak Laporan Riwayat (PDF)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">PILIH JANGKAUAN DATA:</label>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="pdfExportRange" id="pdfRangeAll" value="all" checked onchange="window.togglePdfModalDateInputs()">
+                        <label class="form-check-label text-white small cursor-pointer" for="pdfRangeAll">
+                            Semua Data Riwayat
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="pdfExportRange" id="pdfRangeCustom" value="custom" onchange="window.togglePdfModalDateInputs()">
+                        <label class="form-check-label text-white small cursor-pointer" for="pdfRangeCustom">
+                            Rentang Tanggal Khusus
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="row g-2 mb-3" id="pdfModalDateContainer" style="display: none;">
+                    <div class="col-6">
+                        <label class="form-label text-muted small fw-bold">Dari Tanggal:</label>
+                        <input type="date" id="pdf-download-start" class="form-control bg-dark text-white border-secondary">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-muted small fw-bold">Sampai Tanggal:</label>
+                        <input type="date" id="pdf-download-end" class="form-control bg-dark text-white border-secondary">
+                    </div>
+                </div>
+
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="pdfFilterQuery" checked>
+                    <label class="form-check-label text-white small cursor-pointer" for="pdfFilterQuery">
+                        Ikuti kata kunci pencarian aktif di layar
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #27272a;">
+                <button type="button" class="btn btn-outline-secondary px-4 fw-bold" style="border-radius: 20px; font-size: 12px;" data-bs-dismiss="modal">BATAL</button>
+                <button type="button" class="btn btn-primary px-4 fw-bold" style="border-radius: 20px; font-size: 12px;" id="btnExecutePdfPrint"><i class="fa-solid fa-print me-2"></i> CETAK PDF</button>
             </div>
         </div>
     </div>

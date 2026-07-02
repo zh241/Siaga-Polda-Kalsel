@@ -3,434 +3,784 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Masuk - SIAGA Posko Utama</title>
+    <title>SIAGA - Sistem Informasi Aktivitas & Gerak Anggota</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
-        html {
-            height: 100%;
+        :root {
+            --primary-red: #922020;
+            --primary-red-hover: #a62626;
+            --bg-dark-overlay: rgba(10, 11, 15, 0.55);
+            --card-glass-bg: rgba(15, 18, 27, 0.45);
+            --input-glass-bg: rgba(8, 10, 15, 0.5);
+            --border-glass: rgba(255, 255, 255, 0.12);
+            --border-input: rgba(255, 255, 255, 0.08);
+            --text-muted: #94a3b8;
+            --text-light: #f8fafc;
         }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
         body {
             min-height: 100vh;
-            margin: 0;
-            background: linear-gradient(rgba(10, 11, 15, 0.55), rgba(20, 11, 11, 0.6)), url('assets/bg_gedung.jpg');
+            background: linear-gradient(rgba(10, 12, 18, 0.5), rgba(15, 18, 27, 0.6)), url('assets/bg_gedung.jpg');
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
             background-attachment: fixed;
-            font-family: 'Inter', sans-serif;
-            display: flex; 
-            justify-content: center; 
-            align-items: center;
             position: relative;
         }
 
-        /* Subtle grid background */
+        /* Subtle grid background overlay */
         body::before {
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-            background-size: 30px 30px;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+            background-size: 35px 35px;
             pointer-events: none;
             z-index: 1;
         }
 
-        .login-corner-logo {
-            position: absolute;
-            top: 30px;
-            height: 70px;
-            z-index: 100;
-            filter: drop-shadow(0 6px 15px rgba(0, 0, 0, 0.6));
-            transition: all 0.2s ease;
-        }
-        .top-left-logo {
-            left: 35px;
-        }
-        .top-right-logo {
-            right: 35px;
-        }
-        
-        .login-card {
+        /* Main Flex Wrapper to center or align content dynamically based on active state */
+        .main-wrapper {
+            min-height: 100vh;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
             position: relative;
             z-index: 10;
-            background: rgba(10, 12, 18, 0.55); 
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            width: 100%; 
-            max-width: 440px;
-            border-radius: 20px; 
-            padding: 40px 35px;
-            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.12); 
-            border-top: 4px solid #991b1b;
-            margin: 30px 20px;
+            padding: 40px 20px;
             transition: all 0.3s ease;
         }
 
-        /* Tab Switcher Style */
-        .tab-container {
-            position: relative;
-            display: flex;
-            background: rgba(0, 0, 0, 0.35);
-            border-radius: 25px;
-            padding: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            margin-bottom: 25px;
+        /* Adjust alignment dynamically: Landing elements pushed down to lawn area; login/register cards centered */
+        body.state-landing .main-wrapper {
+            justify-content: flex-end;
+            padding-bottom: 140px;
         }
-        .tab-btn {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: #a1a1aa;
-            font-size: 12px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            padding: 10px 0;
-            border-radius: 21px;
-            z-index: 2;
-            cursor: pointer;
-            transition: color 0.3s ease;
-        }
-        .tab-btn.active {
-            color: #ffffff;
-        }
-        .tab-slider {
-            position: absolute;
-            top: 4px;
-            left: 4px;
-            width: calc(50% - 4px);
-            height: calc(100% - 8px);
-            background: #991b1b;
-            border-radius: 21px;
-            z-index: 1;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 12px rgba(153, 27, 27, 0.35);
+        body.state-login .main-wrapper,
+        body.state-register .main-wrapper,
+        body.state-success .main-wrapper {
+            justify-content: center;
+            padding-bottom: 60px;
         }
 
-        /* Animasi Modal Sukses Pendaftaran */
-        @keyframes fadeInModal {
-            from { opacity: 0; transform: scale(0.93) translateY(12px); }
-            to   { opacity: 1; transform: scale(1)    translateY(0); }
+        /* Corner Logos Styling */
+        .corner-logo {
+            position: absolute;
+            top: 30px;
+            height: 60px;
+            z-index: 100;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+            transition: all 0.3s ease;
         }
-        .success-modal-card {
-            background-color: #18181b;
-            border: 1px solid #27272a;
-            border-top: 3px solid #10b981;
-            border-radius: 16px;
-            padding: 36px 32px 28px;
-            max-width: 420px;
-            width: 92%;
-            text-align: center;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-            animation: fadeInModal 0.3s ease forwards;
+        .logo-top-left {
+            left: 40px;
         }
-        .success-icon-wrap {
-            width: 72px; height: 72px;
-            background: rgba(16,185,129,0.1);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 20px;
+        .logo-top-right {
+            right: 40px;
         }
-        .success-nrp-box {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid #27272a;
-            border-radius: 10px;
-            padding: 14px 18px;
-            margin: 16px 0;
-            text-align: left;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+
+        /* Mobile adaptation for logos */
+        @media (max-width: 768px) {
+            .corner-logo {
+                height: 42px;
+                top: 20px;
+            }
+            .logo-top-left {
+                left: 20px;
+            }
+            .logo-top-right {
+                right: 20px;
+            }
         }
-        .success-steps {
+
+        /* State visibility toggles for Corner Logos */
+        body.state-landing .corner-logo-landing {
+            display: block;
+        }
+        body.state-landing .corner-logo-auth {
+            display: none;
+        }
+        body.state-login .corner-logo-landing,
+        body.state-register .corner-logo-landing,
+        body.state-success .corner-logo-landing {
+            display: none;
+        }
+        body.state-login .corner-logo-auth,
+        body.state-register .corner-logo-auth,
+        body.state-success .corner-logo-auth {
+            display: block;
+        }
+
+        /* State Container with Smooth Animation */
+        @keyframes authFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.97) translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .state-container {
+            display: none;
+            width: 100%;
+        }
+
+        body.state-landing #landing-container,
+        body.state-login #login-container,
+        body.state-register #register-container {
+            display: block;
+            animation: authFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        /* ==================== LANDING STATE STYLES ==================== */
+        .landing-title {
+            font-size: clamp(3.2rem, 10vw, 6.2rem);
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 0.08em;
+            margin: 0;
+            line-height: 1;
+            text-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+        }
+        .landing-subtitle {
+            font-size: clamp(0.72rem, 2vw, 1.05rem);
+            font-weight: 600;
+            color: #ffffff;
+            letter-spacing: 0.22em;
+            margin-top: 15px;
+            margin-bottom: 50px;
+            text-transform: uppercase;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+            padding: 0 15px;
+        }
+        .landing-buttons-row {
             display: flex;
             justify-content: center;
-            gap: 0;
-            margin: 18px 0 20px;
-        }
-        .step-item {
-            display: flex;
-            flex-direction: column;
             align-items: center;
-            flex: 1;
-            position: relative;
+            gap: 20px;
+            flex-wrap: wrap;
         }
-        .step-item:not(:last-child)::after {
-            content: '';
-            position: absolute;
-            top: 13px; left: 58%;
-            width: 84%; height: 2px;
-            background: #27272a;
-        }
-        .step-dot {
-            width: 26px; height: 26px;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 11px; font-weight: 700;
-            margin-bottom: 5px;
-        }
-        .step-dot.done    { background: rgba(16,185,129,0.15); color: #10b981; border: 1.5px solid #10b981; }
-        .step-dot.pending { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1.5px solid rgba(245,158,11,0.5); }
-        .step-dot.wait    { background: rgba(255,255,255,0.04); color: #52525b; border: 1.5px solid #3f3f46; }
-        .step-label { font-size: 10px; color: #52525b; font-weight: 600; }
-        .step-label.active   { color: #f59e0b; }
-        .step-label.done-lbl { color: #10b981; }
-        .btn-close-modal-custom {
-            background: #10b981;
-            border: none; color: #fff; font-weight: 700;
-            font-size: 13px; padding: 12px;
-            border-radius: 10px; cursor: pointer;
-            letter-spacing: 0.3px; width: 100%;
-            transition: background 0.2s ease;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-        }
-        .btn-close-modal-custom:hover { background: #059669; }
-
-        /* Responsive Mobile Logo Header */
-        .mobile-logo-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .mobile-header-logo {
-            height: 42px;
-            filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
-        }
-
-        .brand-logo { 
-            width: 76px; 
-            margin-bottom: 20px; 
-            filter: drop-shadow(0 4px 12px rgba(153, 27, 27, 0.25));
-        }
-        .login-title { 
-            font-weight: 800; 
-            font-size: 23px; 
-            color: #ffffff; 
-            margin-bottom: 6px; 
-            letter-spacing: 0.5px;
-        }
-        .login-subtitle { 
-            color: #94a3b8; 
-            font-size: 11px; 
-            margin-bottom: 24px; 
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-
-        .input-group {
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.2s ease;
-            background-color: rgba(6, 8, 12, 0.45);
-        }
-        .input-group:focus-within {
-            border-color: #991b1b;
-            box-shadow: 0 0 0 3px rgba(153, 27, 27, 0.25);
-        }
-
-        .form-control, .form-select { 
-            background-color: transparent; 
-            border: none; 
-            padding: 12px 14px; 
-            font-size: 14px; 
+        .btn-masuk-landing {
+            background-color: var(--primary-red);
             color: #ffffff;
-            font-weight: 500;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            padding: 14px 45px;
+            border: 1px solid var(--primary-red);
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(146, 32, 32, 0.4);
+            box-sizing: border-box;
+            display: inline-block;
         }
-        .form-control::placeholder {
-            color: #71717a;
+        .btn-masuk-landing:hover {
+            background-color: var(--primary-red-hover);
+            border-color: var(--primary-red-hover);
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(146, 32, 32, 0.6);
         }
-        .form-control:focus, .form-select:focus { 
+        .btn-daftar-landing {
             background-color: transparent;
             color: #ffffff;
-            box-shadow: none;
-            border: none;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            padding: 14px 45px;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+            display: inline-block;
         }
-        
-        .input-group-text { 
-            background-color: transparent; 
-            border: none; 
-            color: #94a3b8; 
-            padding-left: 16px;
-            padding-right: 4px;
+        .btn-daftar-landing:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: translateY(-2px);
         }
 
-        /* Eye Button for Password Toggle */
-        .btn-toggle-pwd {
+        /* ==================== CARD & AUTH STYLES ==================== */
+        .auth-card {
+            position: relative;
+            background: var(--card-glass-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--border-glass);
+            border-radius: 24px;
+            padding: 45px 35px 35px 35px;
+            width: 100%;
+            max-width: 460px;
+            margin: 20px auto;
+            box-shadow: 0 30px 65px rgba(0, 0, 0, 0.6);
+            transition: all 0.3s ease;
+        }
+
+        /* Back Button on Card */
+        .card-back-btn {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 100;
+        }
+        .card-back-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            transform: translateX(-2px);
+        }
+
+        .auth-card-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #ffffff;
+            text-align: center;
+            letter-spacing: 0.05em;
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+        .auth-card-subtitle {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        /* Form Controls */
+        .form-group-custom {
+            margin-bottom: 22px;
+            text-align: left;
+        }
+        .form-label-custom {
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .input-container-custom {
+            background: var(--input-glass-bg);
+            border: 1px solid var(--border-input);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            padding: 0 14px;
+            transition: all 0.2s ease;
+        }
+        .input-container-custom:focus-within {
+            border-color: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+        }
+        .input-icon-custom {
+            color: #64748b;
+            font-size: 1.05rem;
+            width: 28px;
+            display: flex;
+            justify-content: flex-start;
+        }
+        .input-field-custom {
             background: transparent;
             border: none;
-            color: #71717a;
-            padding-right: 16px;
-            transition: color 0.2s;
-        }
-        .btn-toggle-pwd:hover, .btn-toggle-pwd:focus {
-            color: #a1a1aa;
-            background: transparent;
-            box-shadow: none;
+            color: #ffffff;
+            padding: 13px 6px;
+            font-size: 0.92rem;
+            font-weight: 500;
+            width: 100%;
             outline: none;
         }
+        .input-field-custom::placeholder {
+            color: #475569;
+        }
 
-        .btn-login { 
-            background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
-            color: white; 
-            padding: 13px; 
-            font-weight: 700; 
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 8px; 
-            width: 100%; 
-            margin-top: 10px; 
-            transition: all 0.25s ease; 
-            letter-spacing: 0.5px;
-            box-shadow: 0 4px 15px rgba(153, 27, 27, 0.25);
+        /* Autocomplete background override */
+        .input-field-custom:-webkit-autofill,
+        .input-field-custom:-webkit-autofill:hover, 
+        .input-field-custom:-webkit-autofill:focus {
+            -webkit-text-fill-color: #ffffff;
+            -webkit-box-shadow: 0 0 0px 1000px rgba(10, 12, 17, 0.8) inset;
+            transition: background-color 5000s ease-in-out 0s;
         }
-        .btn-login:hover { 
-            background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
-            color: white; 
+
+        .btn-toggle-pwd-custom {
+            background: transparent;
+            border: none;
+            color: #475569;
+            cursor: pointer;
+            font-size: 1.05rem;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            transition: color 0.2s ease;
+        }
+        .btn-toggle-pwd-custom:hover {
+            color: var(--text-muted);
+        }
+
+        .btn-submit-custom {
+            background-color: var(--primary-red);
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            width: 100%;
+            margin-top: 10px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(146, 32, 32, 0.35);
+        }
+        .btn-submit-custom:hover {
+            background-color: var(--primary-red-hover);
+            color: #ffffff;
             transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(153, 27, 27, 0.45);
+            box-shadow: 0 6px 20px rgba(146, 32, 32, 0.55);
         }
-        .btn-login:active {
+        .btn-submit-custom:active {
             transform: translateY(0);
         }
 
-        #error-msg { 
-            display: none; 
-            font-size: 13px; 
-            padding: 12px; 
-            border-radius: 8px; 
-            margin-bottom: 20px; 
-            background-color: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(239, 68, 68, 0.25);
+        /* Card footer links */
+        .auth-card-links {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            padding: 0 2px;
+        }
+        .auth-link-custom {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .auth-link-custom:hover {
+            color: #ffffff;
+        }
+
+        /* Error Custom Display */
+        .alert-error-custom {
+            font-size: 0.82rem;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            background-color: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.2);
             color: #fca5a5;
             text-align: left;
             font-weight: 500;
         }
 
-        .form-container {
-            transition: opacity 0.2s ease-in-out;
-        }
-        .hidden-form {
+        /* ==================== FOOTER STYLES ==================== */
+        .footer-landing, .footer-auth {
+            position: absolute;
+            bottom: 25px;
+            left: 0;
+            right: 0;
+            z-index: 50;
             display: none;
-            opacity: 0;
+            width: 100%;
+            text-align: center;
+        }
+        .footer-landing p, .footer-auth p {
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            margin: 0;
+        }
+
+        .footer-auth p {
+            color: #64748b;
+        }
+
+        /* Apply footer display dynamically */
+        body.state-landing .footer-landing {
+            display: block;
+        }
+        body.state-login .footer-auth,
+        body.state-register .footer-auth,
+        body.state-success .footer-auth {
+            display: block;
+        }
+
+        /* ==================== SUCCESS MODAL CARD & RELATED ==================== */
+        .success-modal-card {
+            background: rgba(15, 18, 27, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glass);
+            border-top: 4px solid #10b981;
+            border-radius: 24px;
+            padding: 40px 30px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 30px 65px rgba(0, 0, 0, 0.75);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            animation: modalFadeIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .success-icon-wrap {
+            width: 76px;
+            height: 76px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .success-nrp-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 14px 20px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .success-steps {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 24px;
+            position: relative;
+            padding: 0 10px;
+        }
+
+        .success-steps::before {
+            content: '';
+            position: absolute;
+            top: 16px;
+            left: 30px;
+            right: 30px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.08);
+            z-index: 1;
+        }
+
+        .step-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+            position: relative;
+            flex: 1;
+        }
+
+        .step-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #1e1e24;
+            border: 2px solid #2d2d34;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #71717a;
+            font-weight: 700;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .step-dot.done {
+            background: #10b981;
+            border-color: #10b981;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .step-dot.pending {
+            background: #f59e0b;
+            border-color: #f59e0b;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+        }
+
+        .step-dot.wait {
+            background: #1e1e24;
+            border-color: #2d2d34;
+            color: #71717a;
+        }
+
+        .step-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #71717a;
+        }
+
+        .step-label.done-lbl {
+            color: #10b981;
+        }
+
+        .step-label.active {
+            color: #f59e0b;
+        }
+
+        .btn-close-modal-custom {
+            background-color: #10b981;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            width: 100%;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-close-modal-custom:hover {
+            background-color: #059669;
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.55);
+        }
+
+        .btn-close-modal-custom:active {
+            transform: translateY(0);
+        }
+
+        @keyframes modalFadeIn {
+            from {
+                transform: scale(0.95) translateY(15px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
         }
     </style>
 </head>
-<body>
+<body class="state-landing">
 
-    <!-- Logo Pojok untuk Desktop (Lebar Layar >= 992px) -->
-    <img src="assets/logo_polda.png" alt="Logo Polda Kalsel" class="login-corner-logo top-left-logo d-none d-lg-block">
-    <img src="assets/mascot_presisi.png" alt="Mascot Presisi" class="login-corner-logo top-right-logo d-none d-lg-block">
+    <!-- CORNER LOGOS - LANDING STATE -->
+    <div class="corner-logo-landing">
+        <img src="assets/logo_polda.png" alt="Logo Polda Kalsel" class="corner-logo logo-top-left">
+        <img src="assets/logo-tik.png" alt="Logo TIK" class="corner-logo logo-top-right">
+    </div>
 
-    <div class="login-card text-center">
+    <!-- CORNER LOGOS - AUTH STATE -->
+    <div class="corner-logo-auth">
+        <img src="assets/logo_polda.png" alt="Logo Polda Kalsel" class="corner-logo logo-top-left">
+        <img src="assets/logo-tik.png" alt="Logo TIK" class="corner-logo logo-top-right">
+    </div>
 
-        <!-- Logo Header untuk Mobile / Layar Sempit (Lebar Layar < 992px) -->
-        <div class="mobile-logo-header d-lg-none">
-            <img src="assets/logo_polda.png" alt="Logo Polda" class="mobile-header-logo">
-            <img src="assets/logo-tik.png" alt="Logo TIK" class="mobile-header-logo">
-            <img src="assets/mascot_presisi.png" alt="Mascot Presisi" class="mobile-header-logo">
+    <!-- ==================== MAIN WRAPPER ==================== -->
+    <div class="main-wrapper">
+
+        <!-- ==================== CONTAINER 1: LANDING ==================== -->
+        <div id="landing-container" class="state-container text-center">
+            <h1 class="landing-title">SIAGA</h1>
+            <p class="landing-subtitle">Sistem Informasi Aktivitas & Gerak Anggota</p>
+            <div class="landing-buttons-row">
+                <button class="btn btn-masuk-landing" onclick="switchState('login')">MASUK</button>
+                <button class="btn btn-daftar-landing" onclick="switchState('register')">DAFTAR</button>
+            </div>
         </div>
 
-        <!-- Logo Utama Tengah untuk Desktop (Lebar Layar >= 992px) -->
-        <img src="assets/logo-tik.png" alt="Logo" class="brand-logo d-none d-lg-inline-block" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Logo_Polri.png/200px-Logo_Polri.png'">
-        
-        <h2 class="login-title">SIAGA</h2>
-        <p class="login-subtitle">SISTEM MONITORING AKTIVITAS & GERAK ANGGOTA</p>
-
-        <!-- TAB SLIDE SWITCHER -->
-        <div class="tab-container">
-            <div class="tab-slider" id="tabSlider"></div>
-            <button type="button" class="tab-btn active" id="tabLoginBtn">MASUK</button>
-            <button type="button" class="tab-btn" id="tabRegisterBtn">DAFTAR</button>
-        </div>
-
-        <div id="error-msg" class="alert alert-danger" role="alert">NRP atau Kata Sandi Salah!</div>
-
-        <!-- FORM LOGIN -->
-        <div id="loginFormContainer" class="form-container">
-            <form id="loginForm">
-                <div class="input-group mb-3">
-                    <span class="input-group-text"><i class="fa-solid fa-id-card"></i></span>
-                    <input type="text" id="nrp" class="form-control" placeholder="NRP Personel / Admin" required>
-                </div>
-                
-                <div class="input-group mb-4">
-                    <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-                    <input type="password" id="password" class="form-control" placeholder="Kata Sandi" required>
-                    <button class="btn-toggle-pwd" type="button" id="togglePassword" title="Tampilkan/Sembunyikan Kata Sandi">
-                        <i class="fa-solid fa-eye-slash"></i>
-                    </button>
-                </div>
-
-                <button type="submit" class="btn btn-login" id="btnLogin">
-                    AUTENTIKASI SISTEM <i class="fa-solid fa-arrow-right-to-bracket ms-2"></i>
+        <!-- ==================== CONTAINER 2: LOGIN CARD ==================== -->
+        <div id="login-container" class="state-container">
+            <div class="auth-card">
+                <!-- Back Arrow -->
+                <button class="card-back-btn" onclick="switchState('landing')" title="Kembali ke Beranda">
+                    <i class="fa-solid fa-arrow-left"></i>
                 </button>
-            </form>
-        </div>
 
-        <!-- FORM REGISTRASI -->
-        <div id="registerFormContainer" class="form-container hidden-form">
-            <form id="registerForm">
-                <div class="input-group mb-3">
-                    <span class="input-group-text"><i class="fa-solid fa-id-card"></i></span>
-                    <input type="text" id="reg-nrp" class="form-control" placeholder="NRP PERSONEL (Angka)" pattern="\d+" title="NRP hanya boleh berisi angka" required>
-                </div>
+                <h2 class="auth-card-title">SIAGA</h2>
+                <p class="auth-card-subtitle">Sistem Informasi Aktivitas & Gerak Anggota</p>
 
-                <div class="input-group mb-3">
-                    <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
-                    <input type="text" id="reg-nama" class="form-control" placeholder="NAMA LENGKAP (Sesuai KTA)" required>
-                </div>
+                <div id="login-error-msg" class="alert-error-custom" style="display: none;">NRP atau Kata Sandi Salah!</div>
 
-                <div class="input-group mb-3">
-                    <span class="input-group-text"><i class="fa-solid fa-award"></i></span>
-                    <input type="text" id="reg-pangkat" class="form-control" placeholder="PANGKAT (Contoh: BRIPDA / KOMBES)" required>
-                </div>
+                <form id="loginForm">
+                    <div class="form-group-custom">
+                        <label class="form-label-custom">NRP / PERSONEL</label>
+                        <div class="input-container-custom">
+                            <span class="input-icon-custom"><i class="fa-solid fa-id-card"></i></span>
+                            <input type="text" id="nrp" class="input-field-custom" placeholder="Masukkan NRP atau Username" required autocomplete="username">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group-custom">
+                        <label class="form-label-custom">KATA SANDI</label>
+                        <div class="input-container-custom">
+                            <span class="input-icon-custom"><i class="fa-solid fa-lock"></i></span>
+                            <input type="password" id="password" class="input-field-custom" placeholder="••••••••" required autocomplete="current-password">
+                            <button class="btn-toggle-pwd-custom" type="button" id="togglePassword" title="Tampilkan/Sembunyikan Kata Sandi">
+                                <i class="fa-solid fa-eye-slash"></i>
+                            </button>
+                        </div>
+                    </div>
 
-                <div class="input-group mb-3">
-                    <span class="input-group-text"><i class="fa-solid fa-building-shield"></i></span>
-                    <input type="text" id="reg-satker" class="form-control" placeholder="SATKER / KESATUAN (DITRESKRIMSUS)" required>
-                </div>
-
-                <div class="input-group mb-3">
-                    <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
-                    <input type="email" id="reg-email" class="form-control" placeholder="EMAIL INSTANSI (contoh@polri.go.id)" required>
-                </div>
-
-                <div class="input-group mb-3">
-                    <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
-                    <input type="text" id="reg-phone" class="form-control" placeholder="NO. HP / WA AKTIF (08123456789)" pattern="\d+" title="Nomor HP/WhatsApp hanya boleh berisi angka" required>
-                </div>
-
-                <div class="input-group mb-4">
-                    <span class="input-group-text"><i class="fa-solid fa-key"></i></span>
-                    <input type="password" id="reg-password" class="form-control" placeholder="KATA SANDI (Min. 8 Karakter)" required>
-                    <button class="btn-toggle-pwd" type="button" id="toggleRegPassword" title="Tampilkan/Sembunyikan Kata Sandi">
-                        <i class="fa-solid fa-eye-slash"></i>
+                    <button type="submit" class="btn-submit-custom" id="btnLogin">
+                        MASUK SISTEM <i class="fa-solid fa-arrow-right-to-bracket ms-2"></i>
                     </button>
-                </div>
+                </form>
 
-                <button type="submit" class="btn btn-login" id="btnRegister">
-                    DAFTAR AKUN <i class="fa-solid fa-user-plus ms-2"></i>
-                </button>
-            </form>
+                <div class="auth-card-links">
+                    <a href="#" class="auth-link-custom" onclick="showSupportInfo('Lupa Password')">Lupa Password?</a>
+                    <a href="#" class="auth-link-custom" onclick="showSupportInfo('Bantuan Teknis')">Bantuan Teknis</a>
+                </div>
+            </div>
         </div>
-        
-        <!-- Modal Sukses Pendaftaran -->
+
+        <!-- ==================== CONTAINER 3: REGISTER CARD ==================== -->
+        <div id="register-container" class="state-container">
+            <div class="auth-card" style="max-width: 520px;">
+                <!-- Back Arrow -->
+                <button class="card-back-btn" onclick="switchState('landing')" title="Kembali ke Beranda">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+
+                <h2 class="auth-card-title">SIAGA</h2>
+                <p class="auth-card-subtitle">Pendaftaran Akun Anggota Baru</p>
+
+                <div id="register-error-msg" class="alert-error-custom" style="display: none;"></div>
+
+                <form id="registerForm">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="form-group-custom">
+                                <label class="form-label-custom">NRP PERSONEL</label>
+                                <div class="input-container-custom">
+                                    <span class="input-icon-custom"><i class="fa-solid fa-id-card"></i></span>
+                                    <input type="text" id="reg-nrp" class="input-field-custom" placeholder="Angka saja" pattern="\d+" title="NRP hanya boleh berisi angka" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group-custom">
+                                <label class="form-label-custom">NAMA LENGKAP</label>
+                                <div class="input-container-custom">
+                                    <span class="input-icon-custom"><i class="fa-solid fa-user"></i></span>
+                                    <input type="text" id="reg-nama" class="input-field-custom" placeholder="Nama sesuai KTA" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="form-group-custom">
+                                <label class="form-label-custom">PANGKAT</label>
+                                <div class="input-container-custom">
+                                    <span class="input-icon-custom"><i class="fa-solid fa-award"></i></span>
+                                    <input type="text" id="reg-pangkat" class="input-field-custom" placeholder="Contoh: BRIPDA / KOMBES" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group-custom">
+                                <label class="form-label-custom">SATKER / KESATUAN</label>
+                                <div class="input-container-custom">
+                                    <span class="input-icon-custom"><i class="fa-solid fa-building-shield"></i></span>
+                                    <input type="text" id="reg-satker" class="input-field-custom" placeholder="Contoh: DITRESKRIMSUS" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="form-group-custom">
+                                <label class="form-label-custom">EMAIL INSTANSI</label>
+                                <div class="input-container-custom">
+                                    <span class="input-icon-custom"><i class="fa-solid fa-envelope"></i></span>
+                                    <input type="email" id="reg-email" class="input-field-custom" placeholder="contoh@polri.go.id" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group-custom">
+                                <label class="form-label-custom">NOMOR HP / WA AKTIF</label>
+                                <div class="input-container-custom">
+                                    <span class="input-icon-custom"><i class="fa-solid fa-phone"></i></span>
+                                    <input type="text" id="reg-phone" class="input-field-custom" placeholder="08123456789" pattern="\d+" title="Nomor HP/WhatsApp hanya boleh berisi angka" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group-custom">
+                        <label class="form-label-custom">KATA SANDI</label>
+                        <div class="input-container-custom">
+                            <span class="input-icon-custom"><i class="fa-solid fa-key"></i></span>
+                            <input type="password" id="reg-password" class="input-field-custom" placeholder="Minimal 8 karakter" required>
+                            <button class="btn-toggle-pwd-custom" type="button" id="toggleRegPassword" title="Tampilkan/Sembunyikan Kata Sandi">
+                                <i class="fa-solid fa-eye-slash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit-custom" id="btnRegister">
+                        DAFTAR AKUN <i class="fa-solid fa-user-plus ms-2"></i>
+                    </button>
+                </form>
+
+                <div class="auth-card-links">
+                    <a href="#" class="auth-link-custom" onclick="switchState('login')">Sudah Punya Akun? Masuk</a>
+                    <a href="#" class="auth-link-custom" onclick="showSupportInfo('Bantuan Teknis')">Bantuan Teknis</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== REGISTRATION SUCCESS MODAL ==================== -->
         <div id="registerSuccessModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; background:rgba(0,0,0,0.65); backdrop-filter:blur(6px); justify-content:center; align-items:center;">
             <div class="success-modal-card">
-
-                <!-- Ikon -->
+                <!-- Icon -->
                 <div class="success-icon-wrap">
                     <i class="fa-solid fa-circle-check" style="color:#10b981; font-size:38px;"></i>
                 </div>
 
-                <!-- Judul -->
+                <!-- Title -->
                 <h5 style="color:#ffffff; font-weight:800; font-size:20px; margin-bottom:4px;">Pendaftaran Berhasil!</h5>
                 <p style="color:#71717a; font-size:12px; margin-bottom:0; font-weight:500;">SIAGA &mdash; Polda Kalsel</p>
 
@@ -461,12 +811,12 @@
                     </div>
                 </div>
 
-                <!-- Keterangan -->
+                <!-- Description -->
                 <p style="color:#a1a1aa; font-size:13px; line-height:1.7; margin-bottom:22px;">
                     Akun Anda berstatus <span style="color:#f59e0b; font-weight:700;">PENDING</span>. Silakan hubungi <strong style="color:#ffffff;">Administrator</strong> untuk menyetujui akun agar dapat masuk ke sistem.
                 </p>
 
-                <!-- Tombol -->
+                <!-- Button -->
                 <button id="btnCloseSuccessModal" class="btn-close-modal-custom">
                     <i class="fa-solid fa-right-to-bracket"></i>
                     MENGERTI, KE HALAMAN LOGIN
@@ -477,18 +827,27 @@
                 </p>
             </div>
         </div>
-        
-        <p class="text-muted mt-4" style="font-size: 11px;">
-            &copy; 2026 Bid TIK Polda Kalsel
-        </p>
+
+        <!-- ==================== FOOTERS ==================== -->
+        <!-- Landing Footer -->
+        <div class="footer-landing text-center">
+            <p>© 2026 BID TIK POLDA KALSEL</p>
+        </div>
+
+        <!-- Auth Footer -->
+        <div class="footer-auth text-center">
+            <p>© 2026 BID TIK POLDA KALSEL</p>
+        </div>
+
     </div>
 
+    <!-- ==================== SCRIPTS & FIREBASE ==================== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-        // Konfigurasi SIAGA Baru
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBcXluO0MGWA7QECYTy1uBdhanHYNG38_M",
             authDomain: "siaga-polda-kalsel.firebaseapp.com",
@@ -503,15 +862,11 @@
         const auth = getAuth(app);
         const db = getDatabase(app);
 
-        // Elemen UI Form Toggle
-        const loginFormContainer = document.getElementById('loginFormContainer');
-        const registerFormContainer = document.getElementById('registerFormContainer');
-        const tabLoginBtn = document.getElementById('tabLoginBtn');
-        const tabRegisterBtn = document.getElementById('tabRegisterBtn');
-        const tabSlider = document.getElementById('tabSlider');
-        const errorMsg = document.getElementById('error-msg');
+        // UI Error Elements
+        const loginErrorMsg = document.getElementById('login-error-msg');
+        const registerErrorMsg = document.getElementById('register-error-msg');
 
-        // Toggle Password Visibility
+        // Password Input Toggle
         const togglePassword = document.getElementById('togglePassword');
         const passwordInput = document.getElementById('password');
         
@@ -540,76 +895,97 @@
             }
         });
 
-        // Fungsi Tampilkan Form Login
-        function showLoginForm() {
-            errorMsg.style.display = 'none';
-            tabSlider.style.transform = 'translateX(0)';
-            tabLoginBtn.classList.add('active');
-            tabRegisterBtn.classList.remove('active');
+        // State Toggler Function
+        window.switchState = function(state) {
+            // Hide error dialogs
+            if (loginErrorMsg) loginErrorMsg.style.display = 'none';
+            if (registerErrorMsg) registerErrorMsg.style.display = 'none';
+
+            // Apply state to body
+            document.body.className = 'state-' + state;
+
+            // Reset password toggles to default hidden password state
+            if (passwordInput) {
+                passwordInput.setAttribute('type', 'password');
+                togglePassword.querySelector('i').className = 'fa-solid fa-eye-slash';
+            }
+            if (regPasswordInput) {
+                regPasswordInput.setAttribute('type', 'password');
+                toggleRegPassword.querySelector('i').className = 'fa-solid fa-eye-slash';
+            }
+        };
+
+        // Custom Support Information Dialog
+        window.showSupportInfo = function(type) {
+            const title = type === 'Lupa Password' ? 'Lupa Kata Sandi?' : 'Bantuan Teknis';
+            const message = type === 'Lupa Password' 
+                ? 'Demi keamanan sistem, proses reset kata sandi wajib dilakukan secara langsung melalui <strong>Administrator Bid TIK Polda Kalsel</strong> di Markas Kepolisian.' 
+                : 'Jika Anda mengalami kendala teknis dalam menggunakan aplikasi SIAGA, silakan hubungi <strong>Layanan Dukungan IT Bid TIK Polda Kalsel</strong>.';
             
-            // Reset visibility sandi ke password
-            passwordInput.setAttribute('type', 'password');
-            togglePassword.querySelector('i').className = 'fa-solid fa-eye-slash';
+            const modalHtml = `
+                <div id="supportInfoModal" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); display:flex; justify-content:center; align-items:center; opacity:0; transition:opacity 0.25s ease;">
+                    <div class="success-modal-card" style="max-width: 440px; border-top-color: var(--primary-red);">
+                        <div class="success-icon-wrap" style="background: rgba(146,32,32,0.1);">
+                            <i class="fa-solid fa-circle-info" style="color:var(--primary-red); font-size:38px;"></i>
+                        </div>
+                        <h5 style="color:#ffffff; font-weight:800; font-size:20px; margin-bottom:12px;">${title}</h5>
+                        <p style="color:#a1a1aa; font-size:13.5px; line-height:1.7; margin-bottom:24px; text-align:center;">
+                            ${message}
+                        </p>
+                        <button id="btnCloseSupportModal" class="btn-submit-custom" style="margin-top: 0; background: #27272a; box-shadow: none;">
+                            MENGERTI
+                        </button>
+                    </div>
+                </div>
+            `;
             
-            registerFormContainer.style.opacity = '0';
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modal = document.getElementById('supportInfoModal');
+            
             setTimeout(() => {
-                registerFormContainer.classList.add('hidden-form');
-                loginFormContainer.classList.remove('hidden-form');
-                setTimeout(() => {
-                    loginFormContainer.style.opacity = '1';
-                }, 50);
-            }, 200);
-        }
-
-        // Fungsi Tampilkan Form Register
-        function showRegisterForm() {
-            errorMsg.style.display = 'none';
-            tabSlider.style.transform = 'translateX(100%)';
-            tabRegisterBtn.classList.add('active');
-            tabLoginBtn.classList.remove('active');
+                modal.style.opacity = '1';
+            }, 50);
             
-            // Reset visibility sandi ke password
-            regPasswordInput.setAttribute('type', 'password');
-            toggleRegPassword.querySelector('i').className = 'fa-solid fa-eye-slash';
-            
-            loginFormContainer.style.opacity = '0';
-            setTimeout(() => {
-                loginFormContainer.classList.add('hidden-form');
-                registerFormContainer.classList.remove('hidden-form');
+            document.getElementById('btnCloseSupportModal').onclick = () => {
+                modal.style.opacity = '0';
                 setTimeout(() => {
-                    registerFormContainer.style.opacity = '1';
-                }, 50);
-            }, 200);
-        }
+                    modal.remove();
+                }, 250);
+            };
+            
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    modal.style.opacity = '0';
+                    setTimeout(() => {
+                        modal.remove();
+                    }, 250);
+                }
+            };
+        };
 
-        // Event listener klik tab switcher
-        tabLoginBtn.addEventListener('click', showLoginForm);
-        tabRegisterBtn.addEventListener('click', showRegisterForm);
-
-        // Elemen Form Login
+        // Form Submit: Login
         const loginForm = document.getElementById('loginForm');
         const btnLogin = document.getElementById('btnLogin');
 
         function resetBtnLogin() {
-            btnLogin.innerHTML = 'AUTENTIKASI SISTEM <i class="fa-solid fa-arrow-right-to-bracket ms-2"></i>';
+            btnLogin.innerHTML = 'MASUK SISTEM <i class="fa-solid fa-arrow-right-to-bracket ms-2"></i>';
             btnLogin.disabled = false;
         }
 
-        // Penanganan Submit Form Login
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
             
             const nrpInput = document.getElementById('nrp').value.trim();
             const password = document.getElementById('password').value;
             
-            // Map NRP ke Virtual Email
+            // Map NRP to virtual email address
             const email = nrpInput.includes('@') ? nrpInput : nrpInput + "@siaga.polri.go.id";
             
             btnLogin.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> MEMPROSES...';
             btnLogin.disabled = true;
-            errorMsg.style.display = 'none';
+            loginErrorMsg.style.display = 'none';
 
-            // Proses Autentikasi ke Firebase
+            // Firebase authentication process
             setPersistence(auth, browserLocalPersistence)
                 .then(() => {
                     return signInWithEmailAndPassword(auth, email, password);
@@ -617,63 +993,61 @@
                 .then((userCredential) => {
                     const user = userCredential.user;
                     
-                    // Ambil detail profil dari Realtime Database
+                    // Fetch user details from Realtime Database
                     const userRef = ref(db, 'users/' + user.uid);
                     get(userRef).then((snapshot) => {
                         if (snapshot.exists()) {
                             const userData = snapshot.val();
                             if (userData.status === 'active') {
                                 if (userData.role === 'admin' || userData.role === 'commander') {
-                                    // Set session cookie
+                                    // Save cookie and localStorage session values
                                     document.cookie = "session_active=true; path=/";
                                     
-                                    // Simpan detail di localStorage
                                     localStorage.setItem('user_role', userData.role);
                                     localStorage.setItem('user_name', userData.nama);
                                     localStorage.setItem('user_nrp', userData.nrp);
                                     localStorage.setItem('user_pangkat', userData.pangkat);
                                     localStorage.setItem('user_satker', userData.satker);
                                     
-                                    // Pindah ke dashboard
+                                    // Redirect to main tactical map dashboard
                                     window.location.href = "index.html";
                                 } else {
-                                    errorMsg.style.display = 'block';
-                                    errorMsg.innerText = "Akses Ditolak: Hanya Admin atau Komandan yang dapat masuk.";
+                                    loginErrorMsg.style.display = 'block';
+                                    loginErrorMsg.innerText = "Akses Ditolak: Hanya Admin atau Komandan yang dapat masuk.";
                                     signOut(auth);
                                     resetBtnLogin();
                                 }
                             } else {
-                                errorMsg.style.display = 'block';
-                                errorMsg.innerText = "Akun Anda berstatus: " + userData.status.toUpperCase() + ". Menunggu verifikasi admin.";
+                                loginErrorMsg.style.display = 'block';
+                                loginErrorMsg.innerText = "Akun Anda berstatus: " + userData.status.toUpperCase() + ". Menunggu verifikasi admin.";
                                 signOut(auth);
                                 resetBtnLogin();
                             }
                         } else {
-                            // Profil tidak ditemukan di database
-                            errorMsg.style.display = 'block';
-                            errorMsg.innerText = "Akses Ditolak: Data profil Anda tidak ditemukan. Silakan lakukan pendaftaran ulang.";
+                            loginErrorMsg.style.display = 'block';
+                            loginErrorMsg.innerText = "Akses Ditolak: Data profil Anda tidak ditemukan. Silakan lakukan pendaftaran ulang.";
                             signOut(auth);
                             resetBtnLogin();
                         }
                     }).catch((error) => {
-                        errorMsg.style.display = 'block';
-                        errorMsg.innerText = "Error database: " + error.message;
+                        loginErrorMsg.style.display = 'block';
+                        loginErrorMsg.innerText = "Error database: " + error.message;
                         signOut(auth);
                         resetBtnLogin();
                     });
                 })
                 .catch((error) => {
-                    errorMsg.style.display = 'block';
+                    loginErrorMsg.style.display = 'block';
                     if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
-                        errorMsg.innerText = "NRP atau Kata Sandi tidak cocok dengan data markas.";
+                        loginErrorMsg.innerText = "NRP atau Kata Sandi tidak cocok dengan data markas.";
                     } else {
-                        errorMsg.innerText = "Error: " + error.message;
+                        loginErrorMsg.innerText = "Error: " + error.message;
                     }
                     resetBtnLogin();
                 });
         });
 
-        // Elemen Form Registrasi
+        // Form Submit: Register
         const registerForm = document.getElementById('registerForm');
         const btnRegister = document.getElementById('btnRegister');
 
@@ -682,7 +1056,6 @@
             btnRegister.disabled = false;
         }
 
-        // Penanganan Submit Form Registrasi
         registerForm.addEventListener('submit', (e) => {
             e.preventDefault();
 
@@ -694,28 +1067,28 @@
             const phoneInput = document.getElementById('reg-phone').value.trim();
             const password = document.getElementById('reg-password').value;
 
-            errorMsg.style.display = 'none';
+            registerErrorMsg.style.display = 'none';
 
-            // Validasi input
+            // Validate fields
             if (password.length < 8) {
-                errorMsg.style.display = 'block';
-                errorMsg.innerText = "Kata Sandi minimal harus 8 karakter!";
+                registerErrorMsg.style.display = 'block';
+                registerErrorMsg.innerText = "Kata Sandi minimal harus 8 karakter!";
                 return;
             }
 
             btnRegister.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> MENDAFTAR...';
             btnRegister.disabled = true;
 
-            // Email virtual berbasis NRP untuk login
+            // Generate virtual email matching NRP
             const virtualEmail = nrpInput + "@siaga.polri.go.id";
 
-            // Buat akun Firebase Auth
+            // Create Firebase Auth user
             createUserWithEmailAndPassword(auth, virtualEmail, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
                     const userRef = ref(db, 'users/' + user.uid);
 
-                    // Simpan profil pengguna ke database dengan status pending (jabatan default "Anggota")
+                    // Save details to database with default pending status and role member
                     set(userRef, {
                         nrp: nrpInput,
                         nama: nama,
@@ -728,34 +1101,34 @@
                         status: "pending",
                         waktu_daftar: new Date().toISOString()
                     }).then(() => {
-                        // Sign out & tampilkan modal sukses
+                        // Sign out user automatically and trigger registration success modal
                         signOut(auth).then(() => {
-                            // Tampilkan NRP di modal
                             document.getElementById('successNrpDisplay').innerText = nrpInput;
+                            switchState('success');
                             const modal = document.getElementById('registerSuccessModal');
                             modal.style.display = 'flex';
                             
                             document.getElementById('btnCloseSuccessModal').onclick = () => {
                                 modal.style.display = 'none';
                                 registerForm.reset();
-                                showLoginForm();
+                                switchState('login');
                                 resetBtnRegister();
                             };
                         });
                     }).catch((err) => {
-                        errorMsg.style.display = 'block';
-                        errorMsg.innerText = "Gagal menyimpan detail profil: " + err.message;
+                        registerErrorMsg.style.display = 'block';
+                        registerErrorMsg.innerText = "Gagal menyimpan detail profil: " + err.message;
                         resetBtnRegister();
                     });
                 })
                 .catch((error) => {
-                    errorMsg.style.display = 'block';
+                    registerErrorMsg.style.display = 'block';
                     if (error.code === 'auth/email-already-in-use') {
-                        errorMsg.innerText = "NRP tersebut sudah terdaftar di markas.";
+                        registerErrorMsg.innerText = "NRP tersebut sudah terdaftar di markas.";
                     } else if (error.code === 'auth/invalid-email') {
-                        errorMsg.innerText = "Format data registrasi tidak valid.";
+                        registerErrorMsg.innerText = "Format data registrasi tidak valid.";
                     } else {
-                        errorMsg.innerText = "Gagal mendaftar: " + error.message;
+                        registerErrorMsg.innerText = "Gagal mendaftar: " + error.message;
                     }
                     resetBtnRegister();
                 });

@@ -14,9 +14,30 @@ import 'package:latlong2/latlong.dart' hide Path;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart' hide ServiceStatus;
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:flutter/services.dart';
 
 // Global ValueNotifier for ThemeMode
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
+
+// Forced dark theme settings for initial/auth screens
+final ThemeData forceDarkTheme = ThemeData.dark().copyWith(
+  primaryColor: const Color(0xFF3B82F6),
+  scaffoldBackgroundColor: const Color(0xFF0F121A),
+  cardColor: const Color(0xFF18181B),
+  dividerColor: const Color(0xFF27272A),
+  appBarTheme: const AppBarTheme(
+    backgroundColor: Color(0xFF18181B),
+    foregroundColor: Colors.white,
+    elevation: 1,
+    titleTextStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+    iconTheme: IconThemeData(color: Colors.white),
+  ),
+  colorScheme: const ColorScheme.dark(
+    primary: Color(0xFF3B82F6),
+    surface: Color(0xFF18181B),
+    onSurface: Colors.white,
+  ),
+);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -122,9 +143,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   Widget build(BuildContext context) {
     if (!_splashDone) {
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+
       return Scaffold(
         body: GridBackground(
           imageOpacity: 0.55,
+          showGrid: false,
           child: SafeArea(
             child: Column(
               children: [
@@ -134,25 +159,23 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const TikPolriShieldLogo(size: 110),
-                      const SizedBox(height: 35),
-                      const Text(
+                      Text(
                         'SIAGA',
                         style: TextStyle(
                           fontSize: 44,
                           fontWeight: FontWeight.w900,
-                          color: Colors.white,
+                          color: isDark ? Colors.white : Colors.black87,
                           letterSpacing: 2.5,
                         ),
                       ),
                       const SizedBox(height: 15),
-                      const Text(
+                      Text(
                         'SISTEM INFORMASI\nAKTIVITAS DAN GERAK\nANGGOTA',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFFC0C4D6),
+                          color: isDark ? const Color(0xFFC0C4D6) : Colors.black54,
                           letterSpacing: 1.5,
                           height: 1.5,
                         ),
@@ -193,13 +216,21 @@ class _AuthWrapperState extends State<AuthWrapper> {
 class GridBackground extends StatelessWidget {
   final Widget child;
   final double imageOpacity;
-  const GridBackground({super.key, required this.child, this.imageOpacity = 0.0});
+  final bool forceDark;
+  final bool showGrid;
+  const GridBackground({
+    super.key,
+    required this.child,
+    this.imageOpacity = 0.0,
+    this.forceDark = false,
+    this.showGrid = true,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final bgColor = theme.scaffoldBackgroundColor;
+    final isDark = forceDark || theme.brightness == Brightness.dark;
+    final bgColor = forceDark ? const Color(0xFF0F121A) : theme.scaffoldBackgroundColor;
     final gridColor = isDark
         ? const Color(0xFF3B82F6).withValues(alpha: 0.04)
         : Colors.black.withValues(alpha: 0.02);
@@ -207,11 +238,12 @@ class GridBackground extends StatelessWidget {
     return Stack(
       children: [
         Container(color: bgColor),
-        Positioned.fill(
-          child: CustomPaint(
-            painter: GridPainter(color: gridColor),
+        if (showGrid)
+          Positioned.fill(
+            child: CustomPaint(
+              painter: GridPainter(color: gridColor),
+            ),
           ),
-        ),
         if (imageOpacity > 0.0)
           Positioned.fill(
             child: Image.asset(
@@ -231,7 +263,7 @@ class GridBackground extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.transparent,
+                  isDark ? Colors.black.withValues(alpha: 0.35) : Colors.transparent,
                   bgColor,
                 ],
               ),
@@ -342,34 +374,38 @@ class TopLogos extends StatelessWidget {
         children: [
           Image.asset(
             'assets/logo_polda.png',
-            width: 40,
-            height: 45,
+            width: 52,
+            height: 60,
+            fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) => Image.network(
               'https://upload.wikimedia.org/wikipedia/commons/e/ea/Lambang_Polda_Kalsel.png',
-              width: 40,
-              height: 45,
+              width: 52,
+              height: 60,
+              fit: BoxFit.contain,
               errorBuilder: (context, err, st) => Container(
-                width: 40,
-                height: 45,
+                width: 52,
+                height: 60,
                 decoration: BoxDecoration(
                   color: Colors.blue.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Icon(Icons.shield_outlined, color: Colors.blue, size: 20),
+                child: const Icon(Icons.shield_outlined, color: Colors.blue, size: 24),
               ),
             ),
           ),
           Image.asset(
-            'assets/mascot_presisi.png',
-            width: 40,
-            height: 45,
+            'assets/logo_tik.png',
+            width: 38,
+            height: 38,
+            fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) => Image.network(
               'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Logo_Polri.png/200px-Logo_Polri.png',
-              width: 40,
-              height: 45,
+              width: 38,
+              height: 38,
+              fit: BoxFit.contain,
               errorBuilder: (context, err, st) => Container(
-                width: 40,
-                height: 45,
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
                   color: Colors.red.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(4),
@@ -449,10 +485,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Scaffold(
       body: GridBackground(
         imageOpacity: 0.55,
+        showGrid: false,
         child: SafeArea(
           child: Column(
             children: [
@@ -462,15 +499,22 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const TikPolriShieldLogo(size: 110),
-                    const SizedBox(height: 35),
                     Text(
                       'SIAGA',
                       style: TextStyle(
-                        fontSize: 44,
+                        fontSize: 48,
                         fontWeight: FontWeight.w900,
-                        color: theme.colorScheme.onSurface,
-                        letterSpacing: 2.5,
+                        color: isDark ? Colors.white : Colors.black87,
+                        letterSpacing: 4.0,
+                        shadows: isDark
+                            ? [
+                                Shadow(
+                                  color: Colors.black.withValues(alpha: 0.4),
+                                  offset: const Offset(0, 4),
+                                  blurRadius: 10,
+                                ),
+                              ]
+                            : null,
                       ),
                     ),
                     const SizedBox(height: 15),
@@ -481,8 +525,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                         color: isDark ? const Color(0xFFC0C4D6) : Colors.black54,
-                        letterSpacing: 1.5,
-                        height: 1.5,
+                        letterSpacing: 1.8,
+                        height: 1.6,
+                        shadows: isDark
+                            ? [
+                                Shadow(
+                                  color: Colors.black.withValues(alpha: 0.4),
+                                  offset: const Offset(0, 2),
+                                  blurRadius: 6,
+                                ),
+                              ]
+                            : null,
                       ),
                     ),
                   ],
@@ -502,12 +555,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                               height: 52,
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: isDark ? const Color(0xFFC0C4D6) : const Color(0xFF3B82F6),
-                                  foregroundColor: isDark ? Colors.black : Colors.white,
+                                  backgroundColor: const Color(0xFF922020),
+                                  foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  elevation: 2,
+                                  elevation: 4,
+                                  shadowColor: const Color(0xFF922020).withValues(alpha: 0.4),
                                 ),
                                 onPressed: () {
                                   Navigator.push(
@@ -522,7 +576,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w800,
-                                    letterSpacing: 1.0,
+                                    letterSpacing: 1.5,
                                   ),
                                 ),
                               ),
@@ -533,9 +587,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                               height: 52,
                               child: OutlinedButton(
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: isDark ? const Color(0xFFC0C4D6) : const Color(0xFF3B82F6),
+                                  backgroundColor: Colors.transparent,
+                                  foregroundColor: isDark ? Colors.white : const Color(0xFF922020),
                                   side: BorderSide(
-                                    color: isDark ? const Color(0xFFC0C4D6) : const Color(0xFF3B82F6),
+                                    color: isDark 
+                                        ? Colors.white.withValues(alpha: 0.35) 
+                                        : const Color(0xFF922020).withValues(alpha: 0.5),
                                     width: 1.5,
                                   ),
                                   shape: RoundedRectangleBorder(
@@ -555,7 +612,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w800,
-                                    letterSpacing: 1.0,
+                                    letterSpacing: 1.5,
                                   ),
                                 ),
                               ),
@@ -567,10 +624,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: theme.cardColor,
+                                color: isDark 
+                                    ? Colors.white.withValues(alpha: 0.04)
+                                    : Colors.black.withValues(alpha: 0.03),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: theme.dividerColor,
+                                  color: isDark 
+                                      ? Colors.white.withValues(alpha: 0.08)
+                                      : Colors.black.withValues(alpha: 0.08),
                                   width: 1.0,
                                 ),
                               ),
@@ -588,7 +649,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                     style: TextStyle(
                                       fontSize: 9,
                                       fontWeight: FontWeight.bold,
-                                      color: isDark ? const Color(0xFFC0C4D6) : Colors.black54,
+                                      color: isDark 
+                                          ? Colors.white.withValues(alpha: 0.7)
+                                          : Colors.black54,
                                       letterSpacing: 0.5,
                                     ),
                                   ),
@@ -605,7 +668,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 'PROYEK SIAGA - VERSI 1.0',
                 style: TextStyle(
                   fontSize: 10,
-                  color: isDark ? Colors.grey : Colors.black38,
+                  color: isDark ? const Color(0xFF64748B) : Colors.black38,
                   letterSpacing: 1.5,
                 ),
               ),
@@ -667,11 +730,12 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showSnackBar(String msg, Color color) {
+    ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: color,
-        duration: const Duration(seconds: 3),
+        duration: const Duration(milliseconds: 1000),
       ),
     );
   }
@@ -693,7 +757,7 @@ class _LoginScreenState extends State<LoginScreen> {
           style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Demi keamanan institusi, pelacakan koordinat, dan data taktis SIAGA, pemulihan kata sandi hanya dapat dilakukan oleh Administrator Bid TIK Polda Kalsel di Posko Induk TIK.\n\nSilakan hubungi operator TIK untuk mengatur ulang kata sandi NRP Anda.',
+          'Demi keamanan sistem, proses reset kata sandi wajib dilakukan secara langsung melalui Administrator Bid TIK Polda Kalsel di Markas Kepolisian.',
           style: TextStyle(color: isDark ? Colors.grey : Colors.black54, fontSize: 13, height: 1.4),
         ),
         actions: [
@@ -718,6 +782,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: GridBackground(
         imageOpacity: 0.55,
+        showGrid: false,
         child: SafeArea(
           child: SingleChildScrollView(
             child: Padding(
@@ -725,9 +790,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 children: [
                   const TopLogos(),
-                  const SizedBox(height: 20),
-                  const TikPolriShieldLogo(size: 80),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 35),
                   Text(
                     'SIAGA',
                     style: TextStyle(
@@ -855,20 +918,22 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 52,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isDark ? const Color(0xFFC0C4D6) : const Color(0xFF3B82F6),
-                              foregroundColor: isDark ? Colors.black : Colors.white,
+                              backgroundColor: const Color(0xFF922020),
+                              foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
+                              elevation: 4,
+                              shadowColor: const Color(0xFF922020).withValues(alpha: 0.4),
                             ),
                             onPressed: _isLoading ? null : _loginWithFirebase,
                             child: _isLoading
-                                ? SizedBox(
+                                ? const SizedBox(
                                     height: 20,
                                     width: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation(isDark ? Colors.black : Colors.white),
+                                      valueColor: AlwaysStoppedAnimation(Colors.white),
                                     ),
                                   )
                                 : Row(
@@ -1029,11 +1094,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _showSnackBar(String msg, Color color) {
+    ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: color,
-        duration: const Duration(seconds: 3),
+        duration: const Duration(milliseconds: 1000),
       ),
     );
   }
@@ -1045,6 +1111,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     return Scaffold(
       body: GridBackground(
+        showGrid: false,
         child: SafeArea(
           child: SingleChildScrollView(
             child: Padding(
@@ -1052,9 +1119,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 children: [
                   const TopLogos(),
-                  const SizedBox(height: 10),
-                  const TikPolriShieldLogo(size: 70),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 25),
                   Text(
                     'REGISTRASI PERSONEL',
                     style: TextStyle(
@@ -1298,20 +1363,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           height: 52,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isDark ? const Color(0xFFC0C4D6) : const Color(0xFF3B82F6),
-                              foregroundColor: isDark ? Colors.black : Colors.white,
+                              backgroundColor: const Color(0xFF922020),
+                              foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
+                              elevation: 4,
+                              shadowColor: const Color(0xFF922020).withValues(alpha: 0.4),
                             ),
                             onPressed: _isLoading ? null : _registerWithFirebase,
                             child: _isLoading
-                                ? SizedBox(
+                                ? const SizedBox(
                                     height: 20,
                                     width: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation(isDark ? Colors.black : Colors.white),
+                                      valueColor: AlwaysStoppedAnimation(Colors.white),
                                     ),
                                   )
                                 : Row(
@@ -1457,6 +1524,10 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   String _chatPath = 'chat/umum'; // Firebase path for current chat
   String _dmConvId = ''; // conversation ID for DM
   String _dmTargetName = ''; // Display name of DM target
+  Map<String, int> _lastReadMap = {};
+  bool _anyUnreadDms = false;
+  StreamSubscription<DatabaseEvent>? _dmSubscription;
+  Map<String, dynamic> _latestDmData = {};
   String _selectedVehicleCategory = 'Jalan Kaki';
   String _noHpDinas = '';
 
@@ -1498,6 +1569,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     _dengarkanGeofences();
     _dengarkanSettings();
     _dengarkanStatusAkun();
+    _loadLastReadAndListenDms();
   }
 
   void _setupStatusListeners() {
@@ -1688,6 +1760,87 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       setState(() {
         _status = 'pending';
         _checkingStatus = false;
+      });
+    }
+  }
+
+  Future<void> _loadLastReadAndListenDms() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys();
+    final newMap = <String, int>{};
+    for (final key in keys) {
+      if (key.startsWith('dm_last_read_')) {
+        final convId = key.replaceFirst('dm_last_read_', '');
+        newMap[convId] = prefs.getInt(key) ?? 0;
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _lastReadMap = newMap;
+      });
+    }
+
+    // Now start listening to DMs
+    final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (myUid.isEmpty) return;
+
+    _dmSubscription = FirebaseDatabase.instance.ref('chat/dm').onValue.listen((event) {
+      if (event.snapshot.value == null) {
+        _latestDmData = {};
+        _updateAnyUnreadDms({});
+        return;
+      }
+      try {
+        final raw = Map<String, dynamic>.from(event.snapshot.value as Map);
+        _latestDmData = raw;
+        _updateAnyUnreadDms(raw);
+      } catch (e) {
+        debugPrint('Error parsing DMs for unread badges: $e');
+      }
+    });
+  }
+
+  void _updateAnyUnreadDms(Map<String, dynamic> rawDms) {
+    final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (myUid.isEmpty) return;
+
+    bool unreadFound = false;
+    rawDms.forEach((convId, data) {
+      if (data is Map) {
+        final conv = Map<String, dynamic>.from(data);
+        final participants = conv['participants'] as Map?;
+        if (participants != null && participants[myUid] == true) {
+          final updatedAt = conv['updatedAt'] ?? 0;
+          
+          // If we are currently inside this conversation, we don't count it as unread,
+          // AND we update our local last read to match updatedAt to avoid clock skew
+          if (convId == _dmConvId && _chatLevel == 'conversation' && _currentIndex == 1) {
+            final lastRead = _lastReadMap[convId] ?? 0;
+            if (updatedAt > lastRead) {
+              final now = DateTime.now().millisecondsSinceEpoch;
+              final newRead = updatedAt > now ? updatedAt : now;
+              _lastReadMap[convId] = newRead;
+              SharedPreferences.getInstance().then((prefs) {
+                prefs.setInt('dm_last_read_$convId', newRead);
+              });
+            }
+            return; // Skip counting this as unread
+          }
+          
+          final lastSender = conv['lastSender'];
+          final isFromOther = lastSender == null || lastSender != myUid;
+          if (isFromOther) {
+            final lastRead = _lastReadMap[convId] ?? 0;
+            if (updatedAt > lastRead) {
+              unreadFound = true;
+            }
+          }
+        }
+      }
+    });
+    if (mounted) {
+      setState(() {
+        _anyUnreadDms = unreadFound;
       });
     }
   }
@@ -1977,12 +2130,103 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       // Minta izin notifikasi untuk Android 13+ agar notification bar muncul
       if (Platform.isAndroid) {
         try {
-          final status = await Permission.notification.status;
+          var status = await Permission.notification.status;
           if (status.isDenied) {
-            await Permission.notification.request();
+            status = await Permission.notification.request();
+          }
+          if (status.isPermanentlyDenied) {
+            if (mounted) {
+              await showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  backgroundColor: Theme.of(context).cardColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    side: BorderSide(color: Theme.of(context).dividerColor),
+                  ),
+                  title: Text(
+                    'Izin Notifikasi Diperlukan',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  content: Text(
+                    'Aplikasi memerlukan izin notifikasi agar status pelacakan (notification bar) dapat terus muncul saat tugas sedang berjalan.',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D6EFD)),
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await Geolocator.openAppSettings();
+                      },
+                      child: const Text('Buka Pengaturan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              );
+            }
           }
         } catch (e) {
           debugPrint('Error requesting notification permission: $e');
+        }
+      }
+
+      // Minta izin mengabaikan optimasi baterai agar tidak mati saat di-clear
+      if (Platform.isAndroid) {
+        try {
+          final isOptimizing = await Permission.ignoreBatteryOptimizations.isDenied;
+          if (isOptimizing) {
+            if (mounted) {
+              await showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  backgroundColor: Theme.of(context).cardColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    side: BorderSide(color: Theme.of(context).dividerColor),
+                  ),
+                  title: Text(
+                    'Pelacakan Latar Belakang',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  content: Text(
+                    'Agar pelacakan tetap berjalan lancar dan notifikasi tidak hilang saat aplikasi ditutup (clear dari recents), silakan lakukan langkah berikut:\n\n'
+                    '1. Pilih opsi "Tidak ada pembatasan" (No restrictions / Unrestricted) pada halaman Detail Baterai setelah ini (JANGAN pilih "Penghemat baterai (rekomendasi)").\n'
+                    '2. Sangat disarankan untuk mengaktifkan "Mulai otomatis" (Auto-start) pada pengaturan aplikasi.\n'
+                    '3. Kunci aplikasi SIAGA di recents screen (tekan lama aplikasi di task manager, lalu pilih ikon Gembok).',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                      fontSize: 12,
+                      height: 1.5,
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Lanjut', style: TextStyle(color: Color(0xFF0D6EFD), fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              );
+            }
+            await Permission.ignoreBatteryOptimizations.request();
+          }
+        } catch (e) {
+          debugPrint('Error requesting battery optimization ignore: $e');
         }
       }
 
@@ -1992,10 +2236,26 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            backgroundColor: const Color(0xFF18181B),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: const BorderSide(color: Color(0xFF27272A))),
-            title: const Text('GPS Tidak Aktif', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            content: const Text('Pelacakan SIAGA memerlukan GPS aktif. Silakan buka Pengaturan untuk mengaktifkan GPS lokasi perangkat Anda.'),
+            backgroundColor: Theme.of(context).cardColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+              side: BorderSide(color: Theme.of(context).dividerColor),
+            ),
+            title: Text(
+              'GPS Tidak Aktif',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Text(
+              'Pelacakan SIAGA memerlukan GPS aktif. Silakan buka Pengaturan untuk mengaktifkan GPS lokasi perangkat Anda.',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -2029,10 +2289,26 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            backgroundColor: const Color(0xFF18181B),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: const BorderSide(color: Color(0xFF27272A))),
-            title: const Text('Izin Lokasi Diblokir', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            content: const Text('Izin lokasi SIAGA diblokir permanen. Silakan aktifkan izin lokasi manual di Pengaturan Aplikasi Anda.'),
+            backgroundColor: Theme.of(context).cardColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+              side: BorderSide(color: Theme.of(context).dividerColor),
+            ),
+            title: Text(
+              'Izin Lokasi Diblokir',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Text(
+              'Izin lokasi SIAGA diblokir permanen. Silakan aktifkan izin lokasi manual di Pengaturan Aplikasi Anda.',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -2246,17 +2522,6 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
 
   // Menyelesaikan Tugas
   Future<void> _selesaiTugasPatroli() async {
-    setState(() {
-      _isTracking = false;
-    });
-    _missionTimer?.cancel();
-    _positionStream?.cancel();
-    _fallbackLocationTimer?.cancel();
-    
-    final String unitId = 'POL-$_nrp';
-    await _dbRef.child('live_tracking/$unitId').remove();
-    await _hapusStateTrackingDariPrefs();
-    
     final DateTime actualStartTime = _missionStartTime ?? DateTime.now();
     final int actualDurationSeconds = _elapsedSeconds;
 
@@ -2265,15 +2530,43 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     final String vehicleTypeText = _vehicleTypeController.text.trim();
     final String commanderText = _commanderController.text.trim();
     final String descriptionText = _descriptionController.text.trim();
+    final int personnelCountVal = int.tryParse(_personnelController.text) ?? 1;
+
+    setState(() {
+      _isTracking = false;
+      _homeState = HomeMissionState.standby;
+      _missionStartTime = null;
+      _elapsedSeconds = 0;
+      // Bersihkan input setelah membaca nilainya
+      _commanderController.clear();
+      _descriptionController.clear();
+      _personnelController.clear();
+      _opCodeController.clear();
+      _activityTypeController.clear();
+      _vehicleTypeController.clear();
+    });
+    _missionTimer?.cancel();
+    _positionStream?.cancel();
+    _fallbackLocationTimer?.cancel();
+    
+    final String unitId = 'POL-$_nrp';
+    
+    // Simpan ke riwayat dan hapus state di background tanpa memblokir UI
+    _dbRef.child('live_tracking/$unitId').remove().catchError((e) {
+      debugPrint('Error removing live tracking: $e');
+    });
+    _hapusStateTrackingDariPrefs().catchError((e) {
+      debugPrint('Error clearing tracking state: $e');
+    });
 
     // Catat data misi ke tabel Riwayat Pengguna
     final DateTime endTime = DateTime.now();
-    await _dbRef.child('users/${widget.user.uid}/history').push().set({
+    _dbRef.child('users/${widget.user.uid}/history').push().set({
       'opCode': opCodeText.isNotEmpty ? opCodeText : 'OPS-SIAGA-001',
       'activityType': activityTypeText.isNotEmpty ? activityTypeText : 'Pengamanan Wilayah',
       'vehicleType': vehicleTypeText.isNotEmpty ? vehicleTypeText : 'Mobil Dinas Roda 4',
       'commander': commanderText.isNotEmpty ? commanderText : 'Mandiri',
-      'personnelCount': int.tryParse(_personnelController.text) ?? 1,
+      'personnelCount': personnelCountVal,
       'description': descriptionText.isNotEmpty ? descriptionText : 'Pengamanan Kamtibmas',
       'startTime': actualStartTime.toIso8601String(),
       'endTime': endTime.toIso8601String(),
@@ -2281,20 +2574,8 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       'distance': _sessionDistanceTraveled,
       'pointsCount': _sessionTrackingPositions.length,
       'status': 'COMPLETED'
-    });
-
-    setState(() {
-      _isTracking = false;
-      _homeState = HomeMissionState.standby;
-      _missionStartTime = null;
-      _elapsedSeconds = 0;
-      // Bersihkan input
-      _commanderController.clear();
-      _descriptionController.clear();
-      _personnelController.clear();
-      _opCodeController.clear();
-      _activityTypeController.clear();
-      _vehicleTypeController.clear();
+    }).catchError((err) {
+      debugPrint('Error writing history: $err');
     });
 
     _showSnackBar('Laporan tugas selesai disimpan ke riwayat.', Colors.blue);
@@ -2303,11 +2584,12 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
 
 
   void _showSnackBar(String msg, Color color) {
+    ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg, style: const TextStyle(color: Colors.white)),
         backgroundColor: color,
-        duration: const Duration(seconds: 3),
+        duration: const Duration(milliseconds: 1000),
       ),
     );
   }
@@ -2363,6 +2645,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     _pesanStream?.cancel();
     _missionTimer?.cancel();
     _historyStream?.cancel();
+    _dmSubscription?.cancel();
     _geofencesSubscription?.cancel();
     _settingsSubscription?.cancel();
     _userSubscription?.cancel();
@@ -2517,13 +2800,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   // Sub-Halaman Home: Standby (Image 1)
   Widget _buildHomeStandby() {
     return Padding(
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header Operator Active
           Container(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(12),
@@ -2566,12 +2849,12 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
 
           // Status SIAP BERTUGAS Card (Redesigned with pulsing wave indicator, SOS removed)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(22),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(15),
@@ -2580,20 +2863,20 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             child: Column(
               children: [
                 const RadarPingWaveWidget(),
-                const SizedBox(height: 15),
+                const SizedBox(height: 12),
                 Text(
                   'SISTEM SIAP BERTUGAS',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.onSurface, letterSpacing: 1.0),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.onSurface, letterSpacing: 1.0),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 const Text(
                   'Aplikasi terhubung ke Posko Induk Bid TIK Polda Kalsel. Menunggu instruksi operasi lapangan.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.grey, height: 1.5),
+                  style: TextStyle(fontSize: 11, color: Colors.grey, height: 1.4),
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 10),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0F0F12) : const Color(0xFFF1F1F4),
                     borderRadius: BorderRadius.circular(8),
@@ -2614,10 +2897,10 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
 
           const Text('STATUS SISTEM', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5)),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
 
           // 4 Grid Status (Dynamic state indicators)
           Expanded(
@@ -4352,108 +4635,171 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           // Contact list from Firebase
           Expanded(
             child: StreamBuilder<DatabaseEvent>(
-              stream: FirebaseDatabase.instance.ref('users').onValue,
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Container(
-                      height: 250,
-                      alignment: Alignment.center,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.error_outline, size: 40, color: Colors.orange[400]),
-                            const SizedBox(height: 8),
-                            Text('Gagal memuat kontak', style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.w600)),
-                            const SizedBox(height: 4),
-                            Text(snapshot.error.toString(), style: TextStyle(color: Colors.grey[500], fontSize: 10), textAlign: TextAlign.center, maxLines: 3, overflow: TextOverflow.ellipsis),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }
-                if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
-                  return const Center(child: CircularProgressIndicator(strokeWidth: 2));
-                }
-                final raw = Map<String, dynamic>.from(snapshot.data!.snapshot.value as Map);
-                final contacts = <Map<String, dynamic>>[];
-                raw.forEach((uid, val) {
-                  if (uid == myUid) return;
-                  if (val is! Map) return;
-                  final u = Map<String, dynamic>.from(val);
-                  if (u['status'] != 'active') return;
-                  // Members only see admin/commander
-                  if (_role == 'member' && u['role'] != 'admin' && u['role'] != 'commander') return;
-                  contacts.add({'uid': uid, ...u});
-                });
-                contacts.sort((a, b) => (a['nama'] ?? '').compareTo(b['nama'] ?? ''));
-
-                if (contacts.isEmpty) {
-                  return SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Container(
-                      height: 250,
-                      alignment: Alignment.center,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.people_outline, size: 40, color: Colors.grey[400]),
-                          const SizedBox(height: 8),
-                          Text('Belum ada kontak tersedia', style: TextStyle(color: Colors.grey[500], fontSize: 13)),
-                        ],
-                      ),
-                    ),
-                  );
+              stream: FirebaseDatabase.instance.ref('chat/dm').onValue,
+              builder: (context, dmSnapshot) {
+                final dmConversations = <String, Map<String, dynamic>>{};
+                if (dmSnapshot.hasData && dmSnapshot.data?.snapshot.value != null) {
+                  try {
+                    final rawDm = Map<String, dynamic>.from(dmSnapshot.data!.snapshot.value as Map);
+                    rawDm.forEach((convId, data) {
+                      if (data is Map) {
+                        dmConversations[convId] = Map<String, dynamic>.from(data);
+                      }
+                    });
+                  } catch (_) {}
                 }
 
-                return ListView.builder(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: contacts.length,
-                  itemBuilder: (ctx, i) {
-                    final c = contacts[i];
-                    final fullName = '${c['pangkat'] ?? ''} ${c['nama'] ?? '?'}'.trim();
-                    final initial = ((c['nama'] ?? '?') as String).isNotEmpty
-                        ? (c['nama'] as String)[0].toUpperCase() : '?';
-                    return InkWell(
-                      onTap: () => _openDmChat(c['uid'], fullName),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          border: Border(bottom: BorderSide(color: borderColor.withValues(alpha: 0.5))),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundColor: const Color(0xFF3B82F6).withValues(alpha: 0.15),
-                              child: Text(initial, style: const TextStyle(
-                                color: Color(0xFF3B82F6), fontSize: 14, fontWeight: FontWeight.bold,
-                              )),
+                return StreamBuilder<DatabaseEvent>(
+                  stream: FirebaseDatabase.instance.ref('users').onValue,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: Container(
+                          height: 250,
+                          alignment: Alignment.center,
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.error_outline, size: 40, color: Colors.orange[400]),
+                                const SizedBox(height: 8),
+                                Text('Gagal memuat kontak', style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.w600)),
+                                const SizedBox(height: 4),
+                                Text(snapshot.error.toString(), style: TextStyle(color: Colors.grey[500], fontSize: 10), textAlign: TextAlign.center, maxLines: 3, overflow: TextOverflow.ellipsis),
+                              ],
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(fullName, style: TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.w600,
-                                    color: isDark ? Colors.white : Colors.black87,
-                                  )),
-                                  const SizedBox(height: 2),
-                                  Text(_getRoleDisplayName(c['role']?.toString()), style: TextStyle(
-                                    fontSize: 11, color: Colors.grey[500],
-                                  )),
-                                ],
-                              ),
-                            ),
-                            const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
-                          ],
+                          ),
                         ),
-                      ),
+                      );
+                    }
+                    if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
+                      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                    }
+                    final raw = Map<String, dynamic>.from(snapshot.data!.snapshot.value as Map);
+                    final contacts = <Map<String, dynamic>>[];
+                    raw.forEach((uid, val) {
+                      if (uid == myUid) return;
+                      if (val is! Map) return;
+                      final u = Map<String, dynamic>.from(val);
+                      if (u['status'] != 'active') return;
+                      // Members only see admin/commander
+                      if (_role == 'member' && u['role'] != 'admin' && u['role'] != 'commander') return;
+                      contacts.add({'uid': uid, ...u});
+                    });
+                    contacts.sort((a, b) => (a['nama'] ?? '').compareTo(b['nama'] ?? ''));
+
+                    if (contacts.isEmpty) {
+                      return SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: Container(
+                          height: 250,
+                          alignment: Alignment.center,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.people_outline, size: 40, color: Colors.grey[400]),
+                              const SizedBox(height: 8),
+                              Text('Belum ada kontak tersedia', style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    return ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      itemCount: contacts.length,
+                      itemBuilder: (ctx, i) {
+                        final c = contacts[i];
+                        final fullName = '${c['pangkat'] ?? ''} ${c['nama'] ?? '?'}'.trim();
+                        final initial = ((c['nama'] ?? '?') as String).isNotEmpty
+                            ? (c['nama'] as String)[0].toUpperCase() : '?';
+
+                        // Check unread status for this contact
+                        String? convId;
+                        Map<String, dynamic>? conversationData;
+                        dmConversations.forEach((key, value) {
+                          final participants = value['participants'] as Map?;
+                          if (participants != null &&
+                              participants[myUid] == true &&
+                              participants[c['uid']] == true) {
+                            convId = key;
+                            conversationData = value;
+                          }
+                        });
+
+                        bool hasUnread = false;
+                        if (convId != null && conversationData != null) {
+                          final lastSender = conversationData!['lastSender'];
+                          final isFromOther = lastSender == null || lastSender != myUid;
+                          if (isFromOther) {
+                            final lastRead = _lastReadMap[convId] ?? 0;
+                            final updatedAt = conversationData!['updatedAt'] ?? 0;
+                            if (updatedAt > lastRead) {
+                              hasUnread = true;
+                            }
+                          }
+                        }
+
+                        return InkWell(
+                          onTap: () => _openDmChat(c['uid'], fullName),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              border: Border(bottom: BorderSide(color: borderColor.withValues(alpha: 0.5))),
+                            ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                                  child: Text(initial, style: const TextStyle(
+                                    color: Color(0xFF3B82F6), fontSize: 14, fontWeight: FontWeight.bold,
+                                  )),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(fullName, style: TextStyle(
+                                        fontSize: 14, fontWeight: FontWeight.w600,
+                                        color: isDark ? Colors.white : Colors.black87,
+                                      )),
+                                      const SizedBox(height: 2),
+                                      Text(_getRoleDisplayName(c['role']?.toString()), style: TextStyle(
+                                        fontSize: 11, color: Colors.grey[500],
+                                      )),
+                                    ],
+                                  ),
+                                ),
+                                if (hasUnread)
+                                  Container(
+                                    margin: const EdgeInsets.only(right: 8),
+                                    width: 18,
+                                    height: 18,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: const Text(
+                                      '!',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     );
                   },
                 );
@@ -4489,8 +4835,12 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     // If no conversation and user is not admin/commander, block
     if (convId == null && _role != 'admin' && _role != 'commander') {
       if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Hanya Komandan dan Admin yang dapat memulai pesan pribadi')),
+        const SnackBar(
+          content: Text('Hanya Komandan dan Admin yang dapat memulai pesan pribadi'),
+          duration: Duration(milliseconds: 1000),
+        ),
       );
       return;
     }
@@ -4506,12 +4856,18 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       });
     }
 
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await prefs.setInt('dm_last_read_$convId', now);
+    
     setState(() {
+      _lastReadMap[convId!] = now;
       _chatLevel = 'conversation';
       _chatPath = 'chat/dm/$convId/messages';
-      _dmConvId = convId!;
+      _dmConvId = convId;
       _dmTargetName = targetName;
     });
+    _updateAnyUnreadDms(_latestDmData);
   }
 
   /// Level 2: Chat conversation view
@@ -4543,6 +4899,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           FirebaseDatabase.instance.ref('chat/dm/$dmConvId').update({
             'lastMessage': text.length > 80 ? text.substring(0, 80) : text,
             'updatedAt': DateTime.now().millisecondsSinceEpoch,
+            'lastSender': myUid,
           });
         }
       });
@@ -4557,7 +4914,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           child: Row(
             children: [
               GestureDetector(
-                onTap: () => setState(() => _chatLevel = 'list'),
+                onTap: () {
+                  setState(() {
+                    _chatLevel = 'list';
+                    _dmConvId = '';
+                  });
+                  _updateAnyUnreadDms(_latestDmData);
+                },
                 child: Icon(Icons.arrow_back_ios, size: 18, color: isDark ? Colors.white : Colors.black87),
               ),
               const SizedBox(width: 8),
@@ -4615,7 +4978,28 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
               }).toList()
                 ..sort((a, b) => (a['_key'] ?? '').compareTo(b['_key'] ?? ''));
 
-              WidgetsBinding.instance.addPostFrameCallback((_) {
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                if (dmConvId.isNotEmpty && msgs.isNotEmpty) {
+                  final latestMsg = msgs.last;
+                  final latestTimeStr = latestMsg['waktu'] ?? '';
+                  int latestTimestamp = 0;
+                  try {
+                    latestTimestamp = DateTime.parse(latestTimeStr).millisecondsSinceEpoch;
+                  } catch (e) {
+                    latestTimestamp = DateTime.now().millisecondsSinceEpoch;
+                  }
+
+                  final currentLastRead = _lastReadMap[dmConvId] ?? 0;
+                  if (latestTimestamp > currentLastRead) {
+                    final prefs = await SharedPreferences.getInstance();
+                    final now = DateTime.now().millisecondsSinceEpoch;
+                    await prefs.setInt('dm_last_read_$dmConvId', now);
+                    setState(() {
+                      _lastReadMap[dmConvId] = now;
+                    });
+                    _updateAnyUnreadDms(_latestDmData);
+                  }
+                }
                 if (scrollController.hasClients) {
                   scrollController.animateTo(
                     scrollController.position.maxScrollExtent,
@@ -4842,36 +5226,75 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     // agar visualisasi Timer/Operasi Berjalan menyatu penuh ke layar.
     final bool hideDefaultAppBar = (_currentIndex == 0 && _homeState == HomeMissionState.active);
 
-    return Scaffold(
-      resizeToAvoidBottomInset: _currentIndex != 2,
-      appBar: hideDefaultAppBar
-          ? null
-          : AppBar(
-              title: Row(
-                children: [
-                  const TikPolriShieldLogo(size: 20),
-                  const SizedBox(width: 8),
-                  Text(appBarTitle, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        
+        // Case 1: If in chat conversation, go back to chat list
+        if (_currentIndex == 1 && _chatLevel == 'conversation') {
+          setState(() {
+            _chatLevel = 'list';
+            _dmConvId = '';
+          });
+          _updateAnyUnreadDms(_latestDmData);
+          return;
+        }
+        
+        // Case 2: If not on Beranda tab (index 0), switch to Beranda tab
+        if (_currentIndex != 0) {
+          setState(() {
+            _currentIndex = 0;
+          });
+          return;
+        }
+        
+        // Case 3: If on Beranda, but in active mission / tracking
+        if (_isTracking) {
+          try {
+            const platform = MethodChannel('com.example.siaga_tracker/app');
+            await platform.invokeMethod('minimizeApp');
+          } catch (e) {
+            debugPrint('Error minimizing app: $e');
+          }
+          return;
+        }
+        
+        // Case 4: Default - exit app
+        SystemNavigator.pop();
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: _currentIndex != 2,
+        appBar: hideDefaultAppBar
+            ? null
+            : AppBar(
+                title: Row(
+                  children: [
+                    const TikPolriShieldLogo(size: 20),
+                    const SizedBox(width: 8),
+                    Text(appBarTitle, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+                  ],
+                ),
+                centerTitle: false,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.sensors, color: Colors.greenAccent, size: 20),
+                    onPressed: () {},
+                  )
                 ],
               ),
-              centerTitle: false,
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.sensors, color: Colors.greenAccent, size: 20),
-                  onPressed: () {},
-                )
-              ],
-            ),
-      body: GridBackground(
-        child: bodyContent,
-      ),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        body: GridBackground(
+          child: bodyContent,
+        ),
+        bottomNavigationBar: CustomBottomNavBar(
+          currentIndex: _currentIndex,
+          hasUnread: _anyUnreadDms,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+        ),
       ),
     );
   }
@@ -4880,11 +5303,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
 // Custom Bottom Navigation Bar matching Screenshot pill highlight style
 class CustomBottomNavBar extends StatelessWidget {
   final int currentIndex;
+  final bool hasUnread;
   final Function(int) onTap;
 
   const CustomBottomNavBar({
     super.key,
     required this.currentIndex,
+    this.hasUnread = false,
     required this.onTap,
   });
 
@@ -4926,12 +5351,30 @@ class CustomBottomNavBar extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    items[index].icon,
-                    color: isSelected 
-                        ? (isDark ? Colors.white : Theme.of(context).primaryColor)
-                        : Colors.grey,
-                    size: 24,
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(
+                        items[index].icon,
+                        color: isSelected 
+                            ? (isDark ? Colors.white : Theme.of(context).primaryColor)
+                            : Colors.grey,
+                        size: 24,
+                      ),
+                      if (items[index].label == 'Chat' && hasUnread)
+                        Positioned(
+                          right: -2,
+                          top: -2,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -5017,32 +5460,32 @@ class RadarPingWaveWidget extends StatelessWidget {
       children: [
         // Outer ring (static)
         Container(
-          width: 80,
-          height: 80,
+          width: 60,
+          height: 60,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
               color: const Color(0xFF10B981).withValues(alpha: 0.3),
-              width: 2,
+              width: 1.5,
             ),
           ),
         ),
         // Inner circle
         Container(
-          width: 50,
-          height: 50,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: const Color(0xFF10B981).withValues(alpha: 0.1),
             border: Border.all(
               color: const Color(0xFF10B981),
-              width: 2.0,
+              width: 1.5,
             ),
           ),
           child: const Icon(
             Icons.wifi_tethering_rounded,
             color: Color(0xFF10B981),
-            size: 24,
+            size: 20,
           ),
         ),
       ],
@@ -5092,11 +5535,12 @@ class _TacticalMapTabState extends State<TacticalMapTab> {
 
   void _showSnackBar(String msg, Color color) {
     if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
         backgroundColor: color,
-        duration: const Duration(seconds: 2),
+        duration: const Duration(milliseconds: 1000),
       ),
     );
   }
@@ -5546,8 +5990,12 @@ class _TacticalMapTabState extends State<TacticalMapTab> {
                                     icon: const Icon(Icons.navigation, color: Colors.blueAccent),
                                     onPressed: () {
                                       final url = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+                                      ScaffoldMessenger.of(context).clearSnackBars();
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Membuka rute ke Google Maps:\n$url')),
+                                        SnackBar(
+                                          content: Text('Membuka rute ke Google Maps:\n$url'),
+                                          duration: const Duration(milliseconds: 1000),
+                                        ),
                                       );
                                     },
                                   ),
@@ -5922,9 +6370,10 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
   final _remoteRenderer = RTCVideoRenderer();
   MediaStream? _localStream;
   MediaStream? _remoteStream;
-  RTCPeerConnection? _peerConnection;
-  StreamSubscription<DatabaseEvent>? _answerSubscription;
-  StreamSubscription<DatabaseEvent>? _receiverCandidatesSubscription;
+  final Map<String, RTCPeerConnection> _peerConnections = {};
+  final Map<String, List<StreamSubscription>> _viewerSubscriptions = {};
+  StreamSubscription<DatabaseEvent>? _viewersAddedSubscription;
+  StreamSubscription<DatabaseEvent>? _viewersRemovedSubscription;
   bool _isVCActive = false;
   bool _isVCVideoActive = true;
   StreamSubscription<DatabaseEvent>? _vcActiveSubscription;
@@ -5935,8 +6384,6 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
   bool _isFrontCamera = false;
   bool _isConnected = false;
   String _statusText = 'Menginisialisasi Kamera...';
-  bool _remoteDescriptionSet = false;
-  final List<RTCIceCandidate> _bufferedCandidates = [];
 
   final Map<String, dynamic> _iceServers = {
     'iceServers': [
@@ -5985,8 +6432,6 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
 
   Future<void> _startStreaming() async {
     try {
-      _remoteDescriptionSet = false;
-      _bufferedCandidates.clear();
       if (!await _requestMediaPermissions()) {
         return;
       }
@@ -6000,7 +6445,6 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
           'echoCancellation': true,
           'noiseSuppression': true,
           'autoGainControl': true,
-          // Google-specific enhanced audio processing (Android WebRTC)
           'googEchoCancellation': true,
           'googEchoCancellation2': true,
           'googAutoGainControl': true,
@@ -6025,112 +6469,47 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
       _localRenderer.srcObject = _localStream;
 
       setState(() {
-        _statusText = 'Membuat Sinyal WebRTC...';
-      });
-
-      _peerConnection = await createPeerConnection(_iceServers);
-      
-      _peerConnection!.onTrack = (RTCTrackEvent event) async {
-        debugPrint("Remote track received: ${event.track.kind}");
-        MediaStream? stream;
-        if (event.streams.isNotEmpty) {
-          stream = event.streams[0];
-        } else {
-          _remoteStream ??= await createLocalMediaStream('remote_stream');
-          _remoteStream!.addTrack(event.track);
-          stream = _remoteStream;
-        }
-        setState(() {
-          _remoteStream = stream;
-          _remoteRenderer.srcObject = _remoteStream;
-        });
-        Helper.setSpeakerphoneOn(true);
-      };
-
-      _peerConnection!.onAddStream = (MediaStream stream) {
-        debugPrint("Remote stream added: ${stream.id}");
-        setState(() {
-          _remoteStream = stream;
-          _remoteRenderer.srcObject = _remoteStream;
-        });
-        Helper.setSpeakerphoneOn(true);
-      };
-
-      _peerConnection!.onRemoveStream = (MediaStream stream) {
-        debugPrint("Remote stream removed: ${stream.id}");
-        setState(() {
-          if (_remoteStream?.id == stream.id) {
-            _remoteStream = null;
-            _remoteRenderer.srcObject = null;
-          }
-        });
-      };
-      
-      _localStream!.getTracks().forEach((track) {
-        _peerConnection!.addTrack(track, _localStream!);
+        _statusText = 'Mulai Menunggu Penonton...';
       });
 
       final streamRef = widget.dbRef.child('streams/${widget.uid}');
-      await streamRef.child('sdp').remove();
-      await streamRef.child('candidates').remove();
+      
+      // Bersihkan viewers lama
+      await streamRef.child('viewers').remove();
 
-      _peerConnection!.onIceCandidate = (candidate) {
-        streamRef.child('candidates/streamer').push().set(candidate.toMap());
-      };
-
-      _peerConnection!.onConnectionState = (state) {
-        debugPrint("Connection state changed: $state");
-        if (mounted) {
-          setState(() {
-            if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
-              _isConnected = true;
-              _statusText = 'TERHUBUNG KE WEB';
-            } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateDisconnected ||
-                state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
-              _isConnected = false;
-              _statusText = 'MENUNGGU KONEKSI WEB...';
-            }
-          });
-        }
-      };
-
-      _receiverCandidatesSubscription = streamRef.child('candidates/receiver').onChildAdded.listen((event) async {
-        final data = event.snapshot.value;
-        if (data != null && _peerConnection != null) {
-          final map = Map<String, dynamic>.from(data as Map);
-          final candidate = RTCIceCandidate(
-            map['candidate'] ?? '',
-            map['sdpMid'] ?? '',
-            map['sdpMLineIndex'] ?? 0,
-          );
-          if (_remoteDescriptionSet) {
-            await _peerConnection!.addCandidate(candidate);
-          } else {
-            _bufferedCandidates.add(candidate);
-          }
-        }
+      // Buat metadata info siaran
+      await streamRef.child('info').set({
+        'uid': widget.uid,
+        'nrp': widget.nrp,
+        'nama': widget.nama,
+        'pangkat': widget.pangkat,
+        'satker': widget.satker,
+        'active': true,
+        'startedAt': DateTime.now().toIso8601String(),
       });
 
-      _answerSubscription = streamRef.child('sdp/answer').onValue.listen((event) async {
-        final data = event.snapshot.value;
-        if (data == null) {
-          // Web membersihkan answer lama (bersiap reconnect) — reset flag
-          _remoteDescriptionSet = false;
-          _bufferedCandidates.clear();
+      // Dengarkan jika ada penonton (viewer) baru masuk
+      _viewersAddedSubscription = streamRef.child('viewers').onChildAdded.listen((event) async {
+        final viewerId = event.snapshot.key;
+        if (viewerId == null) return;
+
+        // Batasi maksimal 3 penonton
+        if (_peerConnections.length >= 3) {
+          debugPrint("[WebRTC] Penonton penuh, menolak viewer: $viewerId");
+          await streamRef.child('viewers/$viewerId/status').set('rejected_full');
           return;
         }
-        if (_remoteDescriptionSet) return; // sudah diproses
-        if (_peerConnection == null) return;
-        final map = Map<String, dynamic>.from(data as Map);
-        final description = RTCSessionDescription(map['sdp'], map['type']);
-        await _peerConnection!.setRemoteDescription(description);
-        _remoteDescriptionSet = true;
-        for (var cand in _bufferedCandidates) {
-          await _peerConnection!.addCandidate(cand);
-        }
-        _bufferedCandidates.clear();
-        if (mounted) {
-          setState(() => _statusText = 'Handshake berhasil, menunggu koneksi...');
+
+        debugPrint("[WebRTC] Penonton baru terdeteksi: $viewerId");
+        await _setupViewerConnection(viewerId);
+      });
+
+      // Dengarkan jika ada penonton yang keluar
+      _viewersRemovedSubscription = streamRef.child('viewers').onChildRemoved.listen((event) {
+        final viewerId = event.snapshot.key;
+        if (viewerId != null) {
+          debugPrint("[WebRTC] Penonton keluar: $viewerId");
+          _cleanupViewerConnection(viewerId);
         }
       });
 
@@ -6150,36 +6529,167 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         });
       });
 
-      RTCSessionDescription offer = await _peerConnection!.createOffer({
-        'offerToReceiveAudio': true,
-        'offerToReceiveVideo': true,
-      });
-
-      await _peerConnection!.setLocalDescription(offer);
-
-      await streamRef.child('sdp/offer').set({
-        'type': offer.type,
-        'sdp': offer.sdp,
-      });
-
-      await streamRef.child('info').set({
-        'uid': widget.uid,
-        'nrp': widget.nrp,
-        'nama': widget.nama,
-        'pangkat': widget.pangkat,
-        'satker': widget.satker,
-        'active': true,
-        'startedAt': DateTime.now().toIso8601String(),
-      });
-
-      setState(() {
-        _statusText = 'MENUNGGU KONEKSI WEB...';
-      });
-
     } catch (e) {
       debugPrint('Error starting WebRTC stream: $e');
       setState(() {
         _statusText = 'Gagal Memulai Siaran: $e';
+      });
+    }
+  }
+
+  Future<void> _setupViewerConnection(String viewerId) async {
+    try {
+      final streamRef = widget.dbRef.child('streams/${widget.uid}');
+      final viewerRef = streamRef.child('viewers/$viewerId');
+
+      final pc = await createPeerConnection(_iceServers);
+      _peerConnections[viewerId] = pc;
+      _viewerSubscriptions[viewerId] = [];
+
+      bool remoteDescriptionSet = false;
+      final List<RTCIceCandidate> bufferedCandidates = [];
+
+      pc.onTrack = (RTCTrackEvent event) async {
+        debugPrint("Remote track received from $viewerId: ${event.track.kind}");
+        MediaStream? stream;
+        if (event.streams.isNotEmpty) {
+          stream = event.streams[0];
+        } else {
+          _remoteStream ??= await createLocalMediaStream('remote_stream');
+          _remoteStream!.addTrack(event.track);
+          stream = _remoteStream;
+        }
+        setState(() {
+          _remoteStream = stream;
+          _remoteRenderer.srcObject = _remoteStream;
+        });
+        Helper.setSpeakerphoneOn(true);
+      };
+
+      pc.onAddStream = (MediaStream stream) {
+        debugPrint("Remote stream added from $viewerId: ${stream.id}");
+        setState(() {
+          _remoteStream = stream;
+          _remoteRenderer.srcObject = _remoteStream;
+        });
+        Helper.setSpeakerphoneOn(true);
+      };
+
+      pc.onRemoveStream = (MediaStream stream) {
+        debugPrint("Remote stream removed from $viewerId: ${stream.id}");
+        setState(() {
+          if (_remoteStream?.id == stream.id) {
+            _remoteStream = null;
+            _remoteRenderer.srcObject = null;
+          }
+        });
+      };
+
+      _localStream!.getTracks().forEach((track) {
+        pc.addTrack(track, _localStream!);
+      });
+
+      pc.onIceCandidate = (candidate) {
+        viewerRef.child('candidates/streamer').push().set(candidate.toMap());
+      };
+
+      pc.onConnectionState = (state) {
+        debugPrint("Connection state for $viewerId changed to: $state");
+        if (mounted) {
+          setState(() {
+            _isConnected = _peerConnections.values.any((c) => c.connectionState == RTCPeerConnectionState.RTCPeerConnectionStateConnected);
+            _statusText = _peerConnections.isNotEmpty
+                ? 'PENONTON: ${_peerConnections.length} USER'
+                : 'MENUNGGU KONEKSI WEB...';
+          });
+        }
+      };
+
+      // Dengarkan ICE Candidates dari viewer ini
+      final receiverCandidatesSub = viewerRef.child('candidates/receiver').onChildAdded.listen((event) async {
+        final data = event.snapshot.value;
+        if (data != null) {
+          final map = Map<String, dynamic>.from(data as Map);
+          final candidate = RTCIceCandidate(
+            map['candidate'] ?? '',
+            map['sdpMid'] ?? '',
+            map['sdpMLineIndex'] ?? 0,
+          );
+          if (remoteDescriptionSet) {
+            await pc.addCandidate(candidate);
+          } else {
+            bufferedCandidates.add(candidate);
+          }
+        }
+      });
+      _viewerSubscriptions[viewerId]!.add(receiverCandidatesSub);
+
+      // Dengarkan SDP Answer dari viewer ini
+      final answerSub = viewerRef.child('sdp/answer').onValue.listen((event) async {
+        final data = event.snapshot.value;
+        if (data == null) {
+          remoteDescriptionSet = false;
+          bufferedCandidates.clear();
+          return;
+        }
+        if (remoteDescriptionSet) return;
+        final map = Map<String, dynamic>.from(data as Map);
+        final description = RTCSessionDescription(map['sdp'], map['type']);
+        await pc.setRemoteDescription(description);
+        remoteDescriptionSet = true;
+        for (var cand in bufferedCandidates) {
+          await pc.addCandidate(cand);
+        }
+        bufferedCandidates.clear();
+      });
+      _viewerSubscriptions[viewerId]!.add(answerSub);
+
+      // Buat SDP Offer khusus untuk viewer ini
+      RTCSessionDescription offer = await pc.createOffer({
+        'offerToReceiveAudio': true,
+        'offerToReceiveVideo': true,
+      });
+
+      await pc.setLocalDescription(offer);
+
+      await viewerRef.child('sdp/offer').set({
+        'type': offer.type,
+        'sdp': offer.sdp,
+      });
+
+      // Update status menjadi connected (approved)
+      await viewerRef.child('status').set('connected');
+
+      setState(() {
+        _statusText = 'PENONTON: ${_peerConnections.length} USER';
+      });
+
+    } catch (e) {
+      debugPrint('Error setting up connection for viewer $viewerId: $e');
+    }
+  }
+
+  void _cleanupViewerConnection(String viewerId) {
+    if (_viewerSubscriptions.containsKey(viewerId)) {
+      for (var sub in _viewerSubscriptions[viewerId]!) {
+        sub.cancel();
+      }
+      _viewerSubscriptions.remove(viewerId);
+    }
+
+    if (_peerConnections.containsKey(viewerId)) {
+      final pc = _peerConnections[viewerId];
+      pc?.close();
+      pc?.dispose();
+      _peerConnections.remove(viewerId);
+    }
+
+    if (mounted) {
+      setState(() {
+        _isConnected = _peerConnections.values.any((c) => c.connectionState == RTCPeerConnectionState.RTCPeerConnectionStateConnected);
+        _statusText = _peerConnections.isNotEmpty
+            ? 'PENONTON: ${_peerConnections.length} USER'
+            : 'MENUNGGU KONEKSI WEB...';
       });
     }
   }
@@ -6224,10 +6734,16 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
       debugPrint('Error removing stream reference: $e');
     }
 
-    _answerSubscription?.cancel();
-    _receiverCandidatesSubscription?.cancel();
+    _viewersAddedSubscription?.cancel();
+    _viewersRemovedSubscription?.cancel();
     _vcActiveSubscription?.cancel();
     _vcVideoActiveSubscription?.cancel();
+
+    // Hentikan semua koneksi viewer
+    final viewerIds = List<String>.from(_peerConnections.keys);
+    for (var vid in viewerIds) {
+      _cleanupViewerConnection(vid);
+    }
 
     _localStream?.getTracks().forEach((track) {
       track.stop();
@@ -6238,9 +6754,6 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
       track.stop();
     });
     _remoteStream?.dispose();
-
-    _peerConnection?.close();
-    _peerConnection?.dispose();
 
     _localRenderer.dispose();
     _remoteRenderer.dispose();
@@ -6323,7 +6836,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
                               ),
                               const SizedBox(height: 10),
                               const Text(
-                                'KOMANDAN\n(SUARA)',
+                                'ADMIN/KOMANDAN\n(SUARA)',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Colors.white,
@@ -6356,7 +6869,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
                               SizedBox(width: 4),
                               Expanded(
                                 child: Text(
-                                  'KOMANDAN',
+                                  'ADMIN/KOMANDAN',
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
                                 ),
