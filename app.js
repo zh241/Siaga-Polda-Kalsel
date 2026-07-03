@@ -4759,3 +4759,117 @@ function makeElementDraggable(elmnt, header) {
     }
 }
 
+// ============================================================
+// SEARCH LOCATION ON TACTICAL MAP (NOMINATIM API)
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+    const inputLocation = document.getElementById('map-location-search');
+    const btnSearch = document.getElementById('btn-search-location');
+    const btnClear = document.getElementById('btn-clear-location-search');
+    const dropdownResults = document.getElementById('map-location-results');
+
+    if (!inputLocation || !btnSearch || !dropdownResults) return;
+
+    let searchTimeout = null;
+
+    inputLocation.addEventListener('input', () => {
+        if (inputLocation.value.trim().length > 0) {
+            if (btnClear) btnClear.style.display = 'block';
+        } else {
+            if (btnClear) btnClear.style.display = 'none';
+            dropdownResults.style.display = 'none';
+        }
+
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(performLocationSearch, 800);
+    });
+
+    btnSearch.addEventListener('click', performLocationSearch);
+
+    if (btnClear) {
+        btnClear.addEventListener('click', () => {
+            inputLocation.value = '';
+            btnClear.style.display = 'none';
+            dropdownResults.style.display = 'none';
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.floating-location-search')) {
+            dropdownResults.style.display = 'none';
+        }
+    });
+
+    async function performLocationSearch() {
+        const query = inputLocation.value.trim();
+        if (query.length < 3) {
+            dropdownResults.style.display = 'none';
+            return;
+        }
+
+        dropdownResults.innerHTML = '<div style="padding: 10px; color: var(--text-muted); text-align: center;"><i class="fa-solid fa-circle-notch fa-spin me-2"></i>Mencari lokasi...</div>';
+        dropdownResults.style.display = 'block';
+
+        try {
+            // Priority viewbox around South Kalimantan: Lat: -4.5 to -1.5, Lng: 114.0 to 116.5
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&viewbox=114.0,-4.5,116.5,-1.5&limit=5`;
+            const res = await fetch(url, {
+                headers: {
+                    'Accept-Language': 'id-ID,id;q=0.9,en;q=0.8'
+                }
+            });
+            const data = await res.json();
+
+            if (!data || data.length === 0) {
+                dropdownResults.innerHTML = '<div style="padding: 10px; color: var(--text-muted); text-align: center;"><i class="fa-solid fa-circle-exclamation me-2"></i>Lokasi tidak ditemukan.</div>';
+                return;
+            }
+
+            dropdownResults.innerHTML = '';
+            data.forEach(item => {
+                const displayName = item.display_name;
+                const lat = parseFloat(item.lat);
+                const lon = parseFloat(item.lon);
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'location-search-item';
+                itemDiv.style.padding = '8px 12px';
+                itemDiv.style.cursor = 'pointer';
+                itemDiv.style.borderBottom = '1px solid var(--border-color)';
+                itemDiv.style.color = 'var(--text-main)';
+                itemDiv.innerHTML = `
+                    <div style="font-weight: bold; font-size: 11px;"><i class="fa-solid fa-location-dot text-primary me-2"></i>${displayName.split(',')[0]}</div>
+                    <div style="font-size: 10px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;">${displayName}</div>
+                `;
+
+                itemDiv.addEventListener('mouseenter', () => {
+                    itemDiv.style.backgroundColor = 'var(--table-hover)';
+                });
+                itemDiv.addEventListener('mouseleave', () => {
+                    itemDiv.style.backgroundColor = '';
+                });
+
+                itemDiv.addEventListener('click', () => {
+                    if (typeof map !== 'undefined') {
+                        map.setView([lat, lon], 16);
+                        
+                        const searchMarker = L.marker([lat, lon]).addTo(map);
+                        searchMarker.bindPopup(`<strong>Lokasi Terpilih:</strong><br>${displayName}`).openPopup();
+                        
+                        searchMarker.on('popupclose', () => {
+                            map.removeLayer(searchMarker);
+                        });
+                    }
+                    dropdownResults.style.display = 'none';
+                    if (btnClear) btnClear.style.display = 'block';
+                });
+
+                dropdownResults.appendChild(itemDiv);
+            });
+        } catch (err) {
+            console.error('Location search error:', err);
+            dropdownResults.innerHTML = '<div style="padding: 10px; color: var(--text-muted); text-align: center;"><i class="fa-solid fa-triangle-exclamation text-danger me-2"></i>Gagal melakukan pencarian.</div>';
+        }
+    }
+});
+
