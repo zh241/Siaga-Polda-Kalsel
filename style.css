@@ -733,14 +733,25 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     cursor: pointer;
 }
 
-/* Floating Member Search Bar */
-.floating-search-container {
+/* Floating Map Search Controls Wrapper (Top Right) */
+.floating-search-wrapper {
     position: absolute;
     top: 20px;
     right: 20px;
-    width: 260px;
+    width: 440px;
     z-index: 999;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
     transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.floating-search-container {
+    position: relative;
+    flex: 1;
+}
+.floating-location-search {
+    position: relative;
+    flex: 1;
 }
 .map-search-icon {
     background-color: var(--bg-card) !important;
