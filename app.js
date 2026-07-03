@@ -498,12 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     // SOS Sound settings listener removed
-    const setGeo = document.getElementById('set-geofence-sound');
-    if (setGeo) {
-        setGeo.addEventListener('change', (e) => {
-            update(ref(db, 'system_settings'), { geofence_sound: e.target.checked });
-        });
-    }
+    // geofence sound switch listener removed
     const setMaint = document.getElementById('set-maintenance-mode');
     if (setMaint) {
         setMaint.addEventListener('change', (e) => {
@@ -1420,9 +1415,6 @@ onValue(refTracking, (snapshot) => {
                 if (isInside && !wasInside) {
                     addCommLog(`ALERT: ${u.pangkat || ''} ${u.nama} (NRP: ${u.nrp}) MASUK Zona Merah: "${zone.nama}"`, 'geofence-enter');
                     lastMemberGeofenceState[u.nrp][zoneKey] = true;
-                    if (window.systemSettings?.geofence_sound !== false) {
-                        playGeofenceAlert();
-                    }
                 } else if (!isInside && wasInside) {
                     addCommLog(`INFO: ${u.pangkat || ''} ${u.nama} (NRP: ${u.nrp}) KELUAR dari Zona Merah: "${zone.nama}"`, 'geofence-exit');
                     lastMemberGeofenceState[u.nrp][zoneKey] = false;
@@ -1742,28 +1734,7 @@ window.hapusZonaFirebase = function () {
 // =========================================================================
 // SOS emergency alert listener and audio siren sound features have been removed.
 
-function playGeofenceAlert() {
-    try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
-        osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.15); // E5
-
-        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-
-        osc.start(audioCtx.currentTime);
-        osc.stop(audioCtx.currentTime + 0.3);
-    } catch (e) {
-        console.error("Audio Context blocked or failed:", e);
-    }
-}
+// playGeofenceAlert removed
 
 // =========================================================================
 // 7. RIWAYAT OPERASI LOGBOOK CONSOLIDATOR
@@ -2491,12 +2462,10 @@ onValue(refSettings, (snapshot) => {
     // Sync values to UI inputs if elements exist
     const setGps = document.getElementById('set-gps-interval');
     const setStale = document.getElementById('set-stale-timeout');
-    const setGeo = document.getElementById('set-geofence-sound');
     const setMaint = document.getElementById('set-maintenance-mode');
 
     if (setGps) setGps.value = window.systemSettings.gps_interval;
     if (setStale) setStale.value = window.systemSettings.stale_timeout;
-    if (setGeo) setGeo.checked = window.systemSettings.geofence_sound;
     if (setMaint) setMaint.checked = window.systemSettings.maintenance_mode;
 });
 
