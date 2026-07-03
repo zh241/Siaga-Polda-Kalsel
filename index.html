@@ -101,24 +101,27 @@ window.onerror = function(message, source, lineno, colno, error) {
         <div id="page-peta" class="page-view active">
             <div id="map"></div>
             
-            <!-- Floating Location Search Bar -->
-            <div class="floating-location-search" style="position: absolute; top: 20px; left: 20px; width: 300px; z-index: 999;">
-                <div class="input-group shadow-sm">
-                    <span class="input-group-text map-search-icon" style="border-radius: 20px 0 0 20px !important;"><i class="fa-solid fa-map-location-dot"></i></span>
-                    <input type="text" id="map-location-search" class="form-control map-search-input" placeholder="Cari Tempat / Nama Jalan..." autocomplete="off" style="border-radius: 0 !important; border-right: none !important;">
-                    <button class="btn btn-outline-secondary btn-sm" id="btn-clear-location-search" style="display: none; border-radius: 0; background-color: var(--bg-card); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); border-left: none; border-right: none; color: var(--text-muted);"><i class="fa-solid fa-xmark"></i></button>
-                    <button class="btn btn-primary btn-sm px-3" id="btn-search-location" style="border-radius: 0 20px 20px 0 !important; font-weight: bold; font-size: 11px;"><i class="fa-solid fa-magnifying-glass"></i></button>
+            <!-- Floating Map Search Controls Wrapper (Top Right) -->
+            <div class="floating-search-wrapper" style="position: absolute; top: 20px; right: 20px; width: 270px; z-index: 999; display: flex; flex-direction: column; gap: 8px;">
+                <!-- Floating Member Search Bar -->
+                <div class="floating-search-container" style="position: relative; width: 100%;">
+                    <div class="input-group shadow-sm">
+                        <span class="input-group-text map-search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        <input type="text" id="map-member-search" class="form-control map-search-input" placeholder="Cari Anggota (Nama/NRP)..." autocomplete="off">
+                    </div>
+                    <div class="search-results-dropdown shadow" id="map-search-results" style="display: none; position: absolute; top: 100%; left: 0; width: 100%; max-height: 250px; overflow-y: auto; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; margin-top: 5px; font-size: 12px; z-index: 1001;"></div>
                 </div>
-                <div class="search-results-dropdown shadow" id="map-location-results" style="display: none; width: 100%; max-height: 250px; overflow-y: auto; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; margin-top: 5px; font-size: 12px; color: var(--text-main);"></div>
-            </div>
-            
-            <!-- Floating Member Search Bar -->
-            <div class="floating-search-container">
-                <div class="input-group shadow-sm">
-                    <span class="input-group-text map-search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
-                    <input type="text" id="map-member-search" class="form-control map-search-input" placeholder="Cari Anggota (Nama/NRP)..." autocomplete="off">
+
+                <!-- Floating Location Search Bar -->
+                <div class="floating-location-search" style="position: relative; width: 100%;">
+                    <div class="input-group shadow-sm">
+                        <span class="input-group-text map-search-icon" style="border-radius: 20px 0 0 20px !important;"><i class="fa-solid fa-map-location-dot"></i></span>
+                        <input type="text" id="map-location-search" class="form-control map-search-input" placeholder="Cari Tempat / Nama Jalan..." autocomplete="off" style="border-radius: 0 !important; border-right: none !important;">
+                        <button class="btn btn-outline-secondary btn-sm" id="btn-clear-location-search" style="display: none; border-radius: 0; background-color: var(--bg-card); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); border-left: none; border-right: none; color: var(--text-muted);"><i class="fa-solid fa-xmark"></i></button>
+                        <button class="btn btn-primary btn-sm px-3" id="btn-search-location" style="border-radius: 0 20px 20px 0 !important; font-weight: bold; font-size: 11px;"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    </div>
+                    <div class="search-results-dropdown shadow" id="map-location-results" style="display: none; position: absolute; top: 100%; left: 0; width: 100%; max-height: 250px; overflow-y: auto; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; margin-top: 5px; font-size: 12px; color: var(--text-main); z-index: 1001;"></div>
                 </div>
-                <div class="search-results-dropdown shadow" id="map-search-results" style="display: none;"></div>
             </div>
 
             <!-- Floating Tactical Stats Wrapper -->
