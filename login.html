@@ -706,7 +706,7 @@
                     </div>
 
                     <div class="row g-2">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="form-group-custom">
                                 <label class="form-label-custom">PANGKAT</label>
                                 <div class="input-container-custom">
@@ -716,7 +716,17 @@
                             </div>
                         </div>
                         
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <div class="form-group-custom">
+                                <label class="form-label-custom">JABATAN</label>
+                                <div class="input-container-custom">
+                                    <span class="input-icon-custom"><i class="fa-solid fa-briefcase"></i></span>
+                                    <input type="text" id="reg-jabatan" class="input-field-custom" placeholder="Contoh: BANUM / KANIT" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
                             <div class="form-group-custom">
                                 <label class="form-label-custom">SATKER / KESATUAN</label>
                                 <div class="input-container-custom">
@@ -1062,6 +1072,7 @@
             const nrpInput = document.getElementById('reg-nrp').value.trim();
             const nama = document.getElementById('reg-nama').value.trim();
             const pangkat = document.getElementById('reg-pangkat').value.trim().toUpperCase();
+            const jabatan = document.getElementById('reg-jabatan').value.trim().toUpperCase() || "Anggota";
             const satker = document.getElementById('reg-satker').value.trim().toUpperCase();
             const emailPersonal = document.getElementById('reg-email').value.trim();
             const phoneInput = document.getElementById('reg-phone').value.trim();
@@ -1093,7 +1104,7 @@
                         nrp: nrpInput,
                         nama: nama,
                         pangkat: pangkat,
-                        jabatan: "Anggota",
+                        jabatan: jabatan,
                         satker: satker,
                         email: emailPersonal,
                         no_hp_dinas: phoneInput,

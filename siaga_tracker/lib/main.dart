@@ -1015,6 +1015,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _nrpController = TextEditingController();
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _pangkatController = TextEditingController();
+  final TextEditingController _jabatanController = TextEditingController();
   final TextEditingController _satkerController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -1027,6 +1028,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final String nrp = _nrpController.text.trim();
     final String nama = _namaController.text.trim();
     final String pangkat = _pangkatController.text.trim();
+    final String jabatan = _jabatanController.text.trim();
     final String satker = _satkerController.text.trim();
     final String email = _emailController.text.trim();
     final String phone = _phoneController.text.trim();
@@ -1035,6 +1037,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (nrp.isEmpty ||
         nama.isEmpty ||
         pangkat.isEmpty ||
+        jabatan.isEmpty ||
         satker.isEmpty ||
         email.isEmpty ||
         phone.isEmpty ||
@@ -1064,7 +1067,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'nrp': nrp,
         'nama': nama,
         'pangkat': pangkat,
-        'jabatan': 'Anggota',
+        'jabatan': jabatan,
         'satker': satker,
         'email': email,
         'no_hp_dinas': phone,
@@ -1210,6 +1213,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             hintText: 'CONTOH: BRIPDA / KOMBES',
                             hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
                             prefixIcon: const Icon(Icons.military_tech_outlined, color: Colors.grey, size: 18),
+                            filled: true,
+                            fillColor: isDark ? const Color(0xFF0F0F12) : const Color(0xFFF1F1F4),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: theme.dividerColor),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: theme.primaryColor),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+                        
+                        const Text('JABATAN', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _jabatanController,
+                          textCapitalization: TextCapitalization.characters,
+                          style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 13),
+                          decoration: InputDecoration(
+                            hintText: 'CONTOH: BANUM / KANIT / KASUBDIT',
+                            hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                            prefixIcon: const Icon(Icons.work_outline, color: Colors.grey, size: 18),
                             filled: true,
                             fillColor: isDark ? const Color(0xFF0F0F12) : const Color(0xFFF1F1F4),
                             contentPadding: const EdgeInsets.symmetric(vertical: 10),
@@ -1438,6 +1466,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _nrpController.dispose();
     _namaController.dispose();
     _pangkatController.dispose();
+    _jabatanController.dispose();
     _satkerController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
