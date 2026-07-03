@@ -457,9 +457,6 @@ window.onerror = function(message, source, lineno, colno, error) {
                         <div style="display:flex; gap:10px; align-items:center;">
                             <div style="flex:1; background:var(--bg-main); border:1px solid var(--border-color); border-radius:10px; display:flex; align-items:center; padding:0 14px;">
                                 <input type="text" id="chat-input" placeholder="Kirim pesan ke #siaran-umum..." style="flex:1; background:transparent; border:none; outline:none; padding:12px 0; font-size:14px; color:var(--text-main); font-family:'Inter',sans-serif;" onkeydown="if(event.key==='Enter')window.kirimPesan()">
-                                <button onclick="window.lampirkanFotoChat()" style="background:none; border:none; cursor:pointer; color:var(--text-muted); padding:4px 6px; border-radius:6px;" title="Lampirkan Foto">
-                                    <i class="fa-solid fa-image" style="font-size:14px;"></i>
-                                </button>
                             </div>
                             <button onclick="window.kirimPesan()" id="chat-send-btn" style="width:44px;height:44px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);border:none;border-radius:10px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" title="Kirim">
                                 <i class="fa-solid fa-paper-plane" style="font-size:15px;"></i>

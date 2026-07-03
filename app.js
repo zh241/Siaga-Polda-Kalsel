@@ -3531,10 +3531,6 @@ window.kirimPesanFloat = function () {
     });
 };
 
-window.lampirkanFotoChat = function () {
-    alert('Fitur lampiran foto akan segera hadir!');
-};
-
 window.toggleFloatingChat = function () {
     const panel = document.getElementById('chat-float-panel');
     if (!panel) return;
