@@ -497,12 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
             update(ref(db, 'system_settings'), { stale_timeout: parseInt(e.target.value) });
         });
     }
-    const setSos = document.getElementById('set-sos-sound');
-    if (setSos) {
-        setSos.addEventListener('change', (e) => {
-            update(ref(db, 'system_settings'), { sos_sound: e.target.checked });
-        });
-    }
+    // SOS Sound settings listener removed
     const setGeo = document.getElementById('set-geofence-sound');
     if (setGeo) {
         setGeo.addEventListener('change', (e) => {
@@ -1743,138 +1738,9 @@ window.hapusZonaFirebase = function () {
 };
 
 // =========================================================================
-// 6. REALTIME EMERGENCY SOS ALERTS
+// 6. REALTIME EMERGENCY SOS ALERTS (REMOVED)
 // =========================================================================
-const refAlerts = ref(db, 'alerts');
-let alertMarkers = {};
-
-onValue(refAlerts, (snapshot) => {
-    const data = snapshot.val();
-
-    // Clear old alert markers
-    for (let id in alertMarkers) {
-        map.removeLayer(alertMarkers[id]);
-    }
-    alertMarkers = {};
-
-    if (data) {
-        for (let alertId in data) {
-            let a = data[alertId];
-
-            // Add red pulsing marker to map
-            if (a.lokasi && a.lokasi.lat && a.lokasi.lng) {
-                let sosIcon = L.divIcon({
-                    className: 'police-marker',
-                    html: `<div class="marker-icon-wrapper sos-glow" style="background-color: var(--danger)">
-                            <i class="fa-solid fa-triangle-exclamation"></i>
-                           </div>`,
-                    iconSize: [36, 36],
-                    iconAnchor: [18, 18]
-                });
-
-                let m = L.marker([a.lokasi.lat, a.lokasi.lng], { icon: sosIcon });
-                m.bindPopup(`
-                    <div style="font-family: 'Inter', sans-serif; padding: 5px; min-width: 180px;">
-                        <h6 class="fw-bold mb-1 text-danger" style="font-size: 13px;"><i class="fa-solid fa-circle-exclamation me-1"></i> SOS DARURAT</h6>
-                        <p class="mb-1 text-main fw-bold" style="font-size: 12px;">${a.dari}</p>
-                        <p class="mb-2 text-muted" style="font-size: 10px;">NRP: ${a.nrp}</p>
-                        <hr style="margin: 6px 0; border-color: var(--border-color);">
-                        <button class="btn btn-sm btn-success text-white w-100 fw-bold py-1" onclick="resolveAlert('${alertId}')"><i class="fa-solid fa-check me-1"></i> SELESAIKAN</button>
-                    </div>
-                `);
-
-                m.addTo(map);
-                alertMarkers[alertId] = m;
-            }
-
-            // Append slide-in notification toast
-            showAlertToast(alertId, a);
-        }
-    }
-});
-
-// Expose alert resolve function
-window.resolveAlert = function (alertId) {
-    window.showCustomConfirm("Selesaikan SOS", "Tandai insiden darurat ini sebagai SELESAI? Tindakan ini akan menghapus sinyal SOS.", () => {
-        get(ref(db, 'alerts/' + alertId)).then((snapshot) => {
-            const a = snapshot.val();
-            if (a) {
-                addCommLog(`SOS SELESAI: Sinyal bahaya dari ${a.dari} diselesaikan.`, 'info');
-            }
-            remove(ref(db, 'alerts/' + alertId)).then(() => {
-                const toast = document.getElementById('alert-toast-' + alertId);
-                if (toast) toast.remove();
-            });
-        });
-    });
-};
-
-function showAlertToast(alertId, alertData) {
-    let container = document.getElementById('alert-toasts-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'alert-toasts-container';
-        container.className = 'alert-notifications-container';
-        document.body.appendChild(container);
-    }
-
-    // Skip if toast is already visible
-    if (document.getElementById('alert-toast-' + alertId)) return;
-
-    const toast = document.createElement('div');
-    toast.id = 'alert-toast-' + alertId;
-    toast.className = 'alert-notification-toast';
-    toast.innerHTML = `
-        <div class="d-flex justify-content-between align-items-start">
-            <div class="fw-bold" style="font-size: 12px; letter-spacing: 0.5px;"><i class="fa-solid fa-triangle-exclamation fa-fade me-1"></i> SINYAL SOS AKTIF!</div>
-            <button type="button" class="btn-close btn-close-white" style="font-size: 8px;" onclick="document.getElementById('alert-toast-${alertId}').remove()"></button>
-        </div>
-        <div style="font-size: 13px; line-height: 1.4;">
-            <b>${alertData.dari}</b> (NRP: ${alertData.nrp}) mengirimkan sinyal bahaya.
-        </div>
-        <div class="d-flex gap-2 mt-2">
-            <button class="btn btn-sm btn-light text-danger fw-bold py-1 px-2" style="font-size: 11px;" onclick="focusAlertLocation(${alertData.lokasi.lat}, ${alertData.lokasi.lng})"><i class="fa-solid fa-crosshairs"></i> LOKASI</button>
-            <button class="btn btn-sm btn-dark text-white fw-bold py-1 px-2" style="font-size: 11px;" onclick="resolveAlert('${alertId}')"><i class="fa-solid fa-check"></i> SELESAIKAN</button>
-        </div>
-    `;
-    container.appendChild(toast);
-
-    addCommLog(`ALERT SOS: ${alertData.dari} (NRP: ${alertData.nrp}) mengirimkan sinyal bahaya!`, 'sos');
-
-    // Play synthesis beeper sound
-    if (window.systemSettings?.sos_sound !== false) {
-        playAlertSiren();
-    }
-}
-
-window.focusAlertLocation = function (lat, lng) {
-    map.setView([lat, lng], 16);
-    switchPage('peta', document.getElementById('menu-peta'));
-};
-
-function playAlertSiren() {
-    try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-        osc.frequency.linearRampToValueAtTime(1100, audioCtx.currentTime + 0.3);
-        osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.6);
-
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
-
-        osc.start(audioCtx.currentTime);
-        osc.stop(audioCtx.currentTime + 0.6);
-    } catch (e) {
-        console.error("Audio Context blocked or failed:", e);
-    }
-}
+// SOS emergency alert listener and audio siren sound features have been removed.
 
 function playGeofenceAlert() {
     try {
@@ -2625,13 +2491,11 @@ onValue(refSettings, (snapshot) => {
     // Sync values to UI inputs if elements exist
     const setGps = document.getElementById('set-gps-interval');
     const setStale = document.getElementById('set-stale-timeout');
-    const setSos = document.getElementById('set-sos-sound');
     const setGeo = document.getElementById('set-geofence-sound');
     const setMaint = document.getElementById('set-maintenance-mode');
 
     if (setGps) setGps.value = window.systemSettings.gps_interval;
     if (setStale) setStale.value = window.systemSettings.stale_timeout;
-    if (setSos) setSos.checked = window.systemSettings.sos_sound;
     if (setGeo) setGeo.checked = window.systemSettings.geofence_sound;
     if (setMaint) setMaint.checked = window.systemSettings.maintenance_mode;
 });
