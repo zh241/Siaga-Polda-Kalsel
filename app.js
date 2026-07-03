@@ -3044,7 +3044,7 @@ window.prosesCetakPDF = function () {
                         padding: 0 20px;
                     }
                     .header-text h2 { margin: 0; font-size: 16px; text-transform: uppercase; font-weight: bold; }
-                    .header-text h3 { margin: 5px 0 0; font-size: 12px; text-transform: uppercase; font-weight: normal; }
+                    .header-text h3 { margin: 5px 0 0; font-size: 12px; text-transform: uppercase; font-weight: bold; }
                     .header-text p { margin: 5px 0 0; font-size: 9px; color: #333; font-weight: bold; line-height: 1.3; }
                     .report-title-section {
                         text-align: center;
