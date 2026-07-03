@@ -1250,14 +1250,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 15),
                         
-                        const Text('EMAIL INSTANSI', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        const Text('EMAIL PRIBADI', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
                         const SizedBox(height: 6),
                         TextField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 13),
                           decoration: InputDecoration(
-                            hintText: 'contoh@polri.go.id',
+                            hintText: 'contoh@email.com',
                             hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
                             prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey, size: 18),
                             filled: true,
