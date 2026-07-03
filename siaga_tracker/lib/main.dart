@@ -1083,7 +1083,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } on FirebaseAuthException catch (e) {
       String msg = 'Registrasi Gagal: ${e.message}';
       if (e.code == 'email-already-in-use') {
-        msg = 'NRP ini sudah terdaftar di sistem.';
+        msg = 'NRP ini sudah terdaftar.';
       }
       _showSnackBar(msg, Colors.red);
     } finally {

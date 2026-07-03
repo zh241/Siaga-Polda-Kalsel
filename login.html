@@ -1124,7 +1124,7 @@
                 .catch((error) => {
                     registerErrorMsg.style.display = 'block';
                     if (error.code === 'auth/email-already-in-use') {
-                        registerErrorMsg.innerText = "NRP tersebut sudah terdaftar di markas.";
+                        registerErrorMsg.innerText = "NRP tersebut sudah terdaftar.";
                     } else if (error.code === 'auth/invalid-email') {
                         registerErrorMsg.innerText = "Format data registrasi tidak valid.";
                     } else {
