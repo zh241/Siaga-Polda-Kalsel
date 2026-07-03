@@ -757,7 +757,7 @@ class _LoginScreenState extends State<LoginScreen> {
           style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Demi keamanan sistem, proses reset kata sandi wajib dilakukan secara langsung melalui Administrator Bid TIK Polda Kalsel di Markas Kepolisian.',
+          'Demi keamanan sistem, proses reset kata sandi wajib dilakukan secara langsung melalui Layanan Dukungan IT Bid TIK Polda Kalsel di Markas Kepolisian.',
           style: TextStyle(color: isDark ? Colors.grey : Colors.black54, fontSize: 13, height: 1.4),
         ),
         actions: [
