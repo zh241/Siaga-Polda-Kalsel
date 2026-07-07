@@ -3631,6 +3631,53 @@ window.focusStreamLocation = function (lat, lng, event) {
     switchPage('peta', document.getElementById('menu-peta'));
 };
 
+window.geocodedAddresses = {};
+window.getReverseGeocode = function (lat, lng, callback) {
+    const latFixed = lat.toFixed(4);
+    const lngFixed = lng.toFixed(4);
+    const cacheKey = `${latFixed},${lngFixed}`;
+
+    if (window.geocodedAddresses[cacheKey]) {
+        callback(window.geocodedAddresses[cacheKey]);
+        return;
+    }
+
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=17`;
+    fetch(url, {
+        headers: {
+            'User-Agent': 'SIAGA-Polda-Kalsel-Command-Center'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data && data.address) {
+            const road = data.address.road || '';
+            const suburb = data.address.suburb || data.address.village || data.address.neighbourhood || '';
+            const city = data.address.city || data.address.regency || data.address.county || '';
+
+            let addr = '';
+            if (road) addr += road;
+            if (suburb) addr += (addr ? ', ' : '') + suburb;
+            if (city) addr += (addr ? ', ' : '') + city;
+
+            if (!addr && data.display_name) {
+                addr = data.display_name.split(',').slice(0, 3).join(',');
+            }
+
+            if (addr) {
+                window.geocodedAddresses[cacheKey] = addr;
+                callback(addr);
+                return;
+            }
+        }
+        callback(`Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
+    })
+    .catch(err => {
+        console.error('Reverse geocode error:', err);
+        callback(`Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
+    });
+};
+
 window.activeStreams = {};
 let activePeerConnections = {};
 
@@ -3908,8 +3955,12 @@ function renderLiveGrid() {
                     const lat = trackingData.koordinat.lat;
                     const lng = trackingData.koordinat.lng;
                     locContainer.innerHTML = `<i class="fa-solid fa-location-crosshairs text-primary" style="font-size:10px;"></i>
-                        <span>Posisi: <a href="#" onclick="window.focusStreamLocation(${lat}, ${lng}, event)" style="color:#3b82f6; text-decoration:underline; font-family:monospace; font-weight:600;">${lat.toFixed(5)}, ${lng.toFixed(5)}</a></span>`;
+                        <span>Posisi: <a href="#" id="stream-loc-link-${uid}" onclick="window.focusStreamLocation(${lat}, ${lng}, event)" style="color:#3b82f6; text-decoration:underline; font-family:monospace; font-weight:600;">Memuat lokasi...</a></span>`;
                     locContainer.style.display = 'flex';
+                    window.getReverseGeocode(lat, lng, (address) => {
+                        const linkEl = document.getElementById(`stream-loc-link-${uid}`);
+                        if (linkEl) linkEl.textContent = address;
+                    });
                 } else {
                     locContainer.style.display = 'none';
                 }
@@ -4024,8 +4075,12 @@ function renderLiveGrid() {
             const lng = trackingData.koordinat.lng;
             locationHtml = `<div class="stream-location-container" style="margin-top:4px; font-size:9px; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
                 <i class="fa-solid fa-location-crosshairs text-primary" style="font-size:10px;"></i>
-                <span>Posisi: <a href="#" onclick="window.focusStreamLocation(${lat}, ${lng}, event)" style="color:#3b82f6; text-decoration:underline; font-family:monospace; font-weight:600;">${lat.toFixed(5)}, ${lng.toFixed(5)}</a></span>
+                <span>Posisi: <a href="#" id="stream-loc-link-${uid}" onclick="window.focusStreamLocation(${lat}, ${lng}, event)" style="color:#3b82f6; text-decoration:underline; font-family:monospace; font-weight:600;">Memuat lokasi...</a></span>
             </div>`;
+            window.getReverseGeocode(lat, lng, (address) => {
+                const linkEl = document.getElementById(`stream-loc-link-${uid}`);
+                if (linkEl) linkEl.textContent = address;
+            });
         } else {
             locationHtml = `<div class="stream-location-container" style="margin-top:4px; font-size:9px; color:var(--text-muted); display:none; align-items:center; gap:4px;"></div>`;
         }
