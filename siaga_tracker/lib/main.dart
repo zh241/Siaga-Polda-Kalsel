@@ -6664,7 +6664,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
           final sender = await pc.addTrack(track, _localStream!);
           if (track.kind == 'video') {
             var parameters = sender.parameters;
-            parameters.encodings.forEach((encoding) {
+            parameters.encodings?.forEach((encoding) {
               encoding.maxBitrate = 2500000; // 2.5 Mbps
               encoding.maxFramerate = 30;
             });
