@@ -6537,25 +6537,6 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
       _localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
       _localRenderer.srcObject = _localStream;
 
-      // Mulai rekam lokal ke penyimpanan HP
-      try {
-        final dir = await getExternalStorageDirectory();
-        final String folderPath = dir != null ? dir.path : (await getApplicationDocumentsDirectory()).path;
-        final String fileName = 'SIAGA_Live_${widget.nrp}_${DateTime.now().millisecondsSinceEpoch}.mp4';
-        final String savePath = '$folderPath/$fileName';
-        debugPrint("[MediaRecorder] Menyimpan rekaman lokal ke: $savePath");
-
-        _mediaRecorder = MediaRecorder();
-        await _mediaRecorder!.start(
-          savePath,
-          videoTrack: _localStream!.getVideoTracks().first,
-          audioTrack: _localStream!.getAudioTracks().isNotEmpty ? _localStream!.getAudioTracks().first : null,
-        );
-        debugPrint("[MediaRecorder] Rekaman lokal berhasil dimulai");
-      } catch (recErr) {
-        debugPrint("[MediaRecorder] Gagal memulai rekaman lokal: $recErr");
-      }
-
       setState(() {
         _statusText = 'Mulai Menunggu Penonton...';
       });
@@ -6811,6 +6792,75 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         await Helper.switchCamera(videoTrack);
         _isFrontCamera = !_isFrontCamera;
         setState(() {});
+      }
+    }
+  }
+
+  Future<void> _toggleLocalRecording() async {
+    if (_mediaRecorder != null) {
+      try {
+        await _mediaRecorder!.stop();
+        debugPrint("[MediaRecorder] Rekaman lokal dihentikan manual");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Rekaman dihentikan & disimpan di memori lokal HP'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (recErr) {
+        debugPrint("[MediaRecorder] Gagal menghentikan rekaman: $recErr");
+      }
+      setState(() {
+        _mediaRecorder = null;
+      });
+    } else {
+      if (_localStream == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Kamera belum aktif. Tidak dapat merekam.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+        return;
+      }
+
+      try {
+        final dir = await getExternalStorageDirectory();
+        final String folderPath = dir != null ? dir.path : (await getApplicationDocumentsDirectory()).path;
+        final String fileName = 'SIAGA_Live_${widget.nrp}_${DateTime.now().millisecondsSinceEpoch}.mp4';
+        final String savePath = '$folderPath/$fileName';
+        debugPrint("[MediaRecorder] Menyimpan rekaman lokal ke: $savePath");
+
+        _mediaRecorder = MediaRecorder();
+        await _mediaRecorder!.start(
+          savePath,
+          videoTrack: _localStream!.getVideoTracks().first,
+          audioTrack: _localStream!.getAudioTracks().isNotEmpty ? _localStream!.getAudioTracks().first : null,
+        );
+        debugPrint("[MediaRecorder] Rekaman lokal dimulai manual");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Perekaman siaran lokal dimulai'),
+              backgroundColor: Colors.blueAccent,
+            ),
+          );
+        }
+        setState(() {});
+      } catch (recErr) {
+        debugPrint("[MediaRecorder] Gagal memulai rekaman manual: $recErr");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal memulai rekaman: $recErr'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
       }
     }
   }
@@ -7086,7 +7136,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
                       onPressed: _toggleMute,
                       child: Icon(_isMuted ? Icons.mic_off_rounded : Icons.mic_rounded),
                     ),
-                    const SizedBox(width: 20),
+                    const SizedBox(width: 14),
                     FloatingActionButton(
                       heroTag: 'speaker_btn',
                       backgroundColor: _isSpeakerOn ? Colors.grey[900] : Colors.redAccent,
@@ -7094,13 +7144,26 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
                       onPressed: _toggleSpeaker,
                       child: Icon(_isSpeakerOn ? Icons.volume_up_rounded : Icons.volume_off_rounded),
                     ),
-                    const SizedBox(width: 20),
+                    const SizedBox(width: 14),
                     FloatingActionButton(
                       heroTag: 'switch_cam_btn',
                       backgroundColor: Colors.grey[900],
                       foregroundColor: Colors.white,
                       onPressed: _switchCamera,
                       child: const Icon(Icons.flip_camera_ios_rounded),
+                    ),
+                    const SizedBox(width: 14),
+                    FloatingActionButton(
+                      heroTag: 'record_btn',
+                      backgroundColor: _mediaRecorder != null ? Colors.red : Colors.grey[900],
+                      foregroundColor: Colors.white,
+                      onPressed: _toggleLocalRecording,
+                      child: Icon(
+                        _mediaRecorder != null
+                            ? Icons.radio_button_checked_rounded
+                            : Icons.fiber_manual_record_outlined,
+                        color: _mediaRecorder != null ? Colors.white : Colors.redAccent,
+                      ),
                     ),
                   ],
                 ),
