@@ -4225,7 +4225,7 @@ window.toggleVCCam = async function (uid) {
             conn.camActive = !isCurrentlyActive;
             
             // Update Firebase video status
-            await set(ref(db, `streams/${uid}/info/vcVideoActive`), conn.camActive);
+        await set(ref(db, `streams/${uid}/info/vcVideoActive`), conn.camActive);
             
             renderLiveGrid();
         }
@@ -4258,6 +4258,20 @@ function renderLiveGrid() {
         grid.classList.remove('has-focus');
     }
 
+    let otherStreamsRow = document.getElementById('other-streams-row');
+    if (hasFocus) {
+        if (!otherStreamsRow) {
+            otherStreamsRow = document.createElement('div');
+            otherStreamsRow.id = 'other-streams-row';
+            otherStreamsRow.className = 'other-streams-row';
+        }
+    } else {
+        if (otherStreamsRow) {
+            otherStreamsRow.remove();
+            otherStreamsRow = null;
+        }
+    }
+
     // Track existing card UIDs to avoid unnecessary rebuilds
     grid.querySelectorAll('.stream-card').forEach(card => {
         const cardUid = card.dataset.uid;
@@ -4272,6 +4286,17 @@ function renderLiveGrid() {
         const isConnected = activePeerConnections[uid] && activePeerConnections[uid].connected;
         const audioUnmuted = activePeerConnections[uid] && activePeerConnections[uid].audioUnmuted;
         const streamFullName = ((info.pangkat || '').trim() + ' ' + (info.nama || 'Anggota')).trim();
+
+        const targetParent = (hasFocus && uid !== window.focusedStreamUid) ? otherStreamsRow : grid;
+
+        const statusLabel = isConnected ? 'Terhubung' : (isWatching ? 'Menghubungkan...' : 'Menunggu');
+        const locationHtml = info.lastSeenAddress 
+            ? `<div class="stream-location-container" style="display:flex; align-items:center; gap:4px; font-size:9px; color:var(--primary); margin-top:2px;">
+                 <i class="fa-solid fa-location-dot"></i><span class="stream-location">${info.lastSeenAddress}</span>
+               </div>`
+            : `<div class="stream-location-container" style="display:none; align-items:center; gap:4px; font-size:9px; color:var(--primary); margin-top:2px;">
+                 <i class="fa-solid fa-location-dot"></i><span class="stream-location"></span>
+               </div>`;
 
         // If card already exists, update dynamic parts
         const existingCard = document.getElementById(`stream-card-${uid}`);
@@ -4290,7 +4315,6 @@ function renderLiveGrid() {
             const overlay = document.getElementById(`status-overlay-${uid}`);
             if (overlay) overlay.style.display = isConnected ? 'none' : 'flex';
 
-            const statusLabel = isConnected ? 'Terhubung' : (isWatching ? 'Menghubungkan...' : 'Menunggu');
             const statusLabelEl = document.getElementById(`status-label-${uid}`);
             if (statusLabelEl) statusLabelEl.textContent = statusLabel;
 
@@ -4304,14 +4328,10 @@ function renderLiveGrid() {
                 const trackingData = (window.lastTrackingSnapshotData && window.lastTrackingSnapshotData[trackingKey])
                     ? window.lastTrackingSnapshotData[trackingKey]
                     : null;
-                if (trackingData && trackingData.koordinat && trackingData.koordinat.lat && trackingData.koordinat.lng) {
-                    const lat = trackingData.koordinat.lat;
-                    const lng = trackingData.koordinat.lng;
-                    locContainer.innerHTML = `<i class="fa-solid fa-location-crosshairs text-primary" style="font-size:10px;"></i>
-                        <span>Posisi: <a href="#" id="stream-loc-link-${uid}" onclick="window.focusStreamLocation(${lat}, ${lng}, event)" style="color:#3b82f6; text-decoration:underline; font-family:monospace; font-weight:600;">Memuat lokasi...</a></span>`;
-                    locContainer.style.display = 'flex';
-                    window.getReverseGeocode(lat, lng, (address) => {
-                        const linkEl = document.getElementById(`stream-loc-link-${uid}`);
+                if (trackingData && trackingData.lat && trackingData.lng) {
+                    locContainer.style.display = 'block';
+                    const linkEl = locContainer.querySelector('.stream-location');
+                    window.getReverseGeocode(trackingData.lat, trackingData.lng).then(address => {
                         if (linkEl) linkEl.textContent = address;
                     });
                 } else {
@@ -4330,30 +4350,11 @@ function renderLiveGrid() {
             const recordBtn = document.getElementById(`record-btn-${uid}`);
             if (recordBtn) {
                 recordBtn.style.display = isWatching ? 'flex' : 'none';
-                
-                if (!isWatching && window.webRecorders && window.webRecorders[uid]) {
-                    try {
-                        window.webRecorders[uid].stop();
-                    } catch (e) {
-                        console.error('Error stopping web recorder on watch toggle:', e);
-                    }
-                    delete window.webRecorders[uid];
-                    
-                    recordBtn.style.background = '#18181b';
-                    recordBtn.style.border = '1px solid #27272a';
-                    const recordLabel = document.getElementById(`record-label-${uid}`);
-                    if (recordLabel) recordLabel.textContent = 'Rekam';
-                    const recordIcon = document.getElementById(`record-icon-${uid}`);
-                    if (recordIcon) {
-                        recordIcon.style.color = '#ef4444';
-                        recordIcon.style.animation = 'none';
-                    }
-                }
             }
 
             const vcBtnContainer = existingCard.querySelector('.vc-container');
+            const controlsRow = document.getElementById(`vc-controls-row-${uid}`);
             if (vcBtnContainer) {
-                let controlsRow = existingCard.querySelector(`.vc-controls-row`);
                 if (isWatching) {
                     vcBtnContainer.style.display = 'block';
                     if (userRole !== 'admin') {
@@ -4363,7 +4364,7 @@ function renderLiveGrid() {
                         const vcActive = activePeerConnections[uid] && activePeerConnections[uid].vcActive;
                         vcBtnContainer.innerHTML = `
                             <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:26px;">
-                                <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i><span>${vcActive ? 'Tutup' : 'Hubungi'}</span>
+                                <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i><span>${vcActive ? 'Tutup Panggilan' : 'Hubungi Video Call'}</span>
                             </button>
                         `;
 
@@ -4375,126 +4376,38 @@ function renderLiveGrid() {
                                 window.toggleVC(uid);
                             };
                         }
-
-                        // Handle display of controls row
-                        if (vcActive) {
-                            const micActive = activePeerConnections[uid] && activePeerConnections[uid].micActive !== false;
-                            const camActive = activePeerConnections[uid] && activePeerConnections[uid].camActive !== false;
-
-                            if (!controlsRow) {
-                                controlsRow = document.createElement('div');
-                                controlsRow.className = 'vc-controls-row';
-                                controlsRow.id = `vc-controls-row-${uid}`;
-                                controlsRow.style.display = 'flex';
-                                controlsRow.style.gap = '6px';
-                                controlsRow.style.marginTop = '6px';
-                                existingCard.querySelector('.stream-info').appendChild(controlsRow);
-                            } else {
-                                controlsRow.style.display = 'flex';
-                            }
-
-                            controlsRow.innerHTML = `
-                                <button id="vc-mic-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
-                                    <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>${micActive ? 'Mute' : 'Unmute'}</span>
-                                </button>
-                                <button id="vc-cam-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${camActive ? '#18181b' : '#ef4444'}; border:1px solid ${camActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
-                                    <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>Matikan Cam</span>
-                                </button>
-                            `;
-
-                            // Bind mic/cam actions
-                            const micBtn = document.getElementById(`vc-mic-btn-${uid}`);
-                            if (micBtn) {
-                                micBtn.onclick = (e) => {
-                                    e.stopPropagation();
-                                    window.toggleVCMic(uid);
-                                };
-                            }
-                            const camBtn = document.getElementById(`vc-cam-btn-${uid}`);
-                            if (camBtn) {
-                                camBtn.onclick = (e) => {
-                                    e.stopPropagation();
-                                    window.toggleVCCam(uid);
-                                };
-                            }
-                        } else {
-                            if (controlsRow) {
-                                controlsRow.style.display = 'none';
-                                controlsRow.innerHTML = '';
-                            }
-                        }
                     }
                 } else {
                     vcBtnContainer.style.display = 'none';
-                    vcBtnContainer.innerHTML = '';
-                    if (controlsRow) {
-                        controlsRow.style.display = 'none';
-                        controlsRow.innerHTML = '';
-                    }
-                    const preview = document.getElementById(`local-preview-${uid}`);
-                    if (preview) preview.style.display = 'none';
+                    if (controlsRow) controlsRow.style.display = 'none';
                 }
             }
 
-            if (isWatching && activePeerConnections[uid]) {
-                const conn = activePeerConnections[uid];
-                const videoEl = document.getElementById(`video-${uid}`);
-                if (videoEl && conn.remoteStream && videoEl.srcObject !== conn.remoteStream) {
+            const conn = activePeerConnections[uid];
+            if (isWatching && conn) {
+                const videoEl = existingCard.querySelector(`#video-${uid}`);
+                if (videoEl && conn.remoteStream && conn.remoteStream.getTracks().length > 0 && !videoEl.srcObject) {
                     videoEl.srcObject = conn.remoteStream;
                     videoEl.muted = !audioUnmuted;
-                    videoEl.play().catch(() => { });
-                }
-                const preview = document.getElementById(`local-preview-${uid}`);
-                const previewVideo = document.getElementById(`local-video-${uid}`);
-                if (preview && previewVideo) {
-                    if (conn.vcActive && conn.camActive !== false) {
-                        preview.style.display = 'block';
-                        if (window.localVCStream && previewVideo.srcObject !== window.localVCStream) {
-                            previewVideo.srcObject = window.localVCStream;
-                            previewVideo.play().catch(() => {});
-                        }
-                    } else {
-                        preview.style.display = 'none';
-                    }
+                    videoEl.play().catch(() => {});
                 }
             }
+
+            // Move to correct parent if needed
+            if (existingCard.parentElement !== targetParent) {
+                targetParent.appendChild(existingCard);
+            }
+
             return;
         }
 
-        // Build new card
-        const trackingKey = 'POL-' + info.nrp;
-        const trackingData = (window.lastTrackingSnapshotData && window.lastTrackingSnapshotData[trackingKey])
-            ? window.lastTrackingSnapshotData[trackingKey]
-            : null;
-        let locationHtml = '';
-        if (trackingData && trackingData.koordinat && trackingData.koordinat.lat && trackingData.koordinat.lng) {
-            const lat = trackingData.koordinat.lat;
-            const lng = trackingData.koordinat.lng;
-            locationHtml = `<div class="stream-location-container" style="margin-top:4px; font-size:9px; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
-                <i class="fa-solid fa-location-crosshairs text-primary" style="font-size:10px;"></i>
-                <span>Posisi: <a href="#" id="stream-loc-link-${uid}" onclick="window.focusStreamLocation(${lat}, ${lng}, event)" style="color:#3b82f6; text-decoration:underline; font-family:monospace; font-weight:600;">Memuat lokasi...</a></span>
-            </div>`;
-            window.getReverseGeocode(lat, lng, (address) => {
-                const linkEl = document.getElementById(`stream-loc-link-${uid}`);
-                if (linkEl) linkEl.textContent = address;
-            });
-        } else {
-            locationHtml = `<div class="stream-location-container" style="margin-top:4px; font-size:9px; color:var(--text-muted); display:none; align-items:center; gap:4px;"></div>`;
-        }
-
-        const statusLabel = isConnected ? 'Terhubung' : (isWatching ? 'Menghubungkan...' : 'Menunggu');
         const card = document.createElement('div');
-        card.className = 'stream-card';
-        if (uid === window.focusedStreamUid) {
-            card.classList.add('focused');
+        card.className = `stream-card ${uid === window.focusedStreamUid ? 'focused' : ''}`;
+        if (isWatching) {
+            card.className += ' watching';
         }
         card.id = `stream-card-${uid}`;
         card.dataset.uid = uid;
-
-        const conn = activePeerConnections[uid];
-        const vcActive = conn && conn.vcActive;
-        const micActive = conn && conn.micActive !== false;
-        const camActive = conn && conn.camActive !== false;
 
         card.innerHTML = `
             <div class="stream-video-container" style="position:relative; background:#000; aspect-ratio:4/3; overflow:hidden; border-radius:6px 6px 0 0;">
@@ -4514,7 +4427,7 @@ function renderLiveGrid() {
                     <div style="width:24px; height:24px; border:2px solid #3b82f6; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></div>
                     <span id="status-label-${uid}" style="font-size:9px; color:#a1a1aa;">${statusLabel}</span>
                 </div>
-                <div id="local-preview-${uid}" style="display:${vcActive && camActive ? 'block' : 'none'}; position:absolute; bottom:8px; right:8px; width:60px; aspect-ratio:4/3; background:#000; border:1px solid rgba(255,255,255,0.4); border-radius:4px; overflow:hidden; z-index:12;">
+                <div id="local-preview-${uid}" style="display:none; position:absolute; bottom:8px; right:8px; width:60px; aspect-ratio:4/3; background:#000; border:1px solid rgba(255,255,255,0.4); border-radius:4px; overflow:hidden; z-index:12;">
                     <video id="local-video-${uid}" autoplay muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>
                 </div>
                 <video id="video-${uid}" autoplay playsinline style="width:100%; height:100%; object-fit:cover; display:block; transition: transform 0.2s;"></video>
@@ -4538,27 +4451,18 @@ function renderLiveGrid() {
                         <span id="record-label-${uid}">Rekam</span>
                     </button>
                 </div>
-                <div class="vc-container" style="display:${isWatching ? 'block' : 'none'}; margin-top:6px; width:100%;">
-                    ${isWatching ? (userRole !== 'admin' ? `
-                        <div style="width:100%; text-align:center; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:600; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-muted); display:flex; align-items:center; justify-content:center; height:26px;">Mode Pantau</div>
-                    ` : `
-                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:26px;">
-                            <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
-                            <span>${vcActive ? 'Tutup Panggilan' : 'Hubungi Video Call'}</span>
-                        </button>
-                    `) : ''}
-                </div>
-                <div id="vc-controls-row-${uid}" style="display:${isWatching && vcActive && userRole === 'admin' ? 'flex' : 'none'}; gap:6px; margin-top:6px;">
-                    <button id="vc-mic-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
-                        <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>Mute</span>
+                <div class="vc-container" style="display:none; margin-top:6px; width:100%;"></div>
+                <div id="vc-controls-row-${uid}" style="display:none; gap:6px; margin-top:6px;">
+                    <button id="vc-mic-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:#18181b; border:1px solid #27272a; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
+                        <i class="fa-solid fa-microphone"></i><span>Mute</span>
                     </button>
-                    <button id="vc-cam-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${camActive ? '#18181b' : '#ef4444'}; border:1px solid ${camActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
-                        <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>Matikan Cam</span>
+                    <button id="vc-cam-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:#18181b; border:1px solid #27272a; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
+                        <i class="fa-solid fa-video"></i><span>Matikan Cam</span>
                     </button>
                 </div>
             </div>
         `;
-        grid.appendChild(card);
+        targetParent.appendChild(card);
  
         const focusBtn = document.getElementById(`focus-btn-${uid}`);
         if (focusBtn) {
@@ -4592,30 +4496,18 @@ function renderLiveGrid() {
                 window.toggleWebRecord(uid, streamFullName);
             });
         }
-        if (userRole === 'admin') {
-            const vcBtn = document.getElementById(`vc-btn-${uid}`);
-            if (vcBtn) {
-                vcBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    window.toggleVC(uid);
-                });
-            }
-        }
 
-        if (isWatching && conn) {
+        if (isWatching && activePeerConnections[uid]) {
+            const conn = activePeerConnections[uid];
             const videoEl = document.getElementById(`video-${uid}`);
             if (videoEl && conn.remoteStream && conn.remoteStream.getTracks().length > 0) {
                 videoEl.srcObject = conn.remoteStream;
                 videoEl.muted = !audioUnmuted;
                 videoEl.play().catch(() => { });
-                if (isConnected) {
-                    const overlay = document.getElementById(`status-overlay-${uid}`);
-                    if (overlay) overlay.style.display = 'none';
-                }
             }
             const preview = document.getElementById(`local-preview-${uid}`);
             const previewVideo = document.getElementById(`local-video-${uid}`);
-            if (preview && previewVideo && vcActive && camActive) {
+            if (preview && previewVideo && conn.vcActive && conn.camActive !== false) {
                 preview.style.display = 'block';
                 if (window.localVCStream) {
                     previewVideo.srcObject = window.localVCStream;
@@ -4626,6 +4518,10 @@ function renderLiveGrid() {
             }
         }
     });
+
+    if (hasFocus && otherStreamsRow) {
+        grid.appendChild(otherStreamsRow);
+    }
 }
 
 window.toggleWatchStream = function (uid, fullName) {
@@ -5049,7 +4945,8 @@ function closePeerConnection(uid) {
 
     console.log(`Closing peer connection for ${uid}`);
 
-    // Clean up Firebase VC status
+    // Clean up Firebase VC status & force-stop the stream on mobile
+    set(ref(db, `streams/${uid}/info/active`), false);
     set(ref(db, `streams/${uid}/info/vcActive`), null);
     set(ref(db, `streams/${uid}/info/vcVideoActive`), null);
 

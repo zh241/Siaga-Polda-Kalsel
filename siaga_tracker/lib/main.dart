@@ -6444,6 +6444,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
   final Map<String, List<StreamSubscription>> _viewerSubscriptions = {};
   StreamSubscription<DatabaseEvent>? _viewersAddedSubscription;
   StreamSubscription<DatabaseEvent>? _viewersRemovedSubscription;
+  StreamSubscription<DatabaseEvent>? _activeStreamSubscription;
   bool _isVCActive = false;
   bool _isVCVideoActive = true;
   StreamSubscription<DatabaseEvent>? _vcActiveSubscription;
@@ -6530,12 +6531,15 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         },
         'video': {
           'mandatory': {
-            'minWidth': '720',
-            'minHeight': '720',
+            'minWidth': '640',
+            'minHeight': '360',
             'minFrameRate': '30',
           },
           'facingMode': _isFrontCamera ? 'user' : 'environment',
-          'optional': [],
+          'optional': [
+            {'minWidth': 1280},
+            {'minHeight': 720},
+          ],
         }
       };
 
@@ -6584,6 +6588,17 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         if (viewerId != null) {
           debugPrint("[WebRTC] Penonton keluar: $viewerId");
           _cleanupViewerConnection(viewerId);
+        }
+      });
+
+      // Dengarkan perintah stop dari Posko Admin
+      _activeStreamSubscription = streamRef.child('info/active').onValue.listen((event) {
+        if (!mounted) return;
+        final val = event.snapshot.value;
+        if (val == false) {
+          debugPrint("[WebRTC] Dihentikan oleh Posko Admin");
+          _stopStreaming();
+          Navigator.of(context).pop();
         }
       });
 
@@ -6935,6 +6950,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
       debugPrint('Error removing stream reference: $e');
     }
 
+    _activeStreamSubscription?.cancel();
     _viewersAddedSubscription?.cancel();
     _viewersRemovedSubscription?.cancel();
     _vcActiveSubscription?.cancel();
