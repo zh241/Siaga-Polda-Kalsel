@@ -6530,7 +6530,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         },
         'video': {
           'mandatory': {
-            'minWidth': '1280',
+            'minWidth': '720',
             'minHeight': '720',
             'minFrameRate': '30',
           },
@@ -6659,9 +6659,22 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         });
       };
 
-      _localStream!.getTracks().forEach((track) {
-        pc.addTrack(track, _localStream!);
-      });
+      for (var track in _localStream!.getTracks()) {
+        try {
+          final sender = await pc.addTrack(track, _localStream!);
+          if (track.kind == 'video') {
+            var parameters = sender.parameters;
+            parameters.encodings.forEach((encoding) {
+              encoding.maxBitrate = 2500000; // 2.5 Mbps
+              encoding.maxFramerate = 30;
+            });
+            await sender.setParameters(parameters);
+            debugPrint("[WebRTC] Enforced 2.5 Mbps encoding bitrate for video sender");
+          }
+        } catch (e) {
+          debugPrint("Error adding track ${track.kind}: $e");
+        }
+      }
 
       pc.onIceCandidate = (candidate) {
         viewerRef.child('candidates/streamer').push().set(candidate.toMap());

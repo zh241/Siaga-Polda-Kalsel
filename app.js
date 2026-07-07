@@ -3766,12 +3766,336 @@ window.focusedStreamUid = null;
 window.localVCStream = null;
 
 window.toggleFocusStream = function (uid) {
-    if (window.focusedStreamUid === uid) {
+    if (!uid) return;
+    
+    // Close existing modal if open
+    let existingModal = document.getElementById('live-ops-theater-modal');
+    if (existingModal) {
+        existingModal.remove();
         window.focusedStreamUid = null;
-    } else {
-        window.focusedStreamUid = uid;
+        renderLiveGrid();
+        return;
     }
-    renderLiveGrid();
+
+    const info = window.activeStreams[uid];
+    if (!info) return;
+    const conn = activePeerConnections[uid];
+    if (!conn) return;
+
+    window.focusedStreamUid = uid;
+    const streamFullName = ((info.pangkat || '').trim() + ' ' + (info.nama || 'Anggota')).trim();
+    
+    // Create the modal element
+    const modal = document.createElement('div');
+    modal.id = 'live-ops-theater-modal';
+    modal.style.position = 'fixed';
+    modal.style.inset = '0';
+    modal.style.zIndex = '9999';
+    modal.style.background = 'rgba(9, 9, 11, 0.96)';
+    modal.style.backdropFilter = 'blur(12px)';
+    modal.style.display = 'flex';
+    modal.style.flexDirection = 'column';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    modal.style.padding = '20px';
+
+    modal.innerHTML = `
+        <div style="position:relative; width:100%; max-width:960px; background:#000; border-radius:12px; overflow:hidden; border:1px solid #27272a; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.55);">
+            <!-- Header/Info -->
+            <div style="padding:12px 16px; background:#18181b; border-bottom:1px solid #27272a; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h5 style="margin:0; font-weight:700; color:#fff; font-size:14px;">${streamFullName}</h5>
+                    <div style="font-size:10px; color:#a1a1aa; margin-top:2px;">NRP: ${info.nrp || '-'} • ${info.satker || 'Bid TIK'}</div>
+                </div>
+                <button id="theater-close-btn" style="background:rgba(255,255,255,0.1); border:none; border-radius:50%; color:#fff; width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:12px; transition:background 0.2s;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <!-- Video Box -->
+            <div style="position:relative; width:100%; aspect-ratio:16/9; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                <video id="theater-video" autoplay playsinline style="width:100%; height:100%; object-fit:contain; display:block; transition: transform 0.2s;"></video>
+                <button id="theater-rotate-btn" title="Putar Video" style="position:absolute; top:12px; right:12px; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:30px; height:30px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:12px; z-index:10;">
+                    <i class="fa-solid fa-rotate"></i>
+                </button>
+            </div>
+            
+            <!-- Controls Row -->
+            <div style="padding:12px 16px; background:#18181b; border-top:1px solid #27272a; display:flex; gap:12px; align-items:center; justify-content:space-between;">
+                <div style="display:flex; gap:8px; align-items:center; flex:1;">
+                    <button id="theater-mute-btn" style="padding:6px 12px; border:none; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; background:#3b82f6; color:#fff; display:flex; align-items:center; gap:6px;">
+                        <i class="fa-solid ${conn.audioUnmuted ? 'fa-volume-high' : 'fa-volume-xmark'}" id="theater-mute-icon"></i>
+                        <span id="theater-mute-label">${conn.audioUnmuted ? 'Mute' : 'Unmute'}</span>
+                    </button>
+                    <button id="theater-record-btn" style="padding:6px 12px; border:none; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; background:#18181b; border:1px solid #27272a; color:#fff; display:flex; align-items:center; gap:6px;">
+                        <i class="fa-solid fa-circle" id="theater-rec-icon" style="color:#ef4444; font-size:8px;"></i>
+                        <span id="theater-rec-label">Rekam</span>
+                    </button>
+                </div>
+                
+                <div id="theater-vc-container" style="display:flex; gap:8px; align-items:center;">
+                    <!-- Filled dynamically -->
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const theaterVideo = document.getElementById('theater-video');
+    if (theaterVideo && conn.remoteStream) {
+        theaterVideo.srcObject = conn.remoteStream;
+        theaterVideo.muted = !conn.audioUnmuted;
+    }
+
+    // Close button handler
+    document.getElementById('theater-close-btn').onclick = () => {
+        modal.remove();
+        window.focusedStreamUid = null;
+        renderLiveGrid();
+    };
+
+    // Rotate button handler
+    let rotation = 0;
+    document.getElementById('theater-rotate-btn').onclick = () => {
+        rotation = (rotation + 90) % 360;
+        if (rotation === 90 || rotation === 270) {
+            theaterVideo.style.transform = `rotate(${rotation}deg) scale(0.5625)`;
+        } else {
+            theaterVideo.style.transform = `rotate(${rotation}deg) scale(1)`;
+        }
+    };
+
+    // Mute button handler
+    document.getElementById('theater-mute-btn').onclick = () => {
+        window.toggleStreamMute(uid);
+        const unmuted = activePeerConnections[uid] && activePeerConnections[uid].audioUnmuted;
+        theaterVideo.muted = !unmuted;
+        
+        document.getElementById('theater-mute-icon').className = `fa-solid ${unmuted ? 'fa-volume-high' : 'fa-volume-xmark'}`;
+        document.getElementById('theater-mute-label').textContent = unmuted ? 'Mute' : 'Unmute';
+        const cardMuteIcon = document.getElementById(`mute-icon-${uid}`);
+        if (cardMuteIcon) cardMuteIcon.className = `fa-solid ${unmuted ? 'fa-volume-high' : 'fa-volume-xmark'}`;
+    };
+
+    // Record button handler
+    const recBtn = document.getElementById('theater-record-btn');
+    const recIcon = document.getElementById('theater-rec-icon');
+    const recLabel = document.getElementById('theater-rec-label');
+    
+    // Sync current recording status
+    if (window.webRecorders && window.webRecorders[uid]) {
+        recBtn.style.background = '#ef4444';
+        recBtn.style.border = '1px solid transparent';
+        recLabel.textContent = 'Merekam...';
+        recIcon.style.color = '#fff';
+        recIcon.style.animation = 'pulse 1s infinite';
+    }
+
+    recBtn.onclick = () => {
+        window.toggleWebRecord(uid, streamFullName);
+        
+        const isRecActive = window.webRecorders && window.webRecorders[uid];
+        if (isRecActive) {
+            recBtn.style.background = '#ef4444';
+            recBtn.style.border = '1px solid transparent';
+            recLabel.textContent = 'Merekam...';
+            recIcon.style.color = '#fff';
+            recIcon.style.animation = 'pulse 1s infinite';
+        } else {
+            recBtn.style.background = '#18181b';
+            recBtn.style.border = '1px solid #27272a';
+            recLabel.textContent = 'Rekam';
+            recIcon.style.color = '#ef4444';
+            recIcon.style.animation = 'none';
+        }
+    };
+
+    // Render VC Button inside theater mode
+    const vcContainer = document.getElementById('theater-vc-container');
+    const updateTheaterVC = () => {
+        if (userRole !== 'admin') {
+            vcContainer.innerHTML = `<div style="text-align:center; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:600; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-muted);">Mode Pantau</div>`;
+            return;
+        }
+
+        const vcActive = activePeerConnections[uid] && activePeerConnections[uid].vcActive;
+        vcContainer.innerHTML = `
+            <button style="padding:6px 12px; border:none; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; gap:6px;">
+                <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
+                <span>${vcActive ? 'Tutup Panggilan' : 'Hubungi Video Call'}</span>
+            </button>
+        `;
+        vcContainer.querySelector('button').onclick = async () => {
+            await window.toggleVC(uid);
+            updateTheaterVC();
+        };
+    };
+    updateTheaterVC();
+};
+
+window.rotateVideo = function (uid, event) {
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+    const videoEl = document.getElementById(`video-${uid}`);
+    if (!videoEl) return;
+
+    let rotation = parseInt(videoEl.dataset.rotation || '0');
+    rotation = (rotation + 90) % 360;
+    videoEl.dataset.rotation = rotation;
+
+    if (rotation === 90 || rotation === 270) {
+        videoEl.style.transform = `rotate(${rotation}deg) scale(0.75)`;
+    } else {
+        videoEl.style.transform = `rotate(${rotation}deg) scale(1)`;
+    }
+    console.log(`[WebRTC] Video ${uid} rotated to ${rotation} degrees`);
+};
+
+window.webRecorders = {};
+
+window.toggleWebRecord = function (uid, fullName) {
+    const conn = activePeerConnections[uid];
+    if (!conn) {
+        showToast('Koneksi tidak ditemukan. Tonton siaran terlebih dahulu.', 'error');
+        return;
+    }
+
+    const recordBtn = document.getElementById(`record-btn-${uid}`);
+    const recordLabel = document.getElementById(`record-label-${uid}`);
+    const recordIcon = document.getElementById(`record-icon-${uid}`);
+
+    // If already recording, stop it
+    if (window.webRecorders[uid]) {
+        try {
+            window.webRecorders[uid].stop();
+        } catch (e) {
+            console.error('Error stopping web recorder:', e);
+        }
+        delete window.webRecorders[uid];
+        
+        if (recordBtn) {
+            recordBtn.style.background = '#18181b';
+            recordBtn.style.border = '1px solid #27272a';
+        }
+        if (recordLabel) recordLabel.textContent = 'Rekam';
+        if (recordIcon) {
+            recordIcon.style.color = '#ef4444';
+            recordIcon.style.animation = 'none';
+        }
+        showToast(`Perekaman untuk ${fullName} selesai & diunduh.`, 'success');
+        return;
+    }
+
+    // Start recording
+    const videoEl = document.getElementById(`video-${uid}`);
+    if (!videoEl || !videoEl.srcObject) {
+        showToast('Video belum aktif. Tunggu hingga video muncul.', 'error');
+        return;
+    }
+
+    const stream = videoEl.srcObject;
+    if (stream.getTracks().length === 0) {
+        showToast('Tidak ada track media aktif untuk direkam.', 'error');
+        return;
+    }
+
+    try {
+        let chunks = [];
+        let audioContext = null;
+        let mixedAudioTrack = null;
+
+        // Mix remote voice (member) and local voice (admin mic) if VC is active
+        const remoteAudioTrack = stream.getAudioTracks()[0];
+        const localAudioStream = window.localVCStream;
+        const localAudioTrack = localAudioStream ? localAudioStream.getAudioTracks()[0] : null;
+
+        if (remoteAudioTrack && localAudioTrack && conn.vcActive) {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const remoteSource = audioContext.createMediaStreamSource(new MediaStream([remoteAudioTrack]));
+                const localSource = audioContext.createMediaStreamSource(new MediaStream([localAudioTrack]));
+                const destination = audioContext.createMediaStreamDestination();
+                
+                remoteSource.connect(destination);
+                localSource.connect(destination);
+                
+                mixedAudioTrack = destination.stream.getAudioTracks()[0];
+                console.log('[WebRTC] Successfully mixed remote and local audio tracks for two-way recording.');
+            } catch (mixErr) {
+                console.warn('[WebRTC] Failed to mix audio tracks, falling back to remote audio only:', mixErr);
+            }
+        }
+
+        // Construct MediaStream to record
+        let tracksToRecord = [];
+        const videoTrack = stream.getVideoTracks()[0];
+        if (videoTrack) tracksToRecord.push(videoTrack);
+
+        if (mixedAudioTrack) {
+            tracksToRecord.push(mixedAudioTrack);
+        } else if (remoteAudioTrack) {
+            tracksToRecord.push(remoteAudioTrack);
+        }
+
+        const recordStream = new MediaStream(tracksToRecord);
+        const options = { mimeType: 'video/webm;codecs=vp8,opus' };
+        
+        let mediaRecorder;
+        try {
+            mediaRecorder = new MediaRecorder(recordStream, options);
+        } catch (mimeErr) {
+            console.warn('[WebRTC] fallback to default MediaRecorder mimeType');
+            mediaRecorder = new MediaRecorder(recordStream);
+        }
+
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) {
+                chunks.push(event.data);
+            }
+        };
+
+        mediaRecorder.onstop = () => {
+            if (audioContext) {
+                try {
+                    audioContext.close();
+                } catch (cErr) {}
+            }
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            
+            const safeName = fullName.replace(/[^a-zA-Z0-9]/g, '_');
+            const timeStamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '_');
+            a.download = `SIAGA_Rec_${safeName}_${timeStamp}.webm`;
+            
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+
+        mediaRecorder.start(1000);
+        window.webRecorders[uid] = mediaRecorder;
+
+        if (recordBtn) {
+            recordBtn.style.background = '#ef4444';
+            recordBtn.style.border = '1px solid transparent';
+        }
+        if (recordLabel) recordLabel.textContent = 'Merekam...';
+        if (recordIcon) {
+            recordIcon.style.color = '#fff';
+            recordIcon.style.animation = 'pulse 1s infinite';
+        }
+        showToast(`Merekam siaran ${fullName} (Video + Suara)...`, 'info');
+    } catch (err) {
+        console.error('Failed to start MediaRecorder on web:', err);
+        showToast(`Gagal merekam siaran: ${err.message || err}`, 'error');
+    }
 };
 
 async function ensureLocalVCStream() {
@@ -4003,6 +4327,30 @@ function renderLiveGrid() {
                 watchBtn.onclick = () => window.toggleWatchStream(uid, streamFullName);
             }
 
+            const recordBtn = document.getElementById(`record-btn-${uid}`);
+            if (recordBtn) {
+                recordBtn.style.display = isWatching ? 'flex' : 'none';
+                
+                if (!isWatching && window.webRecorders && window.webRecorders[uid]) {
+                    try {
+                        window.webRecorders[uid].stop();
+                    } catch (e) {
+                        console.error('Error stopping web recorder on watch toggle:', e);
+                    }
+                    delete window.webRecorders[uid];
+                    
+                    recordBtn.style.background = '#18181b';
+                    recordBtn.style.border = '1px solid #27272a';
+                    const recordLabel = document.getElementById(`record-label-${uid}`);
+                    if (recordLabel) recordLabel.textContent = 'Rekam';
+                    const recordIcon = document.getElementById(`record-icon-${uid}`);
+                    if (recordIcon) {
+                        recordIcon.style.color = '#ef4444';
+                        recordIcon.style.animation = 'none';
+                    }
+                }
+            }
+
             const vcBtnContainer = existingCard.querySelector('.vc-container');
             if (vcBtnContainer) {
                 let controlsRow = existingCard.querySelector(`.vc-controls-row`);
@@ -4154,7 +4502,10 @@ function renderLiveGrid() {
                     <span style="width:4px;height:4px;background:#fff;border-radius:50%;display:inline-block;"></span>LIVE
                 </div>
                 <button id="focus-btn-${uid}" title="Fokus/Perbesar" style="position:absolute; top:8px; right:36px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
-                    <i class="fa-solid ${uid === window.focusedStreamUid ? 'fa-compress' : 'fa-expand'}" id="focus-icon-${uid}"></i>
+                    <i class="fa-solid fa-expand" id="focus-icon-${uid}"></i>
+                </button>
+                <button id="rotate-btn-${uid}" title="Putar Tampilan" style="position:absolute; top:8px; right:64px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
+                    <i class="fa-solid fa-rotate"></i>
                 </button>
                 <button id="mute-btn-${uid}" title="Buka/Tutup Suara" style="position:absolute; top:8px; right:8px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
                     <i class="fa-solid ${audioUnmuted ? 'fa-volume-high' : 'fa-volume-xmark'}" id="mute-icon-${uid}"></i>
@@ -4166,7 +4517,7 @@ function renderLiveGrid() {
                 <div id="local-preview-${uid}" style="display:${vcActive && camActive ? 'block' : 'none'}; position:absolute; bottom:8px; right:8px; width:60px; aspect-ratio:4/3; background:#000; border:1px solid rgba(255,255,255,0.4); border-radius:4px; overflow:hidden; z-index:12;">
                     <video id="local-video-${uid}" autoplay muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>
                 </div>
-                <video id="video-${uid}" autoplay playsinline style="width:100%; height:100%; object-fit:cover; display:block;"></video>
+                <video id="video-${uid}" autoplay playsinline style="width:100%; height:100%; object-fit:cover; display:block; transition: transform 0.2s;"></video>
             </div>
             <div class="stream-info" style="padding:8px 10px; background:var(--bg-card); border-top:1px solid var(--border-color);">
                 <div style="display:flex; justify-content:between; align-items:start; gap:4px; margin-bottom:4px;">
@@ -4182,6 +4533,10 @@ function renderLiveGrid() {
                         <i class="fa-solid ${isWatching ? 'fa-stop-circle' : 'fa-play'}"></i>
                         <span>${isWatching ? 'Hentikan' : 'Tonton'}</span>
                     </button>
+                    <button class="record-btn" id="record-btn-${uid}" style="flex:1; display:${isWatching ? 'flex' : 'none'}; align-items:center; justify-content:center; gap:4px; height:26px; font-size:10px; font-weight:600; border:none; border-radius:4px; cursor:pointer; background:#18181b; border:1px solid #27272a; color:#fff;">
+                        <i class="fa-solid fa-circle" id="record-icon-${uid}" style="color:#ef4444; font-size:8px;"></i>
+                        <span id="record-label-${uid}">Rekam</span>
+                    </button>
                     <div class="vc-container" style="flex:1; display:${isWatching ? 'block' : 'none'};">
                         ${isWatching ? (userRole !== 'admin' ? `
                             <div style="width:100%; text-align:center; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:600; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-muted); display:flex; align-items:center; justify-content:center; height:26px;">Mode Pantau</div>
@@ -4195,7 +4550,7 @@ function renderLiveGrid() {
                 </div>
                 <div id="vc-controls-row-${uid}" style="display:${isWatching && vcActive && userRole === 'admin' ? 'flex' : 'none'}; gap:6px; margin-top:6px;">
                     <button id="vc-mic-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
-                        <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>${micActive ? 'Mute' : 'Unmute'}</span>
+                        <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>Mute</span>
                     </button>
                     <button id="vc-cam-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${camActive ? '#18181b' : '#ef4444'}; border:1px solid ${camActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
                         <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>Matikan Cam</span>
@@ -4212,6 +4567,13 @@ function renderLiveGrid() {
                 window.toggleFocusStream(uid);
             });
         }
+        const rotateBtn = document.getElementById(`rotate-btn-${uid}`);
+        if (rotateBtn) {
+            rotateBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                window.rotateVideo(uid, e);
+            });
+        }
         const muteBtn = document.getElementById(`mute-btn-${uid}`);
         if (muteBtn) {
             muteBtn.addEventListener('click', (e) => {
@@ -4222,6 +4584,13 @@ function renderLiveGrid() {
         const watchBtn = card.querySelector('.stream-btn');
         if (watchBtn) {
             watchBtn.addEventListener('click', () => window.toggleWatchStream(uid, streamFullName));
+        }
+        const recordBtn = document.getElementById(`record-btn-${uid}`);
+        if (recordBtn) {
+            recordBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                window.toggleWebRecord(uid, streamFullName);
+            });
         }
         if (userRole === 'admin') {
             const vcBtn = document.getElementById(`vc-btn-${uid}`);
@@ -4660,6 +5029,21 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
 }
 
 function closePeerConnection(uid) {
+    if (window.webRecorders && window.webRecorders[uid]) {
+        try {
+            window.webRecorders[uid].stop();
+        } catch (e) {
+            console.error('Error stopping web recorder during peer connection closure:', e);
+        }
+        delete window.webRecorders[uid];
+    }
+
+    const theaterModal = document.getElementById('live-ops-theater-modal');
+    if (theaterModal && window.focusedStreamUid === uid) {
+        theaterModal.remove();
+        window.focusedStreamUid = null;
+    }
+
     const conn = activePeerConnections[uid];
     if (!conn) return;
 
