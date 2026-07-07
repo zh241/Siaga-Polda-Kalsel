@@ -3976,39 +3976,21 @@ function renderLiveGrid() {
 
             const vcBtnContainer = existingCard.querySelector('.vc-container');
             if (vcBtnContainer) {
+                let controlsRow = existingCard.querySelector(`.vc-controls-row`);
                 if (isWatching) {
                     vcBtnContainer.style.display = 'block';
                     if (userRole !== 'admin') {
                         vcBtnContainer.innerHTML = `<div style="width:100%; text-align:center; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:600; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-muted); display:flex; align-items:center; justify-content:center; height:26px;">Mode Pantau</div>`;
+                        if (controlsRow) controlsRow.style.display = 'none';
                     } else {
                         const vcActive = activePeerConnections[uid] && activePeerConnections[uid].vcActive;
-                        const micActive = activePeerConnections[uid] && activePeerConnections[uid].micActive !== false;
-                        const camActive = activePeerConnections[uid] && activePeerConnections[uid].camActive !== false;
+                        vcBtnContainer.innerHTML = `
+                            <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:26px;">
+                                <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i><span>${vcActive ? 'Tutup' : 'Hubungi'}</span>
+                            </button>
+                        `;
 
-                        let html = '';
-                        if (vcActive) {
-                            html = `
-                                <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:26px;">
-                                    <i class="fa-solid fa-phone-slash"></i><span>Tutup</span>
-                                </button>
-                                <div id="vc-controls-row-${uid}" style="display:flex; gap:6px; margin-top:6px;">
-                                    <button id="vc-mic-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
-                                        <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>${micActive ? 'Mute' : 'Unmute'}</span>
-                                    </button>
-                                    <button id="vc-cam-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${camActive ? '#18181b' : '#ef4444'}; border:1px solid ${camActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
-                                        <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>Matikan Cam</span>
-                                    </button>
-                                </div>
-                            `;
-                        } else {
-                            html = `
-                                <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:#10b981; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:26px;">
-                                    <i class="fa-solid fa-video"></i><span>Hubungi</span>
-                                </button>
-                            `;
-                        }
-                        vcBtnContainer.innerHTML = html;
-
+                        // Rebind vcBtn click
                         const vcBtn = document.getElementById(`vc-btn-${uid}`);
                         if (vcBtn) {
                             vcBtn.onclick = (e) => {
@@ -4016,24 +3998,62 @@ function renderLiveGrid() {
                                 window.toggleVC(uid);
                             };
                         }
-                        const micBtn = document.getElementById(`vc-mic-btn-${uid}`);
-                        if (micBtn) {
-                            micBtn.onclick = (e) => {
-                                e.stopPropagation();
-                                window.toggleVCMic(uid);
-                            };
-                        }
-                        const camBtn = document.getElementById(`vc-cam-btn-${uid}`);
-                        if (camBtn) {
-                            camBtn.onclick = (e) => {
-                                e.stopPropagation();
-                                window.toggleVCCam(uid);
-                            };
+
+                        // Handle display of controls row
+                        if (vcActive) {
+                            const micActive = activePeerConnections[uid] && activePeerConnections[uid].micActive !== false;
+                            const camActive = activePeerConnections[uid] && activePeerConnections[uid].camActive !== false;
+
+                            if (!controlsRow) {
+                                controlsRow = document.createElement('div');
+                                controlsRow.className = 'vc-controls-row';
+                                controlsRow.id = `vc-controls-row-${uid}`;
+                                controlsRow.style.display = 'flex';
+                                controlsRow.style.gap = '6px';
+                                controlsRow.style.marginTop = '6px';
+                                existingCard.querySelector('.stream-info').appendChild(controlsRow);
+                            } else {
+                                controlsRow.style.display = 'flex';
+                            }
+
+                            controlsRow.innerHTML = `
+                                <button id="vc-mic-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
+                                    <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>${micActive ? 'Mute' : 'Unmute'}</span>
+                                </button>
+                                <button id="vc-cam-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${camActive ? '#18181b' : '#ef4444'}; border:1px solid ${camActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
+                                    <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>Matikan Cam</span>
+                                </button>
+                            `;
+
+                            // Bind mic/cam actions
+                            const micBtn = document.getElementById(`vc-mic-btn-${uid}`);
+                            if (micBtn) {
+                                micBtn.onclick = (e) => {
+                                    e.stopPropagation();
+                                    window.toggleVCMic(uid);
+                                };
+                            }
+                            const camBtn = document.getElementById(`vc-cam-btn-${uid}`);
+                            if (camBtn) {
+                                camBtn.onclick = (e) => {
+                                    e.stopPropagation();
+                                    window.toggleVCCam(uid);
+                                };
+                            }
+                        } else {
+                            if (controlsRow) {
+                                controlsRow.style.display = 'none';
+                                controlsRow.innerHTML = '';
+                            }
                         }
                     }
                 } else {
                     vcBtnContainer.style.display = 'none';
                     vcBtnContainer.innerHTML = '';
+                    if (controlsRow) {
+                        controlsRow.style.display = 'none';
+                        controlsRow.innerHTML = '';
+                    }
                     const preview = document.getElementById(`local-preview-${uid}`);
                     if (preview) preview.style.display = 'none';
                 }
@@ -4141,18 +4161,16 @@ function renderLiveGrid() {
                                 <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
                                 <span>${vcActive ? 'Tutup' : 'Hubungi'}</span>
                             </button>
-                            ${vcActive ? `
-                            <div id="vc-controls-row-${uid}" style="display:flex; gap:6px; margin-top:6px;">
-                                <button id="vc-mic-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
-                                    <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>${micActive ? 'Mute' : 'Unmute'}</span>
-                                </button>
-                                <button id="vc-cam-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${camActive ? '#18181b' : '#ef4444'}; border:1px solid ${camActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
-                                    <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>Matikan Cam</span>
-                                </button>
-                            </div>
-                            ` : ''}
                         `) : ''}
                     </div>
+                </div>
+                <div id="vc-controls-row-${uid}" style="display:${isWatching && vcActive && userRole === 'admin' ? 'flex' : 'none'}; gap:6px; margin-top:6px;">
+                    <button id="vc-mic-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
+                        <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>${micActive ? 'Mute' : 'Unmute'}</span>
+                    </button>
+                    <button id="vc-cam-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${camActive ? '#18181b' : '#ef4444'}; border:1px solid ${camActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
+                        <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>Matikan Cam</span>
+                    </button>
                 </div>
             </div>
         `;
