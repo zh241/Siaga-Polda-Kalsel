@@ -15,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart' hide ServiceStatus;
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 
 // Global ValueNotifier for ThemeMode
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
@@ -6437,6 +6438,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
   final _remoteRenderer = RTCVideoRenderer();
   MediaStream? _localStream;
   MediaStream? _remoteStream;
+  MediaRecorder? _mediaRecorder;
   final Map<String, RTCPeerConnection> _peerConnections = {};
   final Map<String, List<StreamSubscription>> _viewerSubscriptions = {};
   StreamSubscription<DatabaseEvent>? _viewersAddedSubscription;
@@ -6534,6 +6536,25 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
 
       _localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
       _localRenderer.srcObject = _localStream;
+
+      // Mulai rekam lokal ke penyimpanan HP
+      try {
+        final dir = await getExternalStorageDirectory();
+        final String folderPath = dir != null ? dir.path : (await getApplicationDocumentsDirectory()).path;
+        final String fileName = 'SIAGA_Live_${widget.nrp}_${DateTime.now().millisecondsSinceEpoch}.mp4';
+        final String savePath = '$folderPath/$fileName';
+        debugPrint("[MediaRecorder] Menyimpan rekaman lokal ke: $savePath");
+
+        _mediaRecorder = MediaRecorder();
+        await _mediaRecorder!.start(
+          savePath,
+          videoTrack: _localStream!.getVideoTracks().first,
+          audioTrack: _localStream!.getAudioTracks().isNotEmpty ? _localStream!.getAudioTracks().first : null,
+        );
+        debugPrint("[MediaRecorder] Rekaman lokal berhasil dimulai");
+      } catch (recErr) {
+        debugPrint("[MediaRecorder] Gagal memulai rekaman lokal: $recErr");
+      }
 
       setState(() {
         _statusText = 'Mulai Menunggu Penonton...';
@@ -6810,6 +6831,25 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
     final viewerIds = List<String>.from(_peerConnections.keys);
     for (var vid in viewerIds) {
       _cleanupViewerConnection(vid);
+    }
+
+    // Hentikan rekaman lokal jika sedang berjalan
+    if (_mediaRecorder != null) {
+      try {
+        await _mediaRecorder!.stop();
+        debugPrint("[MediaRecorder] Rekaman lokal disimpan");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Siaran berhasil direkam & disimpan di memori lokal HP'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (recErr) {
+        debugPrint("[MediaRecorder] Gagal menghentikan rekaman lokal: $recErr");
+      }
+      _mediaRecorder = null;
     }
 
     _localStream?.getTracks().forEach((track) {
