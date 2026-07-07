@@ -6439,6 +6439,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
   MediaStream? _localStream;
   MediaStream? _remoteStream;
   MediaRecorder? _mediaRecorder;
+  String? _lastSavePath;
   final Map<String, RTCPeerConnection> _peerConnections = {};
   final Map<String, List<StreamSubscription>> _viewerSubscriptions = {};
   StreamSubscription<DatabaseEvent>? _viewersAddedSubscription;
@@ -6477,6 +6478,10 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
   Future<bool> _requestMediaPermissions() async {
     final cameraStatus = await Permission.camera.request();
     final microphoneStatus = await Permission.microphone.request();
+    
+    // Request storage access permissions
+    await Permission.storage.request();
+    await Permission.manageExternalStorage.request();
 
     if (cameraStatus.isPermanentlyDenied || microphoneStatus.isPermanentlyDenied) {
       if (mounted) {
@@ -6802,9 +6807,12 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         await _mediaRecorder!.stop();
         debugPrint("[MediaRecorder] Rekaman lokal dihentikan manual");
         if (mounted) {
+          final isPublic = _lastSavePath?.contains('/Download/SIAGA') ?? false;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Rekaman dihentikan & disimpan di memori lokal HP'),
+            SnackBar(
+              content: Text(isPublic 
+                  ? 'Rekaman selesai! Disimpan di folder Download/SIAGA' 
+                  : 'Rekaman selesai! Disimpan di memori internal aplikasi'),
               backgroundColor: Colors.green,
             ),
           );
@@ -6829,10 +6837,20 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
       }
 
       try {
-        final dir = await getExternalStorageDirectory();
-        final String folderPath = dir != null ? dir.path : (await getApplicationDocumentsDirectory()).path;
+        String folderPath = '/storage/emulated/0/Download/SIAGA';
+        final siagaDir = Directory(folderPath);
+        if (!await siagaDir.exists()) {
+          try {
+            await siagaDir.create(recursive: true);
+          } catch (e) {
+            final dir = await getExternalStorageDirectory();
+            folderPath = dir != null ? dir.path : (await getApplicationDocumentsDirectory()).path;
+          }
+        }
+
         final String fileName = 'SIAGA_Live_${widget.nrp}_${DateTime.now().millisecondsSinceEpoch}.mp4';
         final String savePath = '$folderPath/$fileName';
+        _lastSavePath = savePath;
         debugPrint("[MediaRecorder] Menyimpan rekaman lokal ke: $savePath");
 
         _mediaRecorder = MediaRecorder();
@@ -6843,9 +6861,12 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         );
         debugPrint("[MediaRecorder] Rekaman lokal dimulai manual");
         if (mounted) {
+          final isPublic = folderPath.contains('/Download/SIAGA');
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Perekaman siaran lokal dimulai'),
+            SnackBar(
+              content: Text(isPublic 
+                  ? 'Merekam: Tersimpan di folder Download/SIAGA' 
+                  : 'Merekam: Tersimpan di memori internal aplikasi'),
               backgroundColor: Colors.blueAccent,
             ),
           );
@@ -6889,9 +6910,12 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         await _mediaRecorder!.stop();
         debugPrint("[MediaRecorder] Rekaman lokal disimpan");
         if (mounted) {
+          final isPublic = _lastSavePath?.contains('/Download/SIAGA') ?? false;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Siaran berhasil direkam & disimpan di memori lokal HP'),
+            SnackBar(
+              content: Text(isPublic 
+                  ? 'Siaran selesai! Rekaman disimpan di folder Download/SIAGA' 
+                  : 'Siaran selesai! Rekaman disimpan di memori internal aplikasi'),
               backgroundColor: Colors.green,
             ),
           );
