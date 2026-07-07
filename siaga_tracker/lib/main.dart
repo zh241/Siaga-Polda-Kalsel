@@ -1959,7 +1959,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         if (event.snapshot.value != null) {
           final data = Map<String, dynamic>.from(event.snapshot.value as Map);
           final target = data['target'] ?? 'ALL UNITS';
-          if (target == 'ALL UNITS' || target == _satker) {
+          if (target == 'ALL UNITS' || target == _satker || target == 'POL-$_nrp') {
             _munculkanPeringatanKomando(
               data['pesan'] ?? 'Pesan instruksi komando baru.',
               data['oleh'] ?? 'Admin',
