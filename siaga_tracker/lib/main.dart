@@ -6887,7 +6887,6 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         await _mediaRecorder!.start(
           savePath,
           videoTrack: _localStream!.getVideoTracks().first,
-          audioChannel: RecorderAudioChannel.INPUT,
         );
         debugPrint("[MediaRecorder] Rekaman lokal dimulai manual");
         if (mounted) {
