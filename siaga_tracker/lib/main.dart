@@ -5242,7 +5242,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     
     switch (_currentIndex) {
       case 0:
-        appBarTitle = _homeState == HomeMissionState.formData ? 'SITAP COMMAND' : 'SIAGA';
+        appBarTitle = 'SIAGA';
         if (_homeState == HomeMissionState.formData) {
           bodyContent = _buildHomeForm();
         } else if (_homeState == HomeMissionState.active) {

@@ -1448,6 +1448,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     flex-direction: column;
     height: auto !important;
     min-height: min-content;
+    max-width: 260px;
+    width: 100%;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 .stream-card:hover {
@@ -1538,6 +1540,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     grid-row: 1 / span 10 !important;
     border-color: rgba(16, 185, 129, 0.4) !important;
     box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+    max-width: none !important;
 }
 .live-grid.has-focus .stream-card.focused .stream-video-container {
     aspect-ratio: 16/9 !important;
