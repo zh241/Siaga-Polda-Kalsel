@@ -1355,14 +1355,20 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 .chat-bubble.me { background: #1d4ed8; color: #fff; border-top-right-radius: 4px; }
 .btn-delete-msg {
-    background: none;
-    border: none;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     color: var(--text-muted);
     opacity: 0;
     cursor: pointer;
-    padding: 4px;
-    font-size: 11px;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.2s ease;
+    margin: 0 4px;
 }
 .chat-msg-row:hover .btn-delete-msg {
     opacity: 0.6;
