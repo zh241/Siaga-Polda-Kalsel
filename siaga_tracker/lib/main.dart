@@ -1556,7 +1556,10 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   String _dmTargetName = ''; // Display name of DM target
   Map<String, int> _lastReadMap = {};
   bool _anyUnreadDms = false;
+  bool _anyUnreadPublic = false;
+  int _lastReadUmum = 0;
   StreamSubscription<DatabaseEvent>? _dmSubscription;
+  StreamSubscription<DatabaseEvent>? _umumChatSubscription;
   Map<String, dynamic> _latestDmData = {};
   String _selectedVehicleCategory = 'Jalan Kaki';
   String _noHpDinas = '';
@@ -1804,9 +1807,12 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         newMap[convId] = prefs.getInt(key) ?? 0;
       }
     }
+    final readUmum = prefs.getInt('umum_last_read') ?? 0;
+
     if (mounted) {
       setState(() {
         _lastReadMap = newMap;
+        _lastReadUmum = readUmum;
       });
     }
 
@@ -1826,6 +1832,57 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         _updateAnyUnreadDms(raw);
       } catch (e) {
         debugPrint('Error parsing DMs for unread badges: $e');
+      }
+    });
+
+    // Also listen to chat/umum for unread notifications
+    _umumChatSubscription = FirebaseDatabase.instance.ref('chat/umum').onValue.listen((event) {
+      if (event.snapshot.value == null) {
+        if (mounted) {
+          setState(() {
+            _anyUnreadPublic = false;
+          });
+        }
+        return;
+      }
+      try {
+        final raw = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+        bool unreadFound = false;
+        raw.forEach((key, val) {
+          if (val is Map) {
+            final msgTimeStr = val['waktu']?.toString() ?? '';
+            if (msgTimeStr.isNotEmpty) {
+              DateTime? parsedTime;
+              try {
+                parsedTime = DateTime.parse(msgTimeStr);
+              } catch (_) {}
+              if (parsedTime != null) {
+                final msgTime = parsedTime.millisecondsSinceEpoch;
+                final msgUid = val['uid']?.toString() ?? '';
+                
+                if (_chatPath == 'chat/umum' && _chatLevel == 'conversation' && _currentIndex == 1) {
+                  if (msgTime > _lastReadUmum) {
+                    _lastReadUmum = msgTime;
+                    SharedPreferences.getInstance().then((p) {
+                      p.setInt('umum_last_read', msgTime);
+                    });
+                  }
+                } else {
+                  if (msgUid != myUid && msgTime > _lastReadUmum) {
+                    unreadFound = true;
+                  }
+                }
+              }
+            }
+          }
+        });
+        if (mounted) {
+          setState(() {
+            _anyUnreadPublic = unreadFound;
+          });
+        }
+      } catch (e) {
+        debugPrint('Error parsing public chat for unread: $e');
       }
     });
   }
@@ -2676,6 +2733,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     _missionTimer?.cancel();
     _historyStream?.cancel();
     _dmSubscription?.cancel();
+    _umumChatSubscription?.cancel();
     _geofencesSubscription?.cancel();
     _settingsSubscription?.cancel();
     _userSubscription?.cancel();
@@ -4611,6 +4669,11 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 _chatPath = 'chat/umum';
                 _dmConvId = '';
                 _dmTargetName = 'Siaran Umum';
+                _anyUnreadPublic = false;
+                _lastReadUmum = DateTime.now().millisecondsSinceEpoch;
+              });
+              SharedPreferences.getInstance().then((prefs) {
+                prefs.setInt('umum_last_read', _lastReadUmum);
               });
             },
             child: Container(
@@ -4644,6 +4707,25 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                       ],
                     ),
                   ),
+                  if (_anyUnreadPublic)
+                    Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      width: 18,
+                      height: 18,
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text(
+                        '1',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
                 ],
               ),
@@ -4816,7 +4898,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                                     ),
                                     alignment: Alignment.center,
                                     child: const Text(
-                                      '!',
+                                      '1',
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 11,
@@ -5356,7 +5438,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         ),
         bottomNavigationBar: CustomBottomNavBar(
           currentIndex: _currentIndex,
-          hasUnread: _anyUnreadDms,
+          hasUnread: _anyUnreadDms || _anyUnreadPublic,
           onTap: (index) {
             setState(() {
               _currentIndex = index;

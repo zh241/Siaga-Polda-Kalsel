@@ -3814,13 +3814,15 @@ function initLiveOpsListener() {
     });
 }
 
-window.focusedStreamUid = null;
+window.focusedStreamUids = [];
 window.toggleFocusStream = function (uid) {
     if (!uid) return;
-    if (window.focusedStreamUid === uid) {
-        window.focusedStreamUid = null;
+    if (!window.focusedStreamUids) window.focusedStreamUids = [];
+    const idx = window.focusedStreamUids.indexOf(uid);
+    if (idx > -1) {
+        window.focusedStreamUids.splice(idx, 1);
     } else {
-        window.focusedStreamUid = uid;
+        window.focusedStreamUids.push(uid);
     }
     renderLiveGrid();
 };
@@ -4135,28 +4137,44 @@ function renderLiveGrid() {
         grid.style.display = 'none';
         emptyState.style.display = 'flex';
         grid.innerHTML = '';
-        window.focusedStreamUid = null;
+        window.focusedStreamUids = [];
         return;
     }
 
     emptyState.style.display = 'none';
     grid.style.display = 'grid';
 
-    const hasFocus = window.focusedStreamUid && window.activeStreams[window.focusedStreamUid];
+    // Clean up focusedStreamUids that are no longer active
+    window.focusedStreamUids = (window.focusedStreamUids || []).filter(uid => uids.includes(uid));
+
+    const hasFocus = window.focusedStreamUids.length > 0;
     if (hasFocus) {
         grid.classList.add('has-focus');
     } else {
         grid.classList.remove('has-focus');
     }
 
+    let focusedArea = document.getElementById('focused-streams-area');
     let otherStreamsRow = document.getElementById('other-streams-row');
+
     if (hasFocus) {
+        if (!focusedArea) {
+            focusedArea = document.createElement('div');
+            focusedArea.id = 'focused-streams-area';
+            focusedArea.className = 'focused-streams-area';
+            grid.appendChild(focusedArea);
+        }
         if (!otherStreamsRow) {
             otherStreamsRow = document.createElement('div');
             otherStreamsRow.id = 'other-streams-row';
             otherStreamsRow.className = 'other-streams-row';
+            grid.appendChild(otherStreamsRow);
         }
     } else {
+        if (focusedArea) {
+            focusedArea.remove();
+            focusedArea = null;
+        }
         if (otherStreamsRow) {
             otherStreamsRow.remove();
             otherStreamsRow = null;
@@ -4178,7 +4196,8 @@ function renderLiveGrid() {
         const audioUnmuted = activePeerConnections[uid] && activePeerConnections[uid].audioUnmuted;
         const streamFullName = ((info.pangkat || '').trim() + ' ' + (info.nama || 'Anggota')).trim();
 
-        const targetParent = (hasFocus && uid !== window.focusedStreamUid) ? otherStreamsRow : grid;
+        const isFocused = window.focusedStreamUids.includes(uid);
+        const targetParent = isFocused ? focusedArea : (hasFocus ? otherStreamsRow : grid);
 
         const statusLabel = isConnected ? 'Terhubung' : (isWatching ? 'Menghubungkan...' : 'Menunggu');
         const locationHtml = info.lastSeenAddress 
@@ -4192,7 +4211,7 @@ function renderLiveGrid() {
         // If card already exists, update dynamic parts
         const existingCard = document.getElementById(`stream-card-${uid}`);
         if (existingCard) {
-            if (uid === window.focusedStreamUid) {
+            if (isFocused) {
                 existingCard.classList.add('focused');
             } else {
                 existingCard.classList.remove('focused');
@@ -4200,7 +4219,7 @@ function renderLiveGrid() {
 
             const focusIcon = document.getElementById(`focus-icon-${uid}`);
             if (focusIcon) {
-                focusIcon.className = `fa-solid ${uid === window.focusedStreamUid ? 'fa-compress' : 'fa-expand'}`;
+                focusIcon.className = `fa-solid ${isFocused ? 'fa-compress' : 'fa-expand'}`;
             }
 
             const overlay = document.getElementById(`status-overlay-${uid}`);
@@ -4293,7 +4312,7 @@ function renderLiveGrid() {
         }
 
         const card = document.createElement('div');
-        card.className = `stream-card ${uid === window.focusedStreamUid ? 'focused' : ''}`;
+        card.className = `stream-card ${isFocused ? 'focused' : ''}`;
         if (isWatching) {
             card.className += ' watching';
         }
@@ -4825,10 +4844,11 @@ function closePeerConnection(uid) {
         delete window.webRecorders[uid];
     }
 
-    const theaterModal = document.getElementById('live-ops-theater-modal');
-    if (theaterModal && window.focusedStreamUid === uid) {
-        theaterModal.remove();
-        window.focusedStreamUid = null;
+        if (window.focusedStreamUids) {
+        const idx = window.focusedStreamUids.indexOf(uid);
+        if (idx > -1) {
+            window.focusedStreamUids.splice(idx, 1);
+        }
     }
 
     const conn = activePeerConnections[uid];

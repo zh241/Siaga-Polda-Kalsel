@@ -1566,3 +1566,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .live-grid.has-focus .other-streams-row .stream-card .stream-video-container {
     aspect-ratio: 4/3 !important;
 }
+
+.focused-streams-area {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 16px !important;
+    width: 100% !important;
+}
