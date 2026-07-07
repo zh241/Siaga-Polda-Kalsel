@@ -3959,7 +3959,7 @@ window.webRecorders = {};
 window.toggleWebRecord = function (uid, fullName) {
     const conn = activePeerConnections[uid];
     if (!conn) {
-        showToast('Koneksi tidak ditemukan. Tonton siaran terlebih dahulu.', 'error');
+        alert('Koneksi tidak ditemukan. Tonton siaran terlebih dahulu.', 'Peringatan', 'warning');
         return;
     }
 
@@ -3985,20 +3985,20 @@ window.toggleWebRecord = function (uid, fullName) {
             recordIcon.style.color = '#ef4444';
             recordIcon.style.animation = 'none';
         }
-        showToast(`Perekaman untuk ${fullName} selesai & diunduh.`, 'success');
+        alert(`Perekaman untuk ${fullName} selesai & diunduh.`, 'Berhasil', 'success');
         return;
     }
 
     // Start recording
     const videoEl = document.getElementById(`video-${uid}`);
     if (!videoEl || !videoEl.srcObject) {
-        showToast('Video belum aktif. Tunggu hingga video muncul.', 'error');
+        alert('Video belum aktif. Tunggu hingga video muncul.', 'Peringatan', 'warning');
         return;
     }
 
     const stream = videoEl.srcObject;
     if (stream.getTracks().length === 0) {
-        showToast('Tidak ada track media aktif untuk direkam.', 'error');
+        alert('Tidak ada track media aktif untuk direkam.', 'Peringatan', 'warning');
         return;
     }
 
@@ -4091,10 +4091,10 @@ window.toggleWebRecord = function (uid, fullName) {
             recordIcon.style.color = '#fff';
             recordIcon.style.animation = 'pulse 1s infinite';
         }
-        showToast(`Merekam siaran ${fullName} (Video + Suara)...`, 'info');
+        alert(`Merekam siaran ${fullName} (Video + Suara)...`, 'Info', 'info');
     } catch (err) {
         console.error('Failed to start MediaRecorder on web:', err);
-        showToast(`Gagal merekam siaran: ${err.message || err}`, 'error');
+        alert(`Gagal merekam siaran: ${err.message || err}`, 'Gagal', 'danger');
     }
 };
 
@@ -4150,12 +4150,12 @@ window.toggleVC = async function (uid) {
 
         renderLiveGrid();
         
-        window.showToast?.('Panggilan dua arah dihentikan.', 'info');
+        alert('Panggilan dua arah dihentikan.', 'Video Call', 'info');
     } else {
         console.log(`[WebRTC] Starting two-way VC for ${uid}`);
         const stream = await ensureLocalVCStream();
         if (!stream) {
-            window.showToast?.('Gagal mengakses kamera/mikrofon. Pastikan izin diberikan.', 'danger');
+            alert('Gagal mengakses kamera/mikrofon. Pastikan izin diberikan.', 'Error', 'danger');
             return;
         }
 
@@ -4194,7 +4194,7 @@ window.toggleVC = async function (uid) {
 
         renderLiveGrid();
         
-        window.showToast?.('Panggilan dua arah aktif! Personel lapangan dapat melihat/mendengar Anda.', 'success');
+        alert('Panggilan dua arah aktif! Personel lapangan dapat melihat/mendengar Anda.', 'Video Call', 'success');
     }
 };
 
@@ -4537,16 +4537,16 @@ function renderLiveGrid() {
                         <i class="fa-solid fa-circle" id="record-icon-${uid}" style="color:#ef4444; font-size:8px;"></i>
                         <span id="record-label-${uid}">Rekam</span>
                     </button>
-                    <div class="vc-container" style="flex:1; display:${isWatching ? 'block' : 'none'};">
-                        ${isWatching ? (userRole !== 'admin' ? `
-                            <div style="width:100%; text-align:center; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:600; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-muted); display:flex; align-items:center; justify-content:center; height:26px;">Mode Pantau</div>
-                        ` : `
-                            <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:26px;">
-                                <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
-                                <span>${vcActive ? 'Tutup' : 'Hubungi'}</span>
-                            </button>
-                        `) : ''}
-                    </div>
+                </div>
+                <div class="vc-container" style="display:${isWatching ? 'block' : 'none'}; margin-top:6px; width:100%;">
+                    ${isWatching ? (userRole !== 'admin' ? `
+                        <div style="width:100%; text-align:center; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:600; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-muted); display:flex; align-items:center; justify-content:center; height:26px;">Mode Pantau</div>
+                    ` : `
+                        <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:26px;">
+                            <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
+                            <span>${vcActive ? 'Tutup Panggilan' : 'Hubungi Video Call'}</span>
+                        </button>
+                    `) : ''}
                 </div>
                 <div id="vc-controls-row-${uid}" style="display:${isWatching && vcActive && userRole === 'admin' ? 'flex' : 'none'}; gap:6px; margin-top:6px;">
                     <button id="vc-mic-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${micActive ? '#18181b' : '#ef4444'}; border:1px solid ${micActive ? '#27272a' : 'transparent'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
