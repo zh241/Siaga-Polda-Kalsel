@@ -3159,16 +3159,28 @@ function renderChatFromMemory(msgsObj, container, emptyId, isFloat) {
             // My messages: bubble on the right (no avatar)
             row.innerHTML = `
                 <div class="msg-content">
-                    <div class="chat-bubble me">${escapeHtml(msg.pesan || '')}</div>
+                    <div class="d-flex align-items-center justify-content-end gap-2">
+                        <button class="btn-delete-msg" onclick="window.hapusPesanChat('${msg.key}')" title="Hapus Pesan">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                        <div class="chat-bubble me">${escapeHtml(msg.pesan || '')}</div>
+                    </div>
                     <div class="chat-msg-meta" style="text-align:right;">${waktu}</div>
                 </div>`;
         } else {
             // Others' messages: avatar + bubble on the left
+            const showDelete = userRole === 'admin';
             row.innerHTML = `
                 <div class="chat-avatar">${inisial}</div>
                 <div class="msg-content">
                     <div class="chat-sender-name">${nama}</div>
-                    <div class="chat-bubble other">${escapeHtml(msg.pesan || '')}</div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="chat-bubble other">${escapeHtml(msg.pesan || '')}</div>
+                        ${showDelete ? `
+                        <button class="btn-delete-msg" onclick="window.hapusPesanChat('${msg.key}')" title="Hapus Pesan">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>` : ''}
+                    </div>
                     <div class="chat-msg-meta">${waktu}</div>
                 </div>`;
         }
@@ -3177,6 +3189,15 @@ function renderChatFromMemory(msgsObj, container, emptyId, isFloat) {
 
     window.forceScrollToBottom(container);
 }
+
+window.hapusPesanChat = function (messageKey) {
+    window.showCustomConfirm("Hapus Pesan", "Apakah Anda yakin ingin menghapus pesan ini secara permanen?", () => {
+        const path = _chatPath + '/' + messageKey;
+        remove(ref(db, path)).catch(err => {
+            alert('Gagal menghapus pesan: ' + err.message, 'Error', 'danger');
+        });
+    }, "danger");
+};
 
 function renderChatMessages(snap, container, emptyId, isFloat) {
     const myUid = auth.currentUser ? auth.currentUser.uid : '';

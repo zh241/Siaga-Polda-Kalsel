@@ -4899,6 +4899,37 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     _updateAnyUnreadDms(_latestDmData);
   }
 
+  void _confirmDeleteMessage(String msgKey, String chatPath) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF18181B)
+            : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text('Hapus Pesan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        content: const Text('Apakah Anda yakin ingin menghapus pesan ini secara permanen?', style: TextStyle(fontSize: 14)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('BATAL', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              FirebaseDatabase.instance.ref('$chatPath/$msgKey').remove().then((_) {
+                _showSnackBar('Pesan berhasil dihapus.', Colors.green);
+              }).catchError((err) {
+                _showSnackBar('Gagal menghapus pesan: $err', Colors.red);
+              });
+            },
+            child: const Text('HAPUS', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Level 2: Chat conversation view
   Widget _buildChatConversation() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -5075,8 +5106,14 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                         if (isMe) const Spacer(),
                         Flexible(
                           flex: 0,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+                          child: GestureDetector(
+                            onLongPress: () {
+                              if (isMe || _role == 'admin') {
+                                _confirmDeleteMessage(msg['_key'] ?? '', chatPath);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
                             constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
                             decoration: BoxDecoration(
                               color: isMe ? const Color(0xFF1D4ED8) : cardColor,
@@ -5123,6 +5160,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                             ),
                           ),
                         ),
+                      ),
                         if (!isMe) const Spacer(),
                       ],
                     ),
