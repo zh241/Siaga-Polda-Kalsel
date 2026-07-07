@@ -3631,6 +3631,35 @@ window.focusStreamLocation = function (lat, lng, event) {
     switchPage('peta', document.getElementById('menu-peta'));
 };
 
+function setMediaBitrates(sdp, bitrateKbps) {
+    let lines = sdp.split('\r\n');
+    if (lines.length === 1) {
+        lines = sdp.split('\n');
+    }
+    let newLines = [];
+    let isVideoSection = false;
+
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        newLines.push(line);
+
+        if (line.indexOf('m=video') === 0) {
+            isVideoSection = true;
+        } else if (line.indexOf('m=') === 0) {
+            isVideoSection = false;
+        }
+
+        if (isVideoSection && (line.indexOf('m=video') === 0 || line.indexOf('c=IN') === 0)) {
+            let nextLine = lines[i + 1] || '';
+            if (nextLine.indexOf('b=AS:') !== 0) {
+                newLines.push('b=AS:' + bitrateKbps);
+                newLines.push('b=TIAS:' + (bitrateKbps * 1000));
+            }
+        }
+    }
+    return newLines.join('\r\n');
+}
+
 window.geocodedAddresses = {};
 window.getReverseGeocode = function (lat, lng, callback) {
     const latFixed = lat.toFixed(4);
@@ -4586,7 +4615,8 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
 
             console.log(`[WebRTC] Offer received, creating answer... (${pendingCandidates.length} pending candidates)`);
             try {
-                await pc.setRemoteDescription(new RTCSessionDescription(offerVal));
+                let modifiedOfferSdp = setMediaBitrates(offerVal.sdp, 2500);
+                await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: modifiedOfferSdp }));
                 remoteDescSet = true;
 
                 // Ambil senders dari transceivers yang otomatis dibuat oleh browser dari SDP Offer
@@ -4608,11 +4638,12 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
                 pendingCandidates.length = 0;
 
                 const answer = await pc.createAnswer();
-                await pc.setLocalDescription(answer);
+                let modifiedAnswerSdp = setMediaBitrates(answer.sdp, 2500);
+                await pc.setLocalDescription({ type: 'answer', sdp: modifiedAnswerSdp });
 
                 await set(ref(db, `streams/${uid}/viewers/${myViewerId}/sdp/answer`), {
                     type: answer.type,
-                    sdp: answer.sdp
+                    sdp: modifiedAnswerSdp
                 });
                 console.log('[WebRTC] Answer sent!');
             } catch (e) {

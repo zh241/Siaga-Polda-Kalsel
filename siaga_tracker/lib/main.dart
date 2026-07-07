@@ -6701,14 +6701,11 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
       // Dengarkan SDP Answer dari viewer ini
       final answerSub = viewerRef.child('sdp/answer').onValue.listen((event) async {
         final data = event.snapshot.value;
-        if (data == null) {
-          remoteDescriptionSet = false;
-          bufferedCandidates.clear();
-          return;
-        }
-        if (remoteDescriptionSet) return;
+        if (data == null || remoteDescriptionSet) return;
+
         final map = Map<String, dynamic>.from(data as Map);
-        final description = RTCSessionDescription(map['sdp'], map['type']);
+        String modifiedAnswerSdp = _setMediaBitrates(map['sdp'] ?? '', 2500);
+        final description = RTCSessionDescription(modifiedAnswerSdp, map['type']);
         await pc.setRemoteDescription(description);
         remoteDescriptionSet = true;
         for (var cand in bufferedCandidates) {
@@ -6723,6 +6720,10 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         'offerToReceiveAudio': true,
         'offerToReceiveVideo': true,
       });
+
+      // Modifikasi SDP untuk menaikkan bitrate video (2500 kbps) agar video HD tajam dan jernih
+      String modifiedOfferSdp = _setMediaBitrates(offer.sdp ?? '', 2500);
+      offer = RTCSessionDescription(modifiedOfferSdp, offer.type);
 
       await pc.setLocalDescription(offer);
 
@@ -6801,6 +6802,35 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
     }
   }
 
+  String _setMediaBitrates(String sdp, int bitrateKbps) {
+    List<String> lines = sdp.split('\r\n');
+    if (lines.length == 1) {
+      lines = sdp.split('\n');
+    }
+    List<String> newLines = [];
+    bool isVideoSection = false;
+
+    for (int i = 0; i < lines.length; i++) {
+      String line = lines[i];
+      newLines.add(line);
+
+      if (line.startsWith('m=video')) {
+        isVideoSection = true;
+      } else if (line.startsWith('m=')) {
+        isVideoSection = false;
+      }
+
+      if (isVideoSection && (line.startsWith('m=video') || line.startsWith('c=IN'))) {
+        String nextLine = (i + 1 < lines.length) ? lines[i + 1] : '';
+        if (!nextLine.startsWith('b=AS:')) {
+          newLines.add('b=AS:$bitrateKbps');
+          newLines.add('b=TIAS:${bitrateKbps * 1000}');
+        }
+      }
+    }
+    return newLines.join('\r\n');
+  }
+
   Future<void> _toggleLocalRecording() async {
     if (_mediaRecorder != null) {
       try {
@@ -6848,7 +6878,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
           }
         }
 
-        final String fileName = 'SIAGA_Live_${widget.nrp}_${DateTime.now().millisecondsSinceEpoch}.mp4';
+        final String fileName = 'SIAGA_Live_${widget.nrp}_${DateTime.now().millisecondsSinceEpoch}.webm';
         final String savePath = '$folderPath/$fileName';
         _lastSavePath = savePath;
         debugPrint("[MediaRecorder] Menyimpan rekaman lokal ke: $savePath");
