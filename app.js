@@ -3011,7 +3011,8 @@ let _listener = null;
 let _chatFloatListener = null;
 let _chatFloatUnsubs = [];
 let _chatFloatOpen = false;
-let _chatUnread = 0;
+let _unreadPublicCount = 0;
+let _unreadDmCount = 0;
 let _chatRefreshInterval = null;
 let _chatUnsubs = []; // Track all chat listeners for cleanup
 let _dmContactListeners = []; // DM sidebar listeners
@@ -3036,13 +3037,8 @@ window.switchChatChannel = function (channel, btn) {
     if (icon) { icon.className = 'fa-solid fa-hashtag'; icon.style.color = 'var(--text-muted)'; }
     if (inp) inp.placeholder = 'Kirim pesan ke #siaran-umum...';
     
-    _chatUnread = 0;
-    const b1 = document.getElementById('badge-chat');
-    const b2 = document.getElementById('badge-ch-umum');
-    const b3 = document.getElementById('chat-float-badge');
-    if (b1) { b1.style.display = 'none'; b1.textContent = '0'; }
-    if (b2) { b2.style.display = 'none'; b2.textContent = '0'; }
-    if (b3) { b3.style.display = 'none'; b3.textContent = '0'; }
+    _unreadPublicCount = 0;
+    updateGlobalChatBadges();
 
     initChatListener();
 };
@@ -3376,9 +3372,12 @@ window.openPrivateChat = async function (targetUid, targetName) {
     const lastReadKey = `dm_last_read_${convId}`;
     localStorage.setItem(lastReadKey, Date.now().toString());
 
-    // Clear badge for this contact
-    const badge = document.querySelector(`.dm-contact-btn[data-uid="${targetUid}"] .dm-badge`);
-    if (badge) { badge.style.display = 'none'; badge.textContent = '0'; }
+    // Recalculate _unreadDmCount and global badges
+    const badge = document.getElementById(`dm-badge-${targetUid}`);
+    if (badge && badge.style.display !== 'none') {
+        _unreadDmCount = Math.max(0, _unreadDmCount - 1);
+        updateGlobalChatBadges();
+    }
 
     initChatListener();
 };
@@ -3452,13 +3451,55 @@ function loadContactList() {
     _dmContactListeners.push(unsub);
 }
 
+function updateGlobalChatBadges() {
+    const totalUnread = _unreadPublicCount + _unreadDmCount;
+    const badgeText = totalUnread > 99 ? '99+' : totalUnread;
+    
+    const badge = document.getElementById('chat-float-badge');
+    if (badge) {
+        if (totalUnread > 0) {
+            badge.style.display = 'flex';
+            badge.textContent = badgeText;
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+    
+    const badgeMain = document.getElementById('badge-chat');
+    if (badgeMain) {
+        if (totalUnread > 0) {
+            badgeMain.style.display = 'inline-block';
+            badgeMain.textContent = badgeText;
+        } else {
+            badgeMain.style.display = 'none';
+        }
+    }
+
+    const badgeUmum = document.getElementById('badge-ch-umum');
+    if (badgeUmum) {
+        if (_unreadPublicCount > 0) {
+            badgeUmum.style.display = 'inline-block';
+            badgeUmum.textContent = _unreadPublicCount > 99 ? '99+' : _unreadPublicCount;
+        } else {
+            badgeUmum.style.display = 'none';
+        }
+    }
+}
+
 /**
  * Listen for lastMessage updates in DM conversations for preview.
  */
 function listenDmPreviews(myUid, users) {
     const dmRef = ref(db, 'chat/dm');
     const unsub = onValue(dmRef, (snap) => {
-        if (!snap.exists()) return;
+        if (!snap.exists()) {
+            _unreadDmCount = 0;
+            updateGlobalChatBadges();
+            return;
+        }
+        
+        let localDmUnread = 0;
+        
         snap.forEach(child => {
             const conv = child.val();
             const participants = conv.participants || {};
@@ -3487,18 +3528,35 @@ function listenDmPreviews(myUid, users) {
             }
 
             const badgeEl = document.getElementById(`dm-badge-${otherUid}`);
+            const hasMessage = conv.lastMessage && conv.lastMessage !== '-';
+            const isFromOther = lastSender ? lastSender !== myUid : false;
+            const isUnread = hasMessage && isFromOther && updatedAt > lastRead && _currentDmTargetUid !== otherUid;
+
+            if (isUnread) {
+                localDmUnread++;
+            }
+
             if (badgeEl) {
-                // Show "new" indicator if conv updated after last read AND user is not viewing this conv AND last sender is not current user
-                const hasMessage = conv.lastMessage && conv.lastMessage !== '-';
-                const isFromOther = lastSender ? lastSender !== myUid : false;
-                if (hasMessage && isFromOther && updatedAt > lastRead && _currentDmTargetUid !== otherUid) {
+                if (isUnread) {
                     badgeEl.style.display = 'flex';
-                    badgeEl.textContent = '!';
+                    badgeEl.textContent = '1';
+                    badgeEl.style.background = '#ef4444';
+                    badgeEl.style.color = '#fff';
+                    badgeEl.style.borderRadius = '50%';
+                    badgeEl.style.width = '16px';
+                    badgeEl.style.height = '16px';
+                    badgeEl.style.fontSize = '9px';
+                    badgeEl.style.fontWeight = 'bold';
+                    badgeEl.style.alignItems = 'center';
+                    badgeEl.style.justifyContent = 'center';
                 } else {
                     badgeEl.style.display = 'none';
                 }
             }
         });
+
+        _unreadDmCount = localDmUnread;
+        updateGlobalChatBadges();
     });
     _dmContactListeners.push(unsub);
 }
@@ -3527,9 +3585,8 @@ window.toggleFloatingChat = function () {
     _chatFloatOpen = !_chatFloatOpen;
     if (_chatFloatOpen) {
         panel.style.display = 'flex';
-        _chatUnread = 0;
-        const badge = document.getElementById('chat-float-badge');
-        if (badge) { badge.style.display = 'none'; badge.textContent = '0'; }
+        _unreadPublicCount = 0;
+        updateGlobalChatBadges();
         
         // Auto scroll to bottom when panel is shown
         const floatArea = document.getElementById('chat-float-messages');
@@ -3590,24 +3647,19 @@ function initChatUI() {
             console.log(`[Chat-Float] Initial load: ${Object.keys(floatMessages).length} messages`);
         } else {
             // Check for new messages (not in current store) — count as unread
+            let newPublicUnread = 0;
             for (const key in newMessages) {
                 const activePage = document.querySelector('.page-view.active');
                 const isViewingUmum = (activePage && activePage.id === 'page-chat' && _chatChannel === 'umum');
                 
                 if (!floatMessages[key] && !_chatFloatOpen && !isViewingUmum) {
-                    _chatUnread++;
-                    const badgeText = _chatUnread > 99 ? '99+' : _chatUnread;
-                    
-                    const badge = document.getElementById('chat-float-badge');
-                    if (badge) { badge.style.display = 'flex'; badge.textContent = badgeText; }
-                    
-                    const badgeMain = document.getElementById('badge-chat');
-                    if (badgeMain) { badgeMain.style.display = 'inline-block'; badgeMain.textContent = badgeText; }
-                    
-                    const badgeUmum = document.getElementById('badge-ch-umum');
-                    if (badgeUmum) { badgeUmum.style.display = 'inline-block'; badgeUmum.textContent = badgeText; }
+                    newPublicUnread++;
                 }
                 floatMessages[key] = newMessages[key];
+            }
+            if (newPublicUnread > 0) {
+                _unreadPublicCount += newPublicUnread;
+                updateGlobalChatBadges();
             }
             // Remove deleted
             for (const key in floatMessages) {
