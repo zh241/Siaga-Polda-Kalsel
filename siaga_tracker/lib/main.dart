@@ -7264,7 +7264,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
                     ),
                     icon: const Icon(Icons.stop_circle_rounded),
                     label: const Text(
-                      'SELESAI TUGAS',
+                      'HENTIKAN LIVE',
                       style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
                     ),
                     onPressed: () => Navigator.of(context).pop(),
