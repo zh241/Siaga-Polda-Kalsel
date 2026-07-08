@@ -3929,14 +3929,50 @@ window.toggleWebRecord = function (uid, fullName) {
         }
 
         const recordStream = new MediaStream(tracksToRecord);
+
+        // Deteksi apakah video dari HP dalam mode portrait (tinggi > lebar)
+        // Jika iya, gunakan canvas untuk merotasi agar rekaman tidak terbalik
+        let finalStream = recordStream;
+        const vt = tracksToRecord.find(t => t.kind === 'video');
+        if (vt) {
+            const settings = vt.getSettings();
+            const isPortrait = settings.height > settings.width;
+            if (isPortrait) {
+                // Rekam menggunakan canvas yang sudah dirotasi dengan benar
+                const canvas = document.createElement('canvas');
+                canvas.width = settings.height || 720;
+                canvas.height = settings.width || 1280;
+                const ctx2d = canvas.getContext('2d');
+                const tmpVideo = document.createElement('video');
+                tmpVideo.srcObject = new MediaStream([vt]);
+                tmpVideo.muted = true;
+                tmpVideo.play();
+                const drawFrame = () => {
+                    if (tmpVideo.readyState >= 2) {
+                        ctx2d.save();
+                        ctx2d.translate(canvas.width / 2, canvas.height / 2);
+                        ctx2d.rotate(Math.PI / 2);
+                        ctx2d.drawImage(tmpVideo, -tmpVideo.videoWidth / 2, -tmpVideo.videoHeight / 2);
+                        ctx2d.restore();
+                    }
+                    requestAnimationFrame(drawFrame);
+                };
+                drawFrame();
+                const canvasVideoTrack = canvas.captureStream(30).getVideoTracks()[0];
+                const audioTracks = tracksToRecord.filter(t => t.kind === 'audio');
+                finalStream = new MediaStream([canvasVideoTrack, ...audioTracks]);
+                console.log('[WebRTC] Portrait video detected, recording with canvas rotation');
+            }
+        }
+
         const options = { mimeType: 'video/webm;codecs=vp8,opus' };
         
         let mediaRecorder;
         try {
-            mediaRecorder = new MediaRecorder(recordStream, options);
+            mediaRecorder = new MediaRecorder(finalStream, options);
         } catch (mimeErr) {
             console.warn('[WebRTC] fallback to default MediaRecorder mimeType');
-            mediaRecorder = new MediaRecorder(recordStream);
+            mediaRecorder = new MediaRecorder(finalStream);
         }
 
         mediaRecorder.ondataavailable = (event) => {
@@ -4831,7 +4867,7 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
     }
 }
 
-function closePeerConnection(uid) {
+function closePeerConnection(uid, shouldStopStreamOnMobile = false) {
     if (window.webRecorders && window.webRecorders[uid]) {
         try {
             window.webRecorders[uid].stop();
@@ -4853,7 +4889,13 @@ function closePeerConnection(uid) {
 
     console.log(`Closing peer connection for ${uid}`);
 
-    // Clean up Firebase VC status only - do NOT touch active flag (that would kill the mobile stream)
+    // Jika admin klik Hentikan → matikan live di HP juga
+    if (shouldStopStreamOnMobile) {
+        set(ref(db, `streams/${uid}/info/active`), false);
+        console.log(`[WebRTC] Admin menghentikan live HP: ${uid}`);
+    }
+
+    // Bersihkan status VC
     set(ref(db, `streams/${uid}/info/vcActive`), null);
     set(ref(db, `streams/${uid}/info/vcVideoActive`), null);
 

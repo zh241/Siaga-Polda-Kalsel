@@ -7014,7 +7014,8 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
           }
         }
 
-        final String fileName = 'SIAGA_Live_${widget.nrp}_${DateTime.now().millisecondsSinceEpoch}.webm';
+        // Gunakan .mp4 karena Android mendukung penuh format ini (webm sering 0 byte)
+        final String fileName = 'SIAGA_Live_${widget.nrp}_${DateTime.now().millisecondsSinceEpoch}.mp4';
         final String savePath = '$folderPath/$fileName';
         _lastSavePath = savePath;
         debugPrint("[MediaRecorder] Menyimpan rekaman lokal ke: $savePath");
@@ -7022,7 +7023,13 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         _mediaRecorder = MediaRecorder();
         await _mediaRecorder!.start(
           savePath,
-          videoTrack: _localStream!.getVideoTracks().first,
+          videoTrack: _localStream!.getVideoTracks().isNotEmpty
+              ? _localStream!.getVideoTracks().first
+              : null,
+          audioTrack: _localStream!.getAudioTracks().isNotEmpty
+              ? _localStream!.getAudioTracks().first
+              : null,
+          rotation: 90, // Koreksi rotasi portrait agar rekaman tidak terbalik
         );
         debugPrint("[MediaRecorder] Rekaman lokal dimulai manual");
         if (mounted) {
