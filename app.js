@@ -4707,8 +4707,15 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
             viewerId: myViewerId
         };
 
+        const viewerRef = ref(db, `streams/${uid}/viewers/${myViewerId}`);
+        // Tulis ulang seluruh node viewer dengan timestamp agar menjamin trigger onChildChanged di HP
+        // sekaligus membersihkan sdp & candidates sisa sesi sebelumnya.
+        await set(viewerRef, {
+            status: 'request',
+            timestamp: Date.now()
+        });
+
         const viewerStatusRef = ref(db, `streams/${uid}/viewers/${myViewerId}/status`);
-        await set(viewerStatusRef, 'request');
 
         // Dengarkan perubahan status: kalau kembali jadi 'request', web sedang reinisialisasi signaling
         // Dalam kasus ini kita akan menghapus koneksi lama dan tidak perlu bereaksi — HP yang akan kirim offer baru
@@ -4777,10 +4784,7 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
             }
         };
 
-        // Bersihkan answer & receiver candidates lama
-        await set(ref(db, `streams/${uid}/viewers/${myViewerId}/sdp/answer`), null);
-        await set(ref(db, `streams/${uid}/viewers/${myViewerId}/candidates/receiver`), null);
-
+        // (Answer dan receiver candidates lama sudah terhapus saat kita menimpa viewerRef di atas)
         pc.onicecandidate = (event) => {
             if (event.candidate) {
                 console.log(`[WebRTC] Local ICE candidate: ${event.candidate.candidate.substring(0, 60)}...`);
