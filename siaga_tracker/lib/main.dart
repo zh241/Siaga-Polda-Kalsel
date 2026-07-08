@@ -6613,9 +6613,9 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         },
         'video': {
           'mandatory': {
-            'minWidth': '640',
-            'minHeight': '360',
-            'minFrameRate': '30',
+            'minWidth': 640,
+            'minHeight': 360,
+            'minFrameRate': 30,
           },
           'facingMode': _isFrontCamera ? 'user' : 'environment',
           'optional': [
