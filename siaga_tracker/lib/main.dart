@@ -6525,6 +6525,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
   final Map<String, RTCPeerConnection> _peerConnections = {};
   final Map<String, List<StreamSubscription>> _viewerSubscriptions = {};
   StreamSubscription<DatabaseEvent>? _viewersAddedSubscription;
+  StreamSubscription<DatabaseEvent>? _viewersChangedSubscription;
   StreamSubscription<DatabaseEvent>? _viewersRemovedSubscription;
   StreamSubscription<DatabaseEvent>? _activeStreamSubscription;
   bool _isVCActive = false;
@@ -6647,46 +6648,46 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         'startedAt': DateTime.now().toIso8601String(),
       });
 
-      // Dengarkan perubahan pada semua viewers secara real-time
-      // Menggunakan onValue agar bisa mendeteksi ketika viewer LAMA menulis ulang status='request'
-      // (onChildAdded hanya terpanggil sekali per viewerId, tidak bisa mendeteksi re-init)
-      _viewersAddedSubscription = streamRef.child('viewers').onValue.listen((event) async {
-        if (event.snapshot.value == null) return;
-        final viewersRaw = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+      // Set untuk mencegah double-setup pada viewer yang sama
+      final Set<String> _setupInProgress = {};
 
-        for (final entry in viewersRaw.entries) {
-          final viewerId = entry.key as String;
-          final viewerData = entry.value is Map
-              ? Map<String, dynamic>.from(entry.value as Map)
-              : <String, dynamic>{};
-          final status = viewerData['status']?.toString() ?? '';
-
-          if (status != 'request') continue; // Hanya proses yang minta koneksi baru
-
-          // Batasi maksimal 3 penonton
+      Future<void> handleViewerRequest(String viewerId) async {
+        if (_setupInProgress.contains(viewerId)) return; // sedang diproses, skip
+        _setupInProgress.add(viewerId);
+        try {
           if (_peerConnections.length >= 3 && !_peerConnections.containsKey(viewerId)) {
-            debugPrint("[WebRTC] Penonton penuh, menolak viewer: $viewerId");
+            debugPrint("[WebRTC] Penonton penuh, menolak: $viewerId");
             await streamRef.child('viewers/$viewerId/status').set('rejected_full');
-            continue;
+            return;
           }
-
-          // Jika sudah ada koneksi aktif & sehat untuk viewer ini, skip
-          final existingPc = _peerConnections[viewerId];
-          if (existingPc != null &&
-              existingPc.connectionState == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
-            debugPrint("[WebRTC] Viewer $viewerId sudah terhubung, skip re-init");
-            continue;
-          }
-
-          // Kalau ada koneksi lama yang rusak/putus, bersihkan dulu
-          if (existingPc != null) {
-            debugPrint("[WebRTC] Viewer $viewerId request ulang, teardown koneksi lama");
+          // Bersihkan koneksi lama jika ada
+          if (_peerConnections.containsKey(viewerId)) {
+            debugPrint("[WebRTC] Viewer $viewerId re-init, teardown koneksi lama");
             _cleanupViewerConnection(viewerId);
           }
-
-          debugPrint("[WebRTC] Setup koneksi untuk viewer: $viewerId (status=$status)");
+          debugPrint("[WebRTC] Setup koneksi untuk viewer: $viewerId");
           await _setupViewerConnection(viewerId);
+        } finally {
+          _setupInProgress.remove(viewerId);
         }
+      }
+
+      // onChildAdded: viewer BARU yang pertama kali masuk
+      _viewersAddedSubscription = streamRef.child('viewers').onChildAdded.listen((event) async {
+        final viewerId = event.snapshot.key;
+        if (viewerId == null) return;
+        final data = event.snapshot.value;
+        final status = data is Map ? (data['status']?.toString() ?? '') : '';
+        if (status == 'request') await handleViewerRequest(viewerId);
+      });
+
+      // onChildChanged: viewer LAMA yang menulis ulang status='request' (web reinisialisasi)
+      _viewersChangedSubscription = streamRef.child('viewers').onChildChanged.listen((event) async {
+        final viewerId = event.snapshot.key;
+        if (viewerId == null) return;
+        final data = event.snapshot.value;
+        final status = data is Map ? (data['status']?.toString() ?? '') : '';
+        if (status == 'request') await handleViewerRequest(viewerId);
       });
 
       // Dengarkan jika ada penonton yang keluar
@@ -7059,6 +7060,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
 
     _activeStreamSubscription?.cancel();
     _viewersAddedSubscription?.cancel();
+    _viewersChangedSubscription?.cancel();
     _viewersRemovedSubscription?.cancel();
     _vcActiveSubscription?.cancel();
     _vcVideoActiveSubscription?.cancel();
