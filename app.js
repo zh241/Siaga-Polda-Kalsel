@@ -4431,7 +4431,7 @@ function renderLiveGrid() {
 
 window.toggleWatchStream = function (uid, fullName) {
     if (activePeerConnections[uid]) {
-        closePeerConnection(uid);
+        closePeerConnection(uid, true);
         renderLiveGrid();
     } else {
         startWebRTCReceiver(uid, fullName, false);
@@ -4829,7 +4829,7 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
     }
 }
 
-function closePeerConnection(uid) {
+function closePeerConnection(uid, shouldStopStreamOnMobile = false) {
     if (window.webRecorders && window.webRecorders[uid]) {
         try {
             window.webRecorders[uid].stop();
@@ -4839,7 +4839,7 @@ function closePeerConnection(uid) {
         delete window.webRecorders[uid];
     }
 
-        if (window.focusedStreamUids) {
+    if (window.focusedStreamUids) {
         const idx = window.focusedStreamUids.indexOf(uid);
         if (idx > -1) {
             window.focusedStreamUids.splice(idx, 1);
@@ -4852,7 +4852,9 @@ function closePeerConnection(uid) {
     console.log(`Closing peer connection for ${uid}`);
 
     // Clean up Firebase VC status & force-stop the stream on mobile
-    set(ref(db, `streams/${uid}/info/active`), false);
+    if (shouldStopStreamOnMobile) {
+        set(ref(db, `streams/${uid}/info/active`), false);
+    }
     set(ref(db, `streams/${uid}/info/vcActive`), null);
     set(ref(db, `streams/${uid}/info/vcVideoActive`), null);
 
