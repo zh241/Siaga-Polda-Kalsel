@@ -2035,13 +2035,8 @@ window.switchPage = function (pageId, element) {
         if (typeof initChatListener === 'function') initChatListener();
         window.forceScrollToBottom(document.getElementById('chat-messages-area'));
         if (typeof _chatChannel !== 'undefined' && _chatChannel === 'umum') {
-            _chatUnread = 0;
-            const b1 = document.getElementById('badge-chat');
-            const b2 = document.getElementById('badge-ch-umum');
-            const b3 = document.getElementById('chat-float-badge');
-            if (b1) { b1.style.display = 'none'; b1.textContent = '0'; }
-            if (b2) { b2.style.display = 'none'; b2.textContent = '0'; }
-            if (b3) { b3.style.display = 'none'; b3.textContent = '0'; }
+            _unreadPublicCount = 0;
+            if (typeof updateGlobalChatBadges === 'function') updateGlobalChatBadges();
         }
     }
 
