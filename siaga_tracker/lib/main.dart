@@ -6647,20 +6647,46 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         'startedAt': DateTime.now().toIso8601String(),
       });
 
-      // Dengarkan jika ada penonton (viewer) baru masuk
-      _viewersAddedSubscription = streamRef.child('viewers').onChildAdded.listen((event) async {
-        final viewerId = event.snapshot.key;
-        if (viewerId == null) return;
+      // Dengarkan perubahan pada semua viewers secara real-time
+      // Menggunakan onValue agar bisa mendeteksi ketika viewer LAMA menulis ulang status='request'
+      // (onChildAdded hanya terpanggil sekali per viewerId, tidak bisa mendeteksi re-init)
+      _viewersAddedSubscription = streamRef.child('viewers').onValue.listen((event) async {
+        if (event.snapshot.value == null) return;
+        final viewersRaw = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
 
-        // Batasi maksimal 3 penonton
-        if (_peerConnections.length >= 3) {
-          debugPrint("[WebRTC] Penonton penuh, menolak viewer: $viewerId");
-          await streamRef.child('viewers/$viewerId/status').set('rejected_full');
-          return;
+        for (final entry in viewersRaw.entries) {
+          final viewerId = entry.key as String;
+          final viewerData = entry.value is Map
+              ? Map<String, dynamic>.from(entry.value as Map)
+              : <String, dynamic>{};
+          final status = viewerData['status']?.toString() ?? '';
+
+          if (status != 'request') continue; // Hanya proses yang minta koneksi baru
+
+          // Batasi maksimal 3 penonton
+          if (_peerConnections.length >= 3 && !_peerConnections.containsKey(viewerId)) {
+            debugPrint("[WebRTC] Penonton penuh, menolak viewer: $viewerId");
+            await streamRef.child('viewers/$viewerId/status').set('rejected_full');
+            continue;
+          }
+
+          // Jika sudah ada koneksi aktif & sehat untuk viewer ini, skip
+          final existingPc = _peerConnections[viewerId];
+          if (existingPc != null &&
+              existingPc.connectionState == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+            debugPrint("[WebRTC] Viewer $viewerId sudah terhubung, skip re-init");
+            continue;
+          }
+
+          // Kalau ada koneksi lama yang rusak/putus, bersihkan dulu
+          if (existingPc != null) {
+            debugPrint("[WebRTC] Viewer $viewerId request ulang, teardown koneksi lama");
+            _cleanupViewerConnection(viewerId);
+          }
+
+          debugPrint("[WebRTC] Setup koneksi untuk viewer: $viewerId (status=$status)");
+          await _setupViewerConnection(viewerId);
         }
-
-        debugPrint("[WebRTC] Penonton baru terdeteksi: $viewerId");
-        await _setupViewerConnection(viewerId);
       });
 
       // Dengarkan jika ada penonton yang keluar
@@ -6823,33 +6849,6 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         bufferedCandidates.clear();
       });
       _viewerSubscriptions[viewerId]!.add(answerSub);
-
-      // Dengarkan ketika web menghapus offer (sdp/offer == null) artinya web sedang re-inisialisasi
-      // HP harus mengirim ulang offer baru agar web bisa menangkapnya dengan listener yang baru
-      final offerStatusSub = viewerRef.child('sdp/offer').onValue.listen((event) async {
-        // Kalau offer masih ada, abaikan (sudah dikirim)
-        if (event.snapshot.value != null) return;
-        // Kalau sudah dapat answer (terhubung), abaikan
-        if (remoteDescriptionSet) return;
-        // Offer dihapus oleh web → kirim ulang offer baru
-        debugPrint("[WebRTC] Offer cleared by web, re-sending fresh offer for $viewerId");
-        try {
-          RTCSessionDescription newOffer = await pc.createOffer({
-            'offerToReceiveAudio': true,
-            'offerToReceiveVideo': true,
-          });
-          String modifiedSdp = _setMediaBitrates(newOffer.sdp ?? '', 2500);
-          newOffer = RTCSessionDescription(modifiedSdp, newOffer.type);
-          await pc.setLocalDescription(newOffer);
-          await viewerRef.child('sdp/offer').set({
-            'type': newOffer.type,
-            'sdp': newOffer.sdp,
-          });
-        } catch (e) {
-          debugPrint("[WebRTC] Error re-sending offer for $viewerId: $e");
-        }
-      });
-      _viewerSubscriptions[viewerId]!.add(offerStatusSub);
 
       // Buat SDP Offer khusus untuk viewer ini
       RTCSessionDescription offer = await pc.createOffer({
