@@ -4674,6 +4674,8 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
         const viewerStatusRef = ref(db, `streams/${uid}/viewers/${myViewerId}/status`);
         await set(viewerStatusRef, 'request');
 
+        // Dengarkan perubahan status: kalau kembali jadi 'request', web sedang reinisialisasi signaling
+        // Dalam kasus ini kita akan menghapus koneksi lama dan tidak perlu bereaksi — HP yang akan kirim offer baru
         activePeerConnections[uid].statusListener = onValue(viewerStatusRef, (snapshot) => {
             const status = snapshot.val();
             if (status === 'rejected_full') {
@@ -4739,7 +4741,9 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
             }
         };
 
-        // Bersihkan answer & receiver candidates lama (JANGAN hapus candidates/streamer - itu milik streamer dan masih valid)
+        // Bersihkan data signaling lama SEBELUM mendaftar listener
+        // Menghapus offer lama memaksa HP mengirim offer BARU sehingga listener pasti menangkapnya
+        await set(ref(db, `streams/${uid}/viewers/${myViewerId}/sdp/offer`), null);
         await set(ref(db, `streams/${uid}/viewers/${myViewerId}/sdp/answer`), null);
         await set(ref(db, `streams/${uid}/viewers/${myViewerId}/candidates/receiver`), null);
 
@@ -4789,9 +4793,9 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
                 await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: modifiedOfferSdp }));
                 remoteDescSet = true;
 
-                // Ambil senders dari transceivers yang otomatis dibuat oleh browser dari SDP Offer
+                // Set transceiver ke recvonly karena web hanya menonton (tidak kirim video ke HP)
                 pc.getTransceivers().forEach(transceiver => {
-                    transceiver.direction = 'sendrecv';
+                    transceiver.direction = 'recvonly';
                     const kind = transceiver.receiver.track.kind;
                     if (kind === 'video') {
                         activePeerConnections[uid].videoSender = transceiver.sender;

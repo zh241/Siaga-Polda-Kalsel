@@ -6824,6 +6824,33 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
       });
       _viewerSubscriptions[viewerId]!.add(answerSub);
 
+      // Dengarkan ketika web menghapus offer (sdp/offer == null) artinya web sedang re-inisialisasi
+      // HP harus mengirim ulang offer baru agar web bisa menangkapnya dengan listener yang baru
+      final offerStatusSub = viewerRef.child('sdp/offer').onValue.listen((event) async {
+        // Kalau offer masih ada, abaikan (sudah dikirim)
+        if (event.snapshot.value != null) return;
+        // Kalau sudah dapat answer (terhubung), abaikan
+        if (remoteDescriptionSet) return;
+        // Offer dihapus oleh web → kirim ulang offer baru
+        debugPrint("[WebRTC] Offer cleared by web, re-sending fresh offer for $viewerId");
+        try {
+          RTCSessionDescription newOffer = await pc.createOffer({
+            'offerToReceiveAudio': true,
+            'offerToReceiveVideo': true,
+          });
+          String modifiedSdp = _setMediaBitrates(newOffer.sdp ?? '', 2500);
+          newOffer = RTCSessionDescription(modifiedSdp, newOffer.type);
+          await pc.setLocalDescription(newOffer);
+          await viewerRef.child('sdp/offer').set({
+            'type': newOffer.type,
+            'sdp': newOffer.sdp,
+          });
+        } catch (e) {
+          debugPrint("[WebRTC] Error re-sending offer for $viewerId: $e");
+        }
+      });
+      _viewerSubscriptions[viewerId]!.add(offerStatusSub);
+
       // Buat SDP Offer khusus untuk viewer ini
       RTCSessionDescription offer = await pc.createOffer({
         'offerToReceiveAudio': true,
