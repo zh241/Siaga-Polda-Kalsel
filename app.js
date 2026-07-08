@@ -4741,9 +4741,7 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
             }
         };
 
-        // Bersihkan data signaling lama SEBELUM mendaftar listener
-        // Menghapus offer lama memaksa HP mengirim offer BARU sehingga listener pasti menangkapnya
-        await set(ref(db, `streams/${uid}/viewers/${myViewerId}/sdp/offer`), null);
+        // Bersihkan answer & receiver candidates lama
         await set(ref(db, `streams/${uid}/viewers/${myViewerId}/sdp/answer`), null);
         await set(ref(db, `streams/${uid}/viewers/${myViewerId}/candidates/receiver`), null);
 
@@ -4793,9 +4791,9 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
                 await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: modifiedOfferSdp }));
                 remoteDescSet = true;
 
-                // Set transceiver ke recvonly karena web hanya menonton (tidak kirim video ke HP)
+                // Ambil transceivers dari SDP Offer
                 pc.getTransceivers().forEach(transceiver => {
-                    transceiver.direction = 'recvonly';
+                    transceiver.direction = 'sendrecv';
                     const kind = transceiver.receiver.track.kind;
                     if (kind === 'video') {
                         activePeerConnections[uid].videoSender = transceiver.sender;
@@ -4833,7 +4831,7 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
     }
 }
 
-function closePeerConnection(uid, shouldStopStreamOnMobile = false) {
+function closePeerConnection(uid) {
     if (window.webRecorders && window.webRecorders[uid]) {
         try {
             window.webRecorders[uid].stop();
@@ -4855,10 +4853,7 @@ function closePeerConnection(uid, shouldStopStreamOnMobile = false) {
 
     console.log(`Closing peer connection for ${uid}`);
 
-    // Clean up Firebase VC status & force-stop the stream on mobile
-    if (shouldStopStreamOnMobile) {
-        set(ref(db, `streams/${uid}/info/active`), false);
-    }
+    // Clean up Firebase VC status only - do NOT touch active flag (that would kill the mobile stream)
     set(ref(db, `streams/${uid}/info/vcActive`), null);
     set(ref(db, `streams/${uid}/info/vcVideoActive`), null);
 
