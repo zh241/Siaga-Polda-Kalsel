@@ -6972,11 +6972,35 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
       try {
         await _mediaRecorder!.stop();
         debugPrint("[MediaRecorder] Rekaman lokal dihentikan manual");
+        
+        bool success = false;
+        if (_lastSavePath != null) {
+          final internalFile = File(_lastSavePath!);
+          if (await internalFile.exists() && await internalFile.length() > 0) {
+            try {
+              String folderPath = '/storage/emulated/0/Download/SIAGA';
+              final siagaDir = Directory(folderPath);
+              if (!await siagaDir.exists()) {
+                await siagaDir.create(recursive: true);
+              }
+              final String fileName = _lastSavePath!.split('/').last;
+              final publicPath = '$folderPath/$fileName';
+              await internalFile.copy(publicPath);
+              success = true;
+              
+              // Hapus file internal setelah berhasil dicopy
+              await internalFile.delete();
+            } catch (copyErr) {
+              debugPrint("[MediaRecorder] Gagal copy ke public: $copyErr");
+              // Biarkan success = false agar pesan internal muncul
+            }
+          }
+        }
+
         if (mounted) {
-          final isPublic = _lastSavePath?.contains('/Download/SIAGA') ?? false;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(isPublic 
+              content: Text(success 
                   ? 'Rekaman selesai! Disimpan di folder Download/SIAGA' 
                   : 'Rekaman selesai! Disimpan di memori internal aplikasi'),
               backgroundColor: Colors.green,
@@ -7003,20 +7027,11 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
       }
 
       try {
-        String folderPath = '/storage/emulated/0/Download/SIAGA';
-        final siagaDir = Directory(folderPath);
-        if (!await siagaDir.exists()) {
-          try {
-            await siagaDir.create(recursive: true);
-          } catch (e) {
-            final dir = await getExternalStorageDirectory();
-            folderPath = dir != null ? dir.path : (await getApplicationDocumentsDirectory()).path;
-          }
-        }
-
+        final dir = await getApplicationDocumentsDirectory();
+        
         // Gunakan .mp4 karena Android mendukung penuh format ini (webm sering 0 byte)
         final String fileName = 'SIAGA_Live_${widget.nrp}_${DateTime.now().millisecondsSinceEpoch}.mp4';
-        final String savePath = '$folderPath/$fileName';
+        final String savePath = '${dir.path}/$fileName';
         _lastSavePath = savePath;
         debugPrint("[MediaRecorder] Menyimpan rekaman lokal ke: $savePath");
 
@@ -7031,12 +7046,9 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         );
         debugPrint("[MediaRecorder] Rekaman lokal dimulai manual");
         if (mounted) {
-          final isPublic = folderPath.contains('/Download/SIAGA');
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(isPublic 
-                  ? 'Merekam: Tersimpan di folder Download/SIAGA' 
-                  : 'Merekam: Tersimpan di memori internal aplikasi'),
+            const SnackBar(
+              content: Text('Merekam...'),
               backgroundColor: Colors.blueAccent,
             ),
           );
