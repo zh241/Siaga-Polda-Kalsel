@@ -7026,10 +7026,8 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
           videoTrack: _localStream!.getVideoTracks().isNotEmpty
               ? _localStream!.getVideoTracks().first
               : null,
-          audioTrack: _localStream!.getAudioTracks().isNotEmpty
-              ? _localStream!.getAudioTracks().first
-              : null,
-          rotation: 90, // Koreksi rotasi portrait agar rekaman tidak terbalik
+          audioChannel: RecorderAudioChannel.INPUT,
+          rotationDegrees: 90, // Koreksi rotasi portrait agar rekaman tidak terbalik
         );
         debugPrint("[MediaRecorder] Rekaman lokal dimulai manual");
         if (mounted) {
