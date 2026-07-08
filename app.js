@@ -3930,39 +3930,35 @@ window.toggleWebRecord = function (uid, fullName) {
 
         const recordStream = new MediaStream(tracksToRecord);
 
-        // Deteksi apakah video dari HP dalam mode portrait (tinggi > lebar)
-        // Jika iya, gunakan canvas untuk merotasi agar rekaman tidak terbalik
+        // Deteksi apakah video dari HP dalam mode portrait menggunakan ukuran aslinya di layar
         let finalStream = recordStream;
-        const vt = tracksToRecord.find(t => t.kind === 'video');
-        if (vt) {
-            const settings = vt.getSettings();
-            const isPortrait = settings.height > settings.width;
-            if (isPortrait) {
-                // Rekam menggunakan canvas yang sudah dirotasi dengan benar
-                const canvas = document.createElement('canvas');
-                canvas.width = settings.height || 720;
-                canvas.height = settings.width || 1280;
-                const ctx2d = canvas.getContext('2d');
-                const tmpVideo = document.createElement('video');
-                tmpVideo.srcObject = new MediaStream([vt]);
-                tmpVideo.muted = true;
-                tmpVideo.play();
-                const drawFrame = () => {
-                    if (tmpVideo.readyState >= 2) {
-                        ctx2d.save();
-                        ctx2d.translate(canvas.width / 2, canvas.height / 2);
-                        ctx2d.rotate(Math.PI / 2);
-                        ctx2d.drawImage(tmpVideo, -tmpVideo.videoWidth / 2, -tmpVideo.videoHeight / 2);
-                        ctx2d.restore();
-                    }
-                    requestAnimationFrame(drawFrame);
-                };
-                drawFrame();
-                const canvasVideoTrack = canvas.captureStream(30).getVideoTracks()[0];
-                const audioTracks = tracksToRecord.filter(t => t.kind === 'audio');
-                finalStream = new MediaStream([canvasVideoTrack, ...audioTracks]);
-                console.log('[WebRTC] Portrait video detected, recording with canvas rotation');
-            }
+        const isPortrait = videoEl.videoHeight > videoEl.videoWidth;
+        if (isPortrait) {
+            // Rekam menggunakan canvas yang me-rotasi video utama secara live
+            const canvas = document.createElement('canvas');
+            canvas.width = videoEl.videoHeight;
+            canvas.height = videoEl.videoWidth;
+            const ctx2d = canvas.getContext('2d');
+            
+            const drawFrame = () => {
+                if (!window.webRecorders[uid]) return; // Stop jika rekaman selesai
+                if (videoEl.readyState >= 2) {
+                    ctx2d.save();
+                    ctx2d.translate(canvas.width / 2, canvas.height / 2);
+                    ctx2d.rotate(Math.PI / 2);
+                    ctx2d.drawImage(videoEl, -videoEl.videoWidth / 2, -videoEl.videoHeight / 2, videoEl.videoWidth, videoEl.videoHeight);
+                    ctx2d.restore();
+                }
+                requestAnimationFrame(drawFrame);
+            };
+            
+            const canvasVideoTrack = canvas.captureStream(30).getVideoTracks()[0];
+            const audioTracks = tracksToRecord.filter(t => t.kind === 'audio');
+            finalStream = new MediaStream([canvasVideoTrack, ...audioTracks]);
+            
+            // Mulai loop draw setelah MediaRecorder siap nanti
+            setTimeout(() => drawFrame(), 500); 
+            console.log('[WebRTC] Portrait video detected, recording with canvas rotation');
         }
 
         const options = { mimeType: 'video/webm;codecs=vp8,opus' };
@@ -4270,7 +4266,7 @@ function renderLiveGrid() {
                     ? window.lastTrackingSnapshotData[trackingKey]
                     : null;
                 if (trackingData && trackingData.lat && trackingData.lng) {
-                    locContainer.style.display = 'block';
+                    locContainer.style.display = 'flex';
                     const linkEl = locContainer.querySelector('.stream-location');
                     window.getReverseGeocode(trackingData.lat, trackingData.lng).then(address => {
                         if (linkEl) linkEl.textContent = address;
@@ -4378,6 +4374,7 @@ function renderLiveGrid() {
                     <div>
                         <h6 class="stream-title" style="margin:0; font-weight:700; color:var(--text-main); font-size:12px;">${streamFullName}</h6>
                         <div class="stream-meta" style="font-size:9px; color:var(--text-muted); margin-top:2px;">NRP: ${info.nrp || '-'} • ${info.satker || 'Bid TIK'}</div>
+                        ${locationHtml}
                     </div>
                 </div>
                 ${locationHtml}
