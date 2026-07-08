@@ -4734,9 +4734,9 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
                 console.warn('[WebRTC] Connection failed, retrying...');
                 // Retry otomatis setelah 3 detik
                 setTimeout(() => {
-                    if (window.activeStreams[uid]) {
+                    const info = window.activeStreams[uid];
+                    if (info) {
                         closePeerConnection(uid);
-                        const info = window.activeStreams[uid];
                         const name = ((info.pangkat || '').trim() + ' ' + (info.nama || '')).trim();
                         startWebRTCReceiver(uid, name, isFloating);
                     }
