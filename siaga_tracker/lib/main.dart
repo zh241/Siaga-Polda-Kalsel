@@ -6612,15 +6612,14 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
           'googTypingNoiseDetection': true,
         },
         'video': {
-          'mandatory': {
-            'minWidth': 640,
-            'minHeight': 360,
-            'minFrameRate': 30,
-          },
+          'mandatory': {},
           'facingMode': _isFrontCamera ? 'user' : 'environment',
           'optional': [
-            {'minWidth': 1280},
-            {'minHeight': 720},
+            {'minWidth': 640},
+            {'minHeight': 360},
+            {'minFrameRate': 30},
+            {'width': 1280},
+            {'height': 720},
           ],
         }
       };
