@@ -3934,20 +3934,17 @@ window.toggleWebRecord = function (uid, fullName) {
         let finalStream = recordStream;
         const isPortrait = videoEl.videoHeight > videoEl.videoWidth;
         if (isPortrait) {
-            // Rekam menggunakan canvas yang me-rotasi video utama secara live
+            // Rekam menggunakan canvas untuk 'membakar' (bake) orientasi portrait
+            // Karena MediaRecorder mengabaikan metadata rotasi dari HP
             const canvas = document.createElement('canvas');
-            canvas.width = videoEl.videoHeight;
-            canvas.height = videoEl.videoWidth;
+            canvas.width = videoEl.videoWidth;
+            canvas.height = videoEl.videoHeight;
             const ctx2d = canvas.getContext('2d');
             
             const drawFrame = () => {
                 if (!window.webRecorders[uid]) return; // Stop jika rekaman selesai
                 if (videoEl.readyState >= 2) {
-                    ctx2d.save();
-                    ctx2d.translate(canvas.width / 2, canvas.height / 2);
-                    ctx2d.rotate(Math.PI / 2);
-                    ctx2d.drawImage(videoEl, -videoEl.videoWidth / 2, -videoEl.videoHeight / 2, videoEl.videoWidth, videoEl.videoHeight);
-                    ctx2d.restore();
+                    ctx2d.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
                 }
                 requestAnimationFrame(drawFrame);
             };
