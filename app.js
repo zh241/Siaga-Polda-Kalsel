@@ -3696,7 +3696,7 @@ function setMediaBitrates(sdp, bitrateKbps) {
             isVideoSection = false;
         }
 
-        if (isVideoSection && (line.indexOf('m=video') === 0 || line.indexOf('c=IN') === 0)) {
+        if (isVideoSection && line.indexOf('m=video') === 0) {
             let nextLine = lines[i + 1] || '';
             if (nextLine.indexOf('b=AS:') !== 0) {
                 newLines.push('b=AS:' + bitrateKbps);
@@ -4791,19 +4791,16 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
 
         // Dengarkan ICE candidates dari streamer (HP)
         const streamerCandidatesRef = ref(db, `streams/${uid}/viewers/${myViewerId}/candidates/streamer`);
-        activePeerConnections[uid].candidateListener = onValue(streamerCandidatesRef, (snapshot) => {
-            const data = snapshot.val();
-            if (!data) return;
-            const candidates = Object.values(data);
-            console.log(`[WebRTC] Streamer candidates received: ${candidates.length} total`);
-            candidates.forEach(c => {
-                const candidate = new RTCIceCandidate(c);
-                if (remoteDescSet) {
-                    pc.addIceCandidate(candidate).catch(e => console.warn('[WebRTC] addIceCandidate error:', e));
-                } else {
-                    pendingCandidates.push(candidate);
-                }
-            });
+        activePeerConnections[uid].candidateListener = onChildAdded(streamerCandidatesRef, (snapshot) => {
+            const c = snapshot.val();
+            if (!c) return;
+            console.log(`[WebRTC] Streamer candidate received`);
+            const candidate = new RTCIceCandidate(c);
+            if (remoteDescSet) {
+                pc.addIceCandidate(candidate).catch(e => console.warn('[WebRTC] addIceCandidate error:', e));
+            } else {
+                pendingCandidates.push(candidate);
+            }
         });
 
         // Dengarkan SDP Offer dari streamer (HP)
