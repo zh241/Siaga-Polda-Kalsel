@@ -4818,8 +4818,7 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
 
             console.log(`[WebRTC] Offer received, creating answer... (${pendingCandidates.length} pending candidates)`);
             try {
-                let modifiedOfferSdp = setMediaBitrates(offerVal.sdp, 2500);
-                await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: modifiedOfferSdp }));
+                await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: offerVal.sdp }));
                 remoteDescSet = true;
 
                 // Ambil transceivers dari SDP Offer

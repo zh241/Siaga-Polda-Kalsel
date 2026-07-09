@@ -6840,8 +6840,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         if (data == null || remoteDescriptionSet) return;
 
         final map = Map<String, dynamic>.from(data as Map);
-        String modifiedAnswerSdp = _setMediaBitrates(map['sdp'] ?? '', 2500);
-        final description = RTCSessionDescription(modifiedAnswerSdp, map['type']);
+        final description = RTCSessionDescription(map['sdp'] ?? '', map['type']);
         await pc.setRemoteDescription(description);
         remoteDescriptionSet = true;
         for (var cand in bufferedCandidates) {
@@ -6856,10 +6855,6 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         'offerToReceiveAudio': true,
         'offerToReceiveVideo': true,
       });
-
-      // Modifikasi SDP untuk menaikkan bitrate video (2500 kbps) agar video HD tajam dan jernih
-      String modifiedOfferSdp = _setMediaBitrates(offer.sdp ?? '', 2500);
-      offer = RTCSessionDescription(modifiedOfferSdp, offer.type);
 
       await pc.setLocalDescription(offer);
 
