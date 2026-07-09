@@ -6603,6 +6603,9 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
     return true;
   }
 
+  // Simpan timestamp viewer request terakhir yang diproses
+  final Map<String, int> _processedViewerTimestamps = {};
+
   Future<void> _startStreaming() async {
     try {
       if (!await _requestMediaPermissions()) {
@@ -6692,8 +6695,17 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         final viewerId = event.snapshot.key;
         if (viewerId == null) return;
         final data = event.snapshot.value;
-        final status = data is Map ? (data['status']?.toString() ?? '') : '';
-        if (status == 'request') await handleViewerRequest(viewerId);
+        if (data is Map) {
+          final status = data['status']?.toString() ?? '';
+          final timestamp = data['timestamp'] as int?;
+          if (status == 'request') {
+            if (timestamp != null) {
+              if (_processedViewerTimestamps[viewerId] == timestamp) return;
+              _processedViewerTimestamps[viewerId] = timestamp;
+            }
+            await handleViewerRequest(viewerId);
+          }
+        }
       });
 
       // onChildChanged: viewer LAMA yang menulis ulang status='request' (web reinisialisasi)
@@ -6701,8 +6713,17 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         final viewerId = event.snapshot.key;
         if (viewerId == null) return;
         final data = event.snapshot.value;
-        final status = data is Map ? (data['status']?.toString() ?? '') : '';
-        if (status == 'request') await handleViewerRequest(viewerId);
+        if (data is Map) {
+          final status = data['status']?.toString() ?? '';
+          final timestamp = data['timestamp'] as int?;
+          if (status == 'request') {
+            if (timestamp != null) {
+              if (_processedViewerTimestamps[viewerId] == timestamp) return;
+              _processedViewerTimestamps[viewerId] = timestamp;
+            }
+            await handleViewerRequest(viewerId);
+          }
+        }
       });
 
       // Dengarkan jika ada penonton yang keluar
