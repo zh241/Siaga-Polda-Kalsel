@@ -4855,12 +4855,11 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
                 pendingCandidates.length = 0;
 
                 const answer = await pc.createAnswer();
-                let modifiedAnswerSdp = setMediaBitrates(answer.sdp, 2500);
-                await pc.setLocalDescription({ type: 'answer', sdp: modifiedAnswerSdp });
+                await pc.setLocalDescription(answer);
 
                 await set(ref(db, `streams/${uid}/viewers/${myViewerId}/sdp/answer`), {
                     type: answer.type,
-                    sdp: modifiedAnswerSdp
+                    sdp: answer.sdp
                 });
                 console.log('[WebRTC] Answer sent!');
             } catch (e) {

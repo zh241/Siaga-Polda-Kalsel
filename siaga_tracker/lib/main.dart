@@ -6697,7 +6697,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         final data = event.snapshot.value;
         if (data is Map) {
           final status = data['status']?.toString() ?? '';
-          final timestamp = data['timestamp'] as int?;
+          final timestamp = data['timestamp'] is num ? (data['timestamp'] as num).toInt() : null;
           if (status == 'request') {
             if (timestamp != null) {
               if (_processedViewerTimestamps[viewerId] == timestamp) return;
@@ -6715,7 +6715,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         final data = event.snapshot.value;
         if (data is Map) {
           final status = data['status']?.toString() ?? '';
-          final timestamp = data['timestamp'] as int?;
+          final timestamp = data['timestamp'] is num ? (data['timestamp'] as num).toInt() : null;
           if (status == 'request') {
             if (timestamp != null) {
               if (_processedViewerTimestamps[viewerId] == timestamp) return;
