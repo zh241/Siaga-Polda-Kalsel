@@ -6568,6 +6568,22 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         'urls': 'turns:openrelay.metered.ca:443?transport=tcp',
         'username': 'openrelayproject',
         'credential': 'openrelayproject'
+      },
+      // IP Fallbacks (bila resolusi DNS openrelay.metered.ca diblokir/timeout di jaringan lokal)
+      {
+        'urls': 'turn:15.235.47.158:80',
+        'username': 'openrelayproject',
+        'credential': 'openrelayproject'
+      },
+      {
+        'urls': 'turn:15.235.47.158:443',
+        'username': 'openrelayproject',
+        'credential': 'openrelayproject'
+      },
+      {
+        'urls': 'turn:15.235.47.158:443?transport=tcp',
+        'username': 'openrelayproject',
+        'credential': 'openrelayproject'
       }
     ]
   };
