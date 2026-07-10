@@ -6545,45 +6545,45 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
       {'urls': 'stun:stun1.l.google.com:19302'},
       {'urls': 'stun:stun2.l.google.com:19302'},
       {
-        'urls': 'turn:openrelay.metered.ca:80',
-        'username': 'openrelayproject',
-        'credential': 'openrelayproject'
+        'urls': 'turn:global.relay.metered.ca:80',
+        'username': 'f70015eec8deaa9ac60b9e9d',
+        'credential': 'JUdl1rA+ZXvisE3P'
       },
       {
-        'urls': 'turn:openrelay.metered.ca:443',
-        'username': 'openrelayproject',
-        'credential': 'openrelayproject'
+        'urls': 'turn:global.relay.metered.ca:443',
+        'username': 'f70015eec8deaa9ac60b9e9d',
+        'credential': 'JUdl1rA+ZXvisE3P'
       },
       {
-        'urls': 'turn:openrelay.metered.ca:443?transport=tcp',
-        'username': 'openrelayproject',
-        'credential': 'openrelayproject'
+        'urls': 'turn:global.relay.metered.ca:443?transport=tcp',
+        'username': 'f70015eec8deaa9ac60b9e9d',
+        'credential': 'JUdl1rA+ZXvisE3P'
       },
       {
-        'urls': 'turns:openrelay.metered.ca:443',
-        'username': 'openrelayproject',
-        'credential': 'openrelayproject'
+        'urls': 'turns:global.relay.metered.ca:443',
+        'username': 'f70015eec8deaa9ac60b9e9d',
+        'credential': 'JUdl1rA+ZXvisE3P'
       },
       {
-        'urls': 'turns:openrelay.metered.ca:443?transport=tcp',
-        'username': 'openrelayproject',
-        'credential': 'openrelayproject'
+        'urls': 'turns:global.relay.metered.ca:443?transport=tcp',
+        'username': 'f70015eec8deaa9ac60b9e9d',
+        'credential': 'JUdl1rA+ZXvisE3P'
       },
-      // IP Fallbacks (bila resolusi DNS openrelay.metered.ca diblokir/timeout di jaringan lokal)
+      // IP Fallbacks (bila resolusi DNS global.relay.metered.ca diblokir/timeout di jaringan lokal)
       {
-        'urls': 'turn:15.235.47.158:80',
-        'username': 'openrelayproject',
-        'credential': 'openrelayproject'
-      },
-      {
-        'urls': 'turn:15.235.47.158:443',
-        'username': 'openrelayproject',
-        'credential': 'openrelayproject'
+        'urls': 'turn:172.236.136.45:80',
+        'username': 'f70015eec8deaa9ac60b9e9d',
+        'credential': 'JUdl1rA+ZXvisE3P'
       },
       {
-        'urls': 'turn:15.235.47.158:443?transport=tcp',
-        'username': 'openrelayproject',
-        'credential': 'openrelayproject'
+        'urls': 'turn:172.236.136.45:443',
+        'username': 'f70015eec8deaa9ac60b9e9d',
+        'credential': 'JUdl1rA+ZXvisE3P'
+      },
+      {
+        'urls': 'turn:172.236.136.45:443?transport=tcp',
+        'username': 'f70015eec8deaa9ac60b9e9d',
+        'credential': 'JUdl1rA+ZXvisE3P'
       }
     ]
   };
