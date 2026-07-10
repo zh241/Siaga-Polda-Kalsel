@@ -4824,19 +4824,41 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
             }
         };
 
-        pc.onconnectionstatechange = () => {
-            console.log(`[WebRTC] Connection state: ${pc.connectionState} | ICE state: ${pc.iceConnectionState}`);
+        const handleConnectedState = () => {
+            const isConnected = pc.connectionState === 'connected' || pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed';
+            console.log(`[WebRTC] Evaluating connection status. ConnectionState: ${pc.connectionState}, IceConnectionState: ${pc.iceConnectionState}. Result isConnected: ${isConnected}`);
             if (activePeerConnections[uid]) {
-                activePeerConnections[uid].connected = (pc.connectionState === 'connected');
+                activePeerConnections[uid].connected = isConnected;
             }
-            if (pc.connectionState === 'connected') {
+            if (isConnected) {
                 // Sembunyikan overlay loading saat terhubung
                 const overlay = document.getElementById(`status-overlay-${uid}`);
                 if (overlay) overlay.style.display = 'none';
                 renderLiveGrid();
-            } else if (pc.connectionState === 'failed') {
+            }
+        };
+
+        pc.onconnectionstatechange = () => {
+            console.log(`[WebRTC] Connection state change: ${pc.connectionState} | ICE state: ${pc.iceConnectionState}`);
+            handleConnectedState();
+            if (pc.connectionState === 'failed') {
                 console.warn('[WebRTC] Connection failed, retrying...');
-                // Retry otomatis setelah 3 detik
+                setTimeout(() => {
+                    const info = window.activeStreams[uid];
+                    if (info) {
+                        closePeerConnection(uid);
+                        const name = ((info.pangkat || '').trim() + ' ' + (info.nama || '')).trim();
+                        startWebRTCReceiver(uid, name, isFloating);
+                    }
+                }, 3000);
+            }
+        };
+
+        pc.oniceconnectionstatechange = () => {
+            console.log(`[WebRTC] ICE Connection state change: ${pc.iceConnectionState}`);
+            handleConnectedState();
+            if (pc.iceConnectionState === 'failed') {
+                console.warn('[WebRTC] ICE Connection failed, retrying...');
                 setTimeout(() => {
                     const info = window.activeStreams[uid];
                     if (info) {
