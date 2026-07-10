@@ -5698,42 +5698,6 @@ class _TacticalMapTabState extends State<TacticalMapTab> {
   Future<void> _searchLocation(String query) async {
     if (query.trim().isEmpty) return;
 
-    final normalizedQuery = query.toLowerCase();
-    LatLng? foundUnitLocation;
-    Map<String, dynamic>? foundUnitData;
-
-    try {
-      final snapshot = await widget.dbRef.child('live_tracking').get();
-      if (snapshot.exists && snapshot.value != null) {
-        final Map<dynamic, dynamic> raw = snapshot.value as Map;
-        for (var entry in raw.entries) {
-          final u = Map<String, dynamic>.from(entry.value as Map);
-          final name = (u['nama'] ?? '').toString().toLowerCase();
-          final nrp = (u['nrp'] ?? '').toString();
-          
-          if (name.contains(normalizedQuery) || nrp.contains(normalizedQuery)) {
-            final k = Map<String, dynamic>.from(u['koordinat'] ?? {});
-            final double? lat = k['lat'] as double?;
-            final double? lng = k['lng'] as double?;
-            if (lat != null && lng != null) {
-              foundUnitLocation = LatLng(lat, lng);
-              foundUnitData = u;
-              break;
-            }
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('Local units search error: $e');
-    }
-
-    if (foundUnitLocation != null && foundUnitData != null) {
-      _mapController.move(foundUnitLocation, 15.0);
-      _showUnitMarkerDetails(foundUnitData);
-      _showSnackBar('Menemukan unit: ${foundUnitData['nama']}', Colors.green);
-      return;
-    }
-
     setState(() => _isSearchingLocation = true);
     try {
       final client = HttpClient();
@@ -6121,6 +6085,16 @@ class _TacticalMapTabState extends State<TacticalMapTab> {
                                 color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0F0F12) : const Color(0xFFF1F1F4),
                                 margin: const EdgeInsets.only(bottom: 10),
                                 child: ListTile(
+                                  onTap: () {
+                                    Navigator.pop(context); // Tutup bottom sheet
+                                    if (lat != 0.0 && lng != 0.0) {
+                                      _mapController.move(LatLng(lat, lng), 15.0);
+                                      _showUnitMarkerDetails(u);
+                                      _showSnackBar('Menuju lokasi: ${u['nama']}', Colors.green);
+                                    } else {
+                                      _showSnackBar('Lokasi unit tidak valid', Colors.redAccent);
+                                    }
+                                  },
                                   leading: CircleAvatar(
                                     backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.15),
                                     child: Icon(_getVehicleIcon(u['vehicle'] as String?), color: const Color(0xFF10B981)),
@@ -6367,7 +6341,7 @@ class _TacticalMapTabState extends State<TacticalMapTab> {
                         onSubmitted: (value) => _searchLocation(value),
                         decoration: InputDecoration(
                           border: InputBorder.none,
-                          hintText: 'Cari Lokasi / Anggota Aktif...',
+                          hintText: 'Cari Tempat / Jalan...',
                           hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
                           icon: _isSearchingLocation
                               ? const SizedBox(

@@ -3135,9 +3135,12 @@ function initChatListener() {
         doRender();
 
         // Mark as read if we are in this DM conversation
-        if (_currentDmConvId) {
+        if (_currentDmConvId && auth.currentUser) {
             const lastReadKey = `dm_last_read_${_currentDmConvId}`;
             localStorage.setItem(lastReadKey, Date.now().toString());
+            update(ref(db, `chat/dm/${_currentDmConvId}/last_read`), {
+                [auth.currentUser.uid]: Date.now()
+            }).catch(e => {});
         }
     }, err => console.error('[Chat] onValue error:', err));
     _chatUnsubs.push(unsubValue);
@@ -3408,9 +3411,14 @@ window.openPrivateChat = async function (targetUid, targetName) {
     if (icon) { icon.className = 'fa-solid fa-user'; icon.style.color = '#3b82f6'; }
     if (inp) inp.placeholder = `Kirim pesan ke ${targetName}...`;
 
-    // Mark as read: save current timestamp to localStorage
+    // Mark as read: save current timestamp to localStorage & Firebase
     const lastReadKey = `dm_last_read_${convId}`;
     localStorage.setItem(lastReadKey, Date.now().toString());
+    if (auth.currentUser) {
+        update(ref(db, `chat/dm/${convId}/last_read`), {
+            [auth.currentUser.uid]: Date.now()
+        }).catch(e => console.warn('[DM] Failed to save last_read status to DB:', e));
+    }
 
     // Recalculate _unreadDmCount and global badges
     const badge = document.getElementById(`dm-badge-${targetUid}`);
@@ -3495,11 +3503,12 @@ function updateGlobalChatBadges() {
     const totalUnread = _unreadPublicCount + _unreadDmCount;
     const badgeText = totalUnread > 99 ? '99+' : totalUnread;
     
+    // Floating chat badge on the map page should only count public messages, not DMs
     const badge = document.getElementById('chat-float-badge');
     if (badge) {
-        if (totalUnread > 0) {
+        if (_unreadPublicCount > 0) {
             badge.style.display = 'flex';
-            badge.textContent = badgeText;
+            badge.textContent = _unreadPublicCount > 99 ? '99+' : _unreadPublicCount;
         } else {
             badge.style.display = 'none';
         }
@@ -3558,9 +3567,12 @@ function listenDmPreviews(myUid, users) {
                 previewEl.textContent = lastMessage || '-';
             }
 
-            // Unread logic: compare updatedAt with stored last-read timestamp
+            // Unread logic: compare updatedAt with stored last-read timestamp (local & db)
             const lastReadKey = `dm_last_read_${child.key}`;
-            let lastRead = parseInt(localStorage.getItem(lastReadKey) || '0', 10);
+            let lastReadLocal = parseInt(localStorage.getItem(lastReadKey) || '0', 10);
+            const lastReadDb = (conv.last_read && conv.last_read[myUid]) ? parseInt(conv.last_read[myUid], 10) : 0;
+            let lastRead = Math.max(lastReadLocal, lastReadDb);
+
             const updatedAt = conv.updatedAt || 0;
             const lastSender = conv.lastSender || '';
 
@@ -3568,6 +3580,11 @@ function listenDmPreviews(myUid, users) {
             if (_currentDmTargetUid === otherUid) {
                 const newRead = Math.max(Date.now(), updatedAt);
                 localStorage.setItem(lastReadKey, newRead.toString());
+                if (auth.currentUser) {
+                    update(ref(db, `chat/dm/${child.key}/last_read`), {
+                        [auth.currentUser.uid]: newRead
+                    }).catch(() => {});
+                }
                 lastRead = newRead;
             }
 
