@@ -7102,8 +7102,8 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
       try {
         final dir = await getApplicationDocumentsDirectory();
         
-        // Gunakan .mp4 karena Android mendukung penuh format ini (webm sering 0 byte)
-        final String fileName = 'SIAGA_Live_${widget.nrp}_${DateTime.now().millisecondsSinceEpoch}.mp4';
+        // Gunakan .webm karena WebRTC MediaRecorder secara alami menulis kontainer WebM (menyimpannya sebagai .mp4 menyebabkan file tidak bisa diputar)
+        final String fileName = 'SIAGA_Live_${widget.nrp}_${DateTime.now().millisecondsSinceEpoch}.webm';
         final String savePath = '${dir.path}/$fileName';
         _lastSavePath = savePath;
         debugPrint("[MediaRecorder] Menyimpan rekaman lokal ke: $savePath");
