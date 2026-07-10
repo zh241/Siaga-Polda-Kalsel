@@ -7040,6 +7040,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         await _mediaRecorder!.stop();
         debugPrint("[MediaRecorder] Rekaman lokal dihentikan manual");
         
+        String errorMessage = '';
         bool success = false;
         if (_lastSavePath != null) {
           final internalFile = File(_lastSavePath!);
@@ -7059,9 +7060,13 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
               await internalFile.delete();
             } catch (copyErr) {
               debugPrint("[MediaRecorder] Gagal copy ke public: $copyErr");
-              // Biarkan success = false agar pesan internal muncul
+              errorMessage = copyErr.toString();
             }
+          } else {
+            errorMessage = 'File rekaman kosong (0 bytes).';
           }
+        } else {
+          errorMessage = 'Path rekaman tidak ditemukan.';
         }
 
         if (mounted) {
@@ -7069,8 +7074,9 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
             SnackBar(
               content: Text(success 
                   ? 'Rekaman selesai! Disimpan di folder Download/SIAGA' 
-                  : 'Rekaman selesai! Disimpan di memori internal aplikasi'),
-              backgroundColor: Colors.green,
+                  : 'Rekaman disimpan internal. Detail: $errorMessage'),
+              backgroundColor: success ? Colors.green : Colors.orange,
+              duration: const Duration(seconds: 5),
             ),
           );
         }
