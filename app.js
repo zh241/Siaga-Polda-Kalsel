@@ -1205,11 +1205,11 @@ const map = L.map('map', { zoomControl: false }).setView([-3.4428, 114.8306], 13
 // Set default tile base according to current theme
 mapTaktis.addTo(map);
 
-// Add map switcher control to top-right first
-L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
+// Add map switcher control to bottom-right first
+L.control.layers(baseMaps, null, { position: 'bottomright' }).addTo(map);
 
-// Add zoom control second (stacks below the layers control)
-L.control.zoom({ position: 'topright' }).addTo(map);
+// Add zoom control second (stacks above the layers control)
+L.control.zoom({ position: 'bottomright' }).addTo(map);
 
 // Base layers for Geofence Map
 const mapGeoTaktis = L.tileLayer(currentTheme === 'dark' ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -1232,11 +1232,11 @@ const mapGeo = L.map('map-geofence', { zoomControl: false }).setView([-3.4428, 1
 
 mapGeoTaktis.addTo(mapGeo);
 
-// Add map switcher control to top-right first
-L.control.layers(baseMapsGeo, null, { position: 'topright' }).addTo(mapGeo);
+// Add map switcher control to bottom-right first
+L.control.layers(baseMapsGeo, null, { position: 'bottomright' }).addTo(mapGeo);
 
-// Add zoom control second (stacks below layers control)
-L.control.zoom({ position: 'topright' }).addTo(mapGeo);
+// Add zoom control second (stacks above layers control)
+L.control.zoom({ position: 'bottomright' }).addTo(mapGeo);
 
 const cIcon = L.divIcon({ className: 'custom-div-icon', html: '<div style="background-color:#ef4444; width:16px; height:16px; border-radius:50%; border:3px solid white; cursor:move; box-shadow: 0 2px 8px rgba(0,0,0,0.3)"></div>', iconSize: [16, 16] });
 const eIcon = L.divIcon({ className: 'custom-div-icon', html: '<div style="background-color:white; width:14px; height:14px; border:3px solid #ef4444; border-radius:3px; cursor:ew-resize; box-shadow: 0 2px 8px rgba(0,0,0,0.3)"></div>', iconSize: [14, 14] });
