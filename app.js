@@ -4280,17 +4280,38 @@ function renderLiveGrid() {
             const locContainer = cardEl.querySelector('.stream-location-container');
             if (locContainer) {
                 const trackingKey = 'POL-' + info.nrp;
+                
+                const processLocation = (data) => {
+                    if (data && data.koordinat && data.koordinat.lat && data.koordinat.lng) {
+                        locContainer.style.display = 'flex';
+                        const linkEl = locContainer.querySelector('.stream-location');
+                        window.getReverseGeocode(data.koordinat.lat, data.koordinat.lng).then(address => {
+                            if (linkEl) linkEl.textContent = address;
+                        });
+                    } else {
+                        locContainer.style.display = 'none';
+                    }
+                };
+
+                // Coba ambil dari snapshot tracking global
                 const trackingData = (window.lastTrackingSnapshotData && window.lastTrackingSnapshotData[trackingKey])
                     ? window.lastTrackingSnapshotData[trackingKey]
                     : null;
-                if (trackingData && trackingData.lat && trackingData.lng) {
-                    locContainer.style.display = 'flex';
-                    const linkEl = locContainer.querySelector('.stream-location');
-                    window.getReverseGeocode(trackingData.lat, trackingData.lng).then(address => {
-                        if (linkEl) linkEl.textContent = address;
-                    });
+
+                if (trackingData) {
+                    processLocation(trackingData);
                 } else {
-                    locContainer.style.display = 'none';
+                    // Fallback: Ambil langsung dari Firebase jika snapshot belum sinkron
+                    const dbRef = ref(db, 'live_tracking/' + trackingKey);
+                    get(dbRef).then((snapshot) => {
+                        if (snapshot.exists()) {
+                            processLocation(snapshot.val());
+                        } else {
+                            locContainer.style.display = 'none';
+                        }
+                    }).catch(() => {
+                        locContainer.style.display = 'none';
+                    });
                 }
             }
         };
