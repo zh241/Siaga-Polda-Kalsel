@@ -36,48 +36,49 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
+function logStreamError(msg, extra = {}) {
+    try {
+        if (typeof activePeerConnections !== 'undefined') {
+            Object.keys(activePeerConnections).forEach(uid => {
+                const conn = activePeerConnections[uid];
+                if (conn && conn.viewerId) {
+                    const errorRef = push(ref(db, `streams/${uid}/viewers/${conn.viewerId}/errors`));
+                    set(errorRef, {
+                        message: typeof msg === 'object' ? JSON.stringify(msg) : String(msg),
+                        timestamp: Date.now(),
+                        ...extra
+                    });
+                }
+            });
+        }
+    } catch(e) {}
+}
+
 // Global error logging to Firebase for debugging remote connection issues
 window.addEventListener('error', function(e) {
-    try {
-        const uid = auth.currentUser ? auth.currentUser.uid : 'anonymous';
-        const errorLogRef = push(ref(db, `streams_errors/${uid}`));
-        set(errorLogRef, {
-            message: e.message,
-            filename: e.filename,
-            lineno: e.lineno,
-            colno: e.colno,
-            stack: e.error ? e.error.stack : '',
-            timestamp: Date.now()
-        });
-    } catch(err) {}
+    logStreamError(e.message, {
+        filename: e.filename,
+        lineno: e.lineno,
+        colno: e.colno,
+        stack: e.error ? e.error.stack : '',
+        type: 'uncaught-error'
+    });
 });
 
 const originalConsoleError = console.error;
 console.error = function(...args) {
     originalConsoleError.apply(console, args);
-    try {
-        const uid = auth.currentUser ? auth.currentUser.uid : 'anonymous';
-        const errorLogRef = push(ref(db, `streams_errors/${uid}`));
-        set(errorLogRef, {
-            message: args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '),
-            timestamp: Date.now(),
-            type: 'console.error'
-        });
-    } catch(err) {}
+    logStreamError(args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '), {
+        type: 'console.error'
+    });
 };
 
 const originalConsoleWarn = console.warn;
 console.warn = function(...args) {
     originalConsoleWarn.apply(console, args);
-    try {
-        const uid = auth.currentUser ? auth.currentUser.uid : 'anonymous';
-        const errorLogRef = push(ref(db, `streams_errors/${uid}`));
-        set(errorLogRef, {
-            message: args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '),
-            timestamp: Date.now(),
-            type: 'console.warn'
-        });
-    } catch(err) {}
+    logStreamError(args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '), {
+        type: 'console.warn'
+    });
 };
 
 // Runtime auth verification flag — set true after onAuthStateChanged confirms and syncs profile
