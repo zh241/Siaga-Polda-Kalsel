@@ -3415,9 +3415,11 @@ window.openPrivateChat = async function (targetUid, targetName) {
     const lastReadKey = `dm_last_read_${convId}`;
     localStorage.setItem(lastReadKey, Date.now().toString());
     if (auth.currentUser) {
+        const now = Date.now();
+        console.log(`[DM-Debug] openPrivateChat updating DB last_read for ${convId} to ${now}`);
         update(ref(db, `chat/dm/${convId}/last_read`), {
-            [auth.currentUser.uid]: Date.now()
-        }).catch(e => console.warn('[DM] Failed to save last_read status to DB:', e));
+            [auth.currentUser.uid]: now
+        }).catch(e => console.warn('[DM-Debug] Failed to save last_read status to DB:', e));
     }
 
     // Recalculate _unreadDmCount and global badges
@@ -3581,9 +3583,10 @@ function listenDmPreviews(myUid, users) {
                 const newRead = Math.max(Date.now(), updatedAt);
                 localStorage.setItem(lastReadKey, newRead.toString());
                 if (auth.currentUser) {
+                    console.log(`[DM-Debug] Marking as read in DB for ${child.key}: ${newRead}`);
                     update(ref(db, `chat/dm/${child.key}/last_read`), {
                         [auth.currentUser.uid]: newRead
-                    }).catch(() => {});
+                    }).catch(e => console.warn('[DM-Debug] DB update failed:', e));
                 }
                 lastRead = newRead;
             }
@@ -3592,6 +3595,8 @@ function listenDmPreviews(myUid, users) {
             const hasMessage = lastMessage && lastMessage !== '-';
             const isFromOther = lastSender ? lastSender !== myUid : false;
             const isUnread = hasMessage && isFromOther && updatedAt > lastRead && _currentDmTargetUid !== otherUid;
+
+            console.log(`[DM-Debug] Conv: ${child.key} | otherUid: ${otherUid} | hasMsg: ${hasMessage} | isFromOther: ${isFromOther} | updatedAt: ${updatedAt} | lastReadLocal: ${lastReadLocal} | lastReadDb: ${lastReadDb} | isUnread: ${isUnread}`);
 
             if (isUnread) {
                 localDmUnread++;
