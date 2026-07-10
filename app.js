@@ -3758,45 +3758,52 @@ window.getReverseGeocode = function (lat, lng, callback) {
     const lngFixed = lng.toFixed(4);
     const cacheKey = `${latFixed},${lngFixed}`;
 
-    if (window.geocodedAddresses[cacheKey]) {
-        callback(window.geocodedAddresses[cacheKey]);
-        return;
-    }
-
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=17`;
-    fetch(url, {
-        headers: {
-            'User-Agent': 'SIAGA-Polda-Kalsel-Command-Center'
+    const fetchPromise = new Promise((resolve) => {
+        if (window.geocodedAddresses[cacheKey]) {
+            resolve(window.geocodedAddresses[cacheKey]);
+            return;
         }
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data && data.address) {
-            const road = data.address.road || '';
-            const suburb = data.address.suburb || data.address.village || data.address.neighbourhood || '';
-            const city = data.address.city || data.address.regency || data.address.county || '';
 
-            let addr = '';
-            if (road) addr += road;
-            if (suburb) addr += (addr ? ', ' : '') + suburb;
-            if (city) addr += (addr ? ', ' : '') + city;
-
-            if (!addr && data.display_name) {
-                addr = data.display_name.split(',').slice(0, 3).join(',');
+        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=17`;
+        fetch(url, {
+            headers: {
+                'User-Agent': 'SIAGA-Polda-Kalsel-Command-Center'
             }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data && data.address) {
+                const road = data.address.road || '';
+                const suburb = data.address.suburb || data.address.village || data.address.neighbourhood || '';
+                const city = data.address.city || data.address.regency || data.address.county || '';
 
-            if (addr) {
-                window.geocodedAddresses[cacheKey] = addr;
-                callback(addr);
-                return;
+                let addr = '';
+                if (road) addr += road;
+                if (suburb) addr += (addr ? ', ' : '') + suburb;
+                if (city) addr += (addr ? ', ' : '') + city;
+
+                if (!addr && data.display_name) {
+                    addr = data.display_name.split(',').slice(0, 3).join(',');
+                }
+
+                if (addr) {
+                    window.geocodedAddresses[cacheKey] = addr;
+                    resolve(addr);
+                    return;
+                }
             }
-        }
-        callback(`Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
-    })
-    .catch(err => {
-        console.error('Reverse geocode error:', err);
-        callback(`Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
+            resolve(`Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
+        })
+        .catch(err => {
+            console.error('Reverse geocode error:', err);
+            resolve(`Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
+        });
     });
+
+    if (callback) {
+        fetchPromise.then(callback);
+    }
+    return fetchPromise;
 };
 
 window.activeStreams = {};
@@ -4269,6 +4276,25 @@ function renderLiveGrid() {
         const targetParent = isFocused ? focusedArea : (hasFocus ? otherStreamsRow : grid);
 
         const statusLabel = isConnected ? 'Terhubung' : (isWatching ? 'Menghubungkan...' : 'Menunggu');
+        const updateCardLocation = (cardEl) => {
+            const locContainer = cardEl.querySelector('.stream-location-container');
+            if (locContainer) {
+                const trackingKey = 'POL-' + info.nrp;
+                const trackingData = (window.lastTrackingSnapshotData && window.lastTrackingSnapshotData[trackingKey])
+                    ? window.lastTrackingSnapshotData[trackingKey]
+                    : null;
+                if (trackingData && trackingData.lat && trackingData.lng) {
+                    locContainer.style.display = 'flex';
+                    const linkEl = locContainer.querySelector('.stream-location');
+                    window.getReverseGeocode(trackingData.lat, trackingData.lng).then(address => {
+                        if (linkEl) linkEl.textContent = address;
+                    });
+                } else {
+                    locContainer.style.display = 'none';
+                }
+            }
+        };
+
         const locationHtml = info.lastSeenAddress 
             ? `<div class="stream-location-container" style="display:flex; align-items:center; gap:4px; font-size:9px; color:var(--primary); margin-top:2px;">
                  <i class="fa-solid fa-location-dot"></i><span class="stream-location">${info.lastSeenAddress}</span>
@@ -4301,22 +4327,7 @@ function renderLiveGrid() {
             if (muteIcon) muteIcon.className = `fa-solid ${audioUnmuted ? 'fa-volume-high' : 'fa-volume-xmark'}`;
 
             // Update location link
-            const locContainer = existingCard.querySelector('.stream-location-container');
-            if (locContainer) {
-                const trackingKey = 'POL-' + info.nrp;
-                const trackingData = (window.lastTrackingSnapshotData && window.lastTrackingSnapshotData[trackingKey])
-                    ? window.lastTrackingSnapshotData[trackingKey]
-                    : null;
-                if (trackingData && trackingData.lat && trackingData.lng) {
-                    locContainer.style.display = 'flex';
-                    const linkEl = locContainer.querySelector('.stream-location');
-                    window.getReverseGeocode(trackingData.lat, trackingData.lng).then(address => {
-                        if (linkEl) linkEl.textContent = address;
-                    });
-                } else {
-                    locContainer.style.display = 'none';
-                }
-            }
+            updateCardLocation(existingCard);
 
             const watchBtn = existingCard.querySelector('.stream-btn');
             if (watchBtn) {
@@ -4419,7 +4430,6 @@ function renderLiveGrid() {
                         ${locationHtml}
                     </div>
                 </div>
-                ${locationHtml}
                 <hr style="margin:8px 0; border-color:var(--border-color);">
                 <div style="display:flex; gap:6px; align-items:center;">
                     <button class="stream-btn ${isWatching ? 'watching' : ''}" style="flex:1; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${isWatching ? '#ef4444' : '#3b82f6'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:26px;">
@@ -4496,7 +4506,16 @@ function renderLiveGrid() {
             } else if (preview) {
                 preview.style.display = 'none';
             }
+
+            // Sembunyikan overlay jika koneksi sudah terhubung
+            const overlay = document.getElementById(`status-overlay-${uid}`);
+            if (overlay) {
+                overlay.style.display = isConnected ? 'none' : 'flex';
+            }
         }
+
+        // Jalankan geocode lokasi untuk card baru
+        updateCardLocation(card);
     });
 
     if (hasFocus && otherStreamsRow) {
