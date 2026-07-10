@@ -7114,7 +7114,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
           videoTrack: _localStream!.getVideoTracks().isNotEmpty
               ? _localStream!.getVideoTracks().first
               : null,
-          audioChannel: RecorderAudioChannel.INPUT,
+          audioChannel: null, // Set null agar tidak bentrok dengan mic WebRTC, sehingga file video tidak 0 bytes
           rotationDegrees: 90, // Koreksi rotasi portrait agar rekaman tidak terbalik
         );
         debugPrint("[MediaRecorder] Rekaman lokal dimulai manual");
