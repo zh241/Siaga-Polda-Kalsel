@@ -366,7 +366,7 @@ window.onerror = function(message, source, lineno, colno, error) {
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label text-muted small fw-bold">Interval Update GPS Anggota:</label>
-                                <select id="set-gps-interval" class="form-select border-secondary" style="background-color: var(--card-bg); color: var(--text-main);">
+                                <select id="set-gps-interval" class="form-select border-secondary" style="background-color: var(--bg-card); color: var(--text-main);">
                                     <option value="5">Sangat Cepat (5 Detik)</option>
                                     <option value="10">Standar Update (10 Detik)</option>
                                     <option value="30">Hemat Baterai (30 Detik)</option>
@@ -376,7 +376,7 @@ window.onerror = function(message, source, lineno, colno, error) {
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label text-muted small fw-bold">Batas Waktu Stale Unit (Offline Otomatis):</label>
-                                <select id="set-stale-timeout" class="form-select border-secondary" style="background-color: var(--card-bg); color: var(--text-main);">
+                                <select id="set-stale-timeout" class="form-select border-secondary" style="background-color: var(--bg-card); color: var(--text-main);">
                                     <option value="5">Cepat (5 Menit)</option>
                                     <option value="15">Standar (15 Menit)</option>
                                     <option value="30">Lama (30 Menit)</option>
@@ -864,13 +864,13 @@ window.onerror = function(message, source, lineno, colno, error) {
 <!-- ============================================================ -->
 <!-- FLOATING CHAT BUBBLE (seluruh halaman) -->
 <!-- ============================================================ -->
-<div id="chat-float-btn" onclick="window.toggleFloatingChat()" title="Live Chat" style="display:none; position:fixed; bottom:28px; right:90px; z-index:3500; width:52px; height:52px; background:linear-gradient(135deg,#1d4ed8,#3b82f6); border-radius:50%; cursor:pointer; box-shadow:0 8px 24px rgba(59,130,246,0.45); align-items:center; justify-content:center; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+<div id="chat-float-btn" onclick="window.toggleFloatingChat()" title="Live Chat" style="display:none; position:fixed; bottom:28px; right:28px; z-index:3500; width:52px; height:52px; background:linear-gradient(135deg,#1d4ed8,#3b82f6); border-radius:50%; cursor:pointer; box-shadow:0 8px 24px rgba(59,130,246,0.45); align-items:center; justify-content:center; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
     <i class="fa-solid fa-comments" style="color:#fff; font-size:20px;"></i>
     <span id="chat-float-badge" style="display:none; position:absolute; top:-4px; right:-4px; background:#ef4444; color:#fff; font-size:10px; font-weight:700; border-radius:50%; width:18px; height:18px; align-items:center; justify-content:center; border:2px solid #09090b;">0</span>
 </div>
 
 <!-- Floating Chat Panel -->
-<div id="chat-float-panel" style="display:none; position:fixed; bottom:90px; right:90px; z-index:3500; width:360px; height:480px; background:#18181b; border:1px solid #27272a; border-radius:16px; box-shadow:0 20px 50px rgba(0,0,0,0.6); flex-direction:column; overflow:hidden; animation:slideUpChat 0.25s ease;">
+<div id="chat-float-panel" style="display:none; position:fixed; bottom:90px; right:28px; z-index:3500; width:360px; height:480px; background:#18181b; border:1px solid #27272a; border-radius:16px; box-shadow:0 20px 50px rgba(0,0,0,0.6); flex-direction:column; overflow:hidden; animation:slideUpChat 0.25s ease;">
     <!-- Header -->
     <div style="padding:14px 16px; background:#1c1c1f; border-bottom:1px solid #27272a; display:flex; align-items:center; gap:8px;">
         <span style="width:8px;height:8px;background:#10b981;border-radius:50%;"></span>

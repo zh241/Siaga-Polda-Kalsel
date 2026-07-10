@@ -574,6 +574,10 @@ body, html {
     border-color: var(--primary); 
     box-shadow: 0 0 0 4px var(--primary-glow); 
 }
+.form-select option {
+    background-color: var(--bg-card);
+    color: var(--text-main);
+}
 .form-control:disabled, .form-control[readonly] { 
     background-color: var(--input-readonly); 
     color: var(--text-muted); 
