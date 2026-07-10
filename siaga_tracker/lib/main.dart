@@ -6872,7 +6872,12 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
             map['sdpMLineIndex'] ?? 0,
           );
           if (remoteDescriptionSet) {
-            await pc.addCandidate(candidate);
+            try {
+              await pc.addCandidate(candidate);
+              debugPrint("[WebRTC] Added remote candidate successfully: ${candidate.candidate}");
+            } catch (e) {
+              debugPrint("[WebRTC] Error adding remote candidate: $e");
+            }
           } else {
             bufferedCandidates.add(candidate);
           }
@@ -6890,7 +6895,12 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         await pc.setRemoteDescription(description);
         remoteDescriptionSet = true;
         for (var cand in bufferedCandidates) {
-          await pc.addCandidate(cand);
+          try {
+            await pc.addCandidate(cand);
+            debugPrint("[WebRTC] Added buffered remote candidate successfully: ${cand.candidate}");
+          } catch (e) {
+            debugPrint("[WebRTC] Error adding buffered remote candidate: $e");
+          }
         }
         bufferedCandidates.clear();
       });
