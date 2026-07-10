@@ -7433,19 +7433,6 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
                       onPressed: _switchCamera,
                       child: const Icon(Icons.flip_camera_ios_rounded),
                     ),
-                    const SizedBox(width: 14),
-                    FloatingActionButton(
-                      heroTag: 'record_btn',
-                      backgroundColor: _mediaRecorder != null ? Colors.red : Colors.grey[900],
-                      foregroundColor: Colors.white,
-                      onPressed: _toggleLocalRecording,
-                      child: Icon(
-                        _mediaRecorder != null
-                            ? Icons.radio_button_checked_rounded
-                            : Icons.fiber_manual_record_outlined,
-                        color: _mediaRecorder != null ? Colors.white : Colors.redAccent,
-                      ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 20),
