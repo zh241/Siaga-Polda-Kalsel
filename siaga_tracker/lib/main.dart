@@ -6520,8 +6520,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
   final _remoteRenderer = RTCVideoRenderer();
   MediaStream? _localStream;
   MediaStream? _remoteStream;
-  MediaRecorder? _mediaRecorder;
-  String? _lastSavePath;
+
   final Map<String, RTCPeerConnection> _peerConnections = {};
   final Map<String, List<StreamSubscription>> _viewerSubscriptions = {};
   StreamSubscription<DatabaseEvent>? _viewersAddedSubscription;
@@ -7034,112 +7033,6 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
     return newLines.join('\r\n');
   }
 
-  Future<void> _toggleLocalRecording() async {
-    if (_mediaRecorder != null) {
-      try {
-        await _mediaRecorder!.stop();
-        debugPrint("[MediaRecorder] Rekaman lokal dihentikan manual");
-        
-        String errorMessage = '';
-        bool success = false;
-        if (_lastSavePath != null) {
-          final internalFile = File(_lastSavePath!);
-          if (await internalFile.exists() && await internalFile.length() > 0) {
-            try {
-              String folderPath = '/storage/emulated/0/Download/SIAGA';
-              final siagaDir = Directory(folderPath);
-              if (!await siagaDir.exists()) {
-                await siagaDir.create(recursive: true);
-              }
-              final String fileName = _lastSavePath!.split('/').last;
-              final publicPath = '$folderPath/$fileName';
-              await internalFile.copy(publicPath);
-              success = true;
-              
-              // Hapus file internal setelah berhasil dicopy
-              await internalFile.delete();
-            } catch (copyErr) {
-              debugPrint("[MediaRecorder] Gagal copy ke public: $copyErr");
-              errorMessage = copyErr.toString();
-            }
-          } else {
-            errorMessage = 'File rekaman kosong (0 bytes).';
-          }
-        } else {
-          errorMessage = 'Path rekaman tidak ditemukan.';
-        }
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(success 
-                  ? 'Rekaman selesai! Disimpan di folder Download/SIAGA' 
-                  : 'Rekaman disimpan internal. Detail: $errorMessage'),
-              backgroundColor: success ? Colors.green : Colors.orange,
-              duration: const Duration(seconds: 5),
-            ),
-          );
-        }
-      } catch (recErr) {
-        debugPrint("[MediaRecorder] Gagal menghentikan rekaman: $recErr");
-      }
-      setState(() {
-        _mediaRecorder = null;
-      });
-    } else {
-      if (_localStream == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Kamera belum aktif. Tidak dapat merekam.'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-        }
-        return;
-      }
-
-      try {
-        final dir = await getApplicationDocumentsDirectory();
-        
-        // Gunakan .webm karena WebRTC MediaRecorder secara alami menulis kontainer WebM (menyimpannya sebagai .mp4 menyebabkan file tidak bisa diputar)
-        final String fileName = 'SIAGA_Live_${widget.nrp}_${DateTime.now().millisecondsSinceEpoch}.webm';
-        final String savePath = '${dir.path}/$fileName';
-        _lastSavePath = savePath;
-        debugPrint("[MediaRecorder] Menyimpan rekaman lokal ke: $savePath");
-
-        _mediaRecorder = MediaRecorder();
-        await _mediaRecorder!.start(
-          savePath,
-          videoTrack: _localStream!.getVideoTracks().isNotEmpty
-              ? _localStream!.getVideoTracks().first
-              : null,
-          audioChannel: null, // Set null agar tidak bentrok dengan mic WebRTC, sehingga file video tidak 0 bytes
-          rotationDegrees: 90, // Koreksi rotasi portrait agar rekaman tidak terbalik
-        );
-        debugPrint("[MediaRecorder] Rekaman lokal dimulai manual");
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Merekam...'),
-              backgroundColor: Colors.blueAccent,
-            ),
-          );
-        }
-        setState(() {});
-      } catch (recErr) {
-        debugPrint("[MediaRecorder] Gagal memulai rekaman manual: $recErr");
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Gagal memulai rekaman: $recErr'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-        }
-      }
-    }
-  }
 
   Future<void> _stopStreaming() async {
     try {
@@ -7161,27 +7054,6 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
       _cleanupViewerConnection(vid);
     }
 
-    // Hentikan rekaman lokal jika sedang berjalan
-    if (_mediaRecorder != null) {
-      try {
-        await _mediaRecorder!.stop();
-        debugPrint("[MediaRecorder] Rekaman lokal disimpan");
-        if (mounted) {
-          final isPublic = _lastSavePath?.contains('/Download/SIAGA') ?? false;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(isPublic 
-                  ? 'Siaran selesai! Rekaman disimpan di folder Download/SIAGA' 
-                  : 'Siaran selesai! Rekaman disimpan di memori internal aplikasi'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (recErr) {
-        debugPrint("[MediaRecorder] Gagal menghentikan rekaman lokal: $recErr");
-      }
-      _mediaRecorder = null;
-    }
 
     _localStream?.getTracks().forEach((track) {
       track.stop();
