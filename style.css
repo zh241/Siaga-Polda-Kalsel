@@ -1125,7 +1125,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     .floating-stats-wrapper {
         right: 20px !important;
         left: 20px !important;
-        top: 65px !important; /* Start below the search bar */
+        top: 115px !important; /* Start below the two search bars */
     }
     .floating-stats-container {
         display: grid !important;
@@ -1153,6 +1153,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         right: 20px !important;
         width: auto !important;
         flex-direction: column !important; /* Stack vertically on mobile */
+    }
+    
+    /* Make floating chat panel fully responsive on mobile screen widths */
+    #chat-float-panel {
+        left: 15px !important;
+        right: 15px !important;
+        width: auto !important;
+        bottom: 100px !important;
+        max-height: calc(100vh - 190px) !important;
     }
     
     .live-comm-log-box {
@@ -1388,8 +1397,51 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 #chat-messages-area::-webkit-scrollbar-thumb,
 #chat-float-messages::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
 @media (max-width: 768px) {
-    #chat-channels-sidebar { width: 56px !important; min-width: 56px !important; }
-    .chat-channel-btn span:not(.badge) { display: none; }
+    #chat-channels-sidebar { 
+        width: 60px !important; 
+        min-width: 60px !important; 
+        padding: 4px !important;
+    }
+    .chat-channel-btn {
+        padding: 8px 0 !important;
+        justify-content: center !important;
+        position: relative !important;
+    }
+    .chat-channel-btn span:not(.badge) { 
+        display: none !important; 
+    }
+    .chat-channel-btn i {
+        margin: 0 !important;
+        font-size: 16px !important;
+    }
+    .chat-channel-btn .badge {
+        position: absolute !important;
+        top: 2px !important;
+        right: 2px !important;
+        margin: 0 !important;
+    }
+    /* Hide contact names and message previews inside DM button */
+    .dm-contact-btn {
+        padding: 6px 0 !important;
+        justify-content: center !important;
+    }
+    .dm-contact-btn > div {
+        position: relative !important;
+        justify-content: center !important;
+        width: 100% !important;
+    }
+    .dm-contact-btn div > div:nth-child(2) { 
+        display: none !important; 
+    }
+    .dm-contact-btn .dm-badge {
+        position: absolute !important;
+        top: -4px !important;
+        right: -4px !important;
+    }
+    /* Hide the 'PESAN PRIBADI' label container */
+    #chat-channels-sidebar > div:nth-child(2) {
+        display: none !important;
+    }
 }
 
 /* ============================================================
