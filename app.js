@@ -3664,6 +3664,73 @@ window.toggleFloatingChat = function () {
     }
 };
 
+function makeElementDraggable(elmnt, handle) {
+    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    
+    handle.onmousedown = dragMouseDown;
+    handle.ontouchstart = dragTouchStart;
+
+    function dragMouseDown(e) {
+        e = e || window.event;
+        if (e.target.closest('button') || e.target.closest('i')) return;
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+        handle.style.cursor = 'grabbing';
+    }
+
+    function elementDrag(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        
+        const rect = elmnt.getBoundingClientRect();
+        elmnt.style.bottom = 'auto';
+        elmnt.style.right = 'auto';
+        elmnt.style.top = (rect.top - pos2) + "px";
+        elmnt.style.left = (rect.left - pos1) + "px";
+    }
+
+    function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+        handle.style.cursor = 'grab';
+    }
+    
+    function dragTouchStart(e) {
+        if (e.target.closest('button') || e.target.closest('i')) return;
+        const touch = e.touches[0];
+        pos3 = touch.clientX;
+        pos4 = touch.clientY;
+        document.ontouchend = closeTouchDragElement;
+        document.ontouchmove = touchElementDrag;
+    }
+    
+    function touchElementDrag(e) {
+        const touch = e.touches[0];
+        pos1 = pos3 - touch.clientX;
+        pos2 = pos4 - touch.clientY;
+        pos3 = touch.clientX;
+        pos4 = touch.clientY;
+        
+        const rect = elmnt.getBoundingClientRect();
+        elmnt.style.bottom = 'auto';
+        elmnt.style.right = 'auto';
+        elmnt.style.top = (rect.top - pos2) + "px";
+        elmnt.style.left = (rect.left - pos1) + "px";
+    }
+    
+    function closeTouchDragElement() {
+        document.ontouchend = null;
+        document.ontouchmove = null;
+    }
+}
+
 // Tampilkan floating button setelah login
 function initChatUI() {
     const floatBtn = document.getElementById('chat-float-btn');
@@ -3675,6 +3742,13 @@ function initChatUI() {
         } else {
             floatBtn.style.display = 'flex';
         }
+    }
+
+    // Inisialisasi fitur geser (draggable) untuk panel chat melayang
+    const panel = document.getElementById('chat-float-panel');
+    const header = document.getElementById('chat-float-header');
+    if (panel && header) {
+        makeElementDraggable(panel, header);
     }
     // Cleanup previous listeners
     _chatFloatUnsubs.forEach(unsub => { try { unsub(); } catch (e) { } });

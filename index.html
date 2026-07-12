@@ -872,7 +872,7 @@ window.onerror = function(message, source, lineno, colno, error) {
 <!-- Floating Chat Panel -->
 <div id="chat-float-panel" style="display:none; position:fixed; bottom:212px; right:70px; z-index:3500; width:360px; height:400px; max-height:calc(100vh - 240px); background:#18181b; border:1px solid #27272a; border-radius:16px; box-shadow:0 20px 50px rgba(0,0,0,0.6); flex-direction:column; overflow:hidden; animation:slideUpChat 0.25s ease;">
     <!-- Header -->
-    <div style="padding:14px 16px; background:#1c1c1f; border-bottom:1px solid #27272a; display:flex; align-items:center; gap:8px;">
+    <div id="chat-float-header" style="padding:14px 16px; background:#1c1c1f; border-bottom:1px solid #27272a; display:flex; align-items:center; gap:8px; cursor:grab; user-select:none;">
         <span style="width:8px;height:8px;background:#10b981;border-radius:50%;"></span>
         <span style="font-size:13px; font-weight:700; color:#fff; flex:1; letter-spacing:0.5px;">KOMUNIKASI SIAGA</span>
         <button onclick="window.toggleFloatingChat()" style="background:none;border:none;cursor:pointer;color:#6b7280;padding:4px;border-radius:6px;" title="Tutup">
