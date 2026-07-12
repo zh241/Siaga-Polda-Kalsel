@@ -4388,8 +4388,14 @@ window.toggleVCCam = async function (uid) {
             await conn.videoSender.replaceTrack(trackToUse);
             conn.camActive = !isCurrentlyActive;
             
+            // Nonaktifkan track kamera lokal untuk mematikan sensor kamera & menghemat daya
+            const videoTrack = window.localVCStream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.enabled = conn.camActive;
+            }
+
             // Update Firebase video status
-        await set(ref(db, `streams/${uid}/info/vcVideoActive`), conn.camActive);
+            await set(ref(db, `streams/${uid}/info/vcVideoActive`), conn.camActive);
             
             renderLiveGrid();
         }
@@ -4544,6 +4550,14 @@ function renderLiveGrid() {
 
             // Update location link
             updateCardLocation(existingCard);
+
+            // Update local camera preview visibility on the dispatcher screen
+            const preview = existingCard.querySelector(`#local-preview-${uid}`);
+            if (preview) {
+                const vcActive = conn && conn.vcActive;
+                const camActive = conn && conn.camActive !== false;
+                preview.style.display = (vcActive && camActive) ? 'block' : 'none';
+            }
 
             const watchBtn = existingCard.querySelector('.stream-btn');
             if (watchBtn) {
