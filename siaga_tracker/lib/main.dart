@@ -5000,8 +5000,47 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              FirebaseDatabase.instance.ref('$chatPath/$msgKey').remove().then((_) {
+              FirebaseDatabase.instance.ref('$chatPath/$msgKey').remove().then((_) async {
                 _showSnackBar('Pesan berhasil dihapus.', Colors.green);
+                
+                // Jika ini obrolan DM, perbarui metadata obrolan terakhir (lastMessage & updatedAt) agar konsisten di semua sisi
+                if (_dmConvId.isNotEmpty) {
+                  try {
+                    final msgSnap = await FirebaseDatabase.instance.ref('chat/dm/$_dmConvId/messages').get();
+                    if (msgSnap.exists && msgSnap.value != null) {
+                      final messages = msgSnap.value as Map<dynamic, dynamic>;
+                      final sortedKeys = messages.keys.toList()..sort();
+                      if (sortedKeys.isNotEmpty) {
+                        final lastMsgKey = sortedKeys.last;
+                        final lastMsg = messages[lastMsgKey] as Map<dynamic, dynamic>;
+                        final lastMessageText = (lastMsg['pesan'] ?? '').toString();
+                        final lastMsgTime = lastMsg['waktu'] != null 
+                            ? DateTime.tryParse(lastMsg['waktu'].toString())?.millisecondsSinceEpoch ?? DateTime.now().millisecondsSinceEpoch
+                            : DateTime.now().millisecondsSinceEpoch;
+                        
+                        await FirebaseDatabase.instance.ref('chat/dm/$_dmConvId').update({
+                          'lastMessage': lastMessageText.length > 80 ? lastMessageText.substring(0, 80) : lastMessageText,
+                          'updatedAt': lastMsgTime,
+                          'lastSender': (lastMsg['uid'] ?? '').toString(),
+                        });
+                      } else {
+                        await FirebaseDatabase.instance.ref('chat/dm/$_dmConvId').update({
+                          'lastMessage': '-',
+                          'updatedAt': 0,
+                          'lastSender': '',
+                        });
+                      }
+                    } else {
+                      await FirebaseDatabase.instance.ref('chat/dm/$_dmConvId').update({
+                        'lastMessage': '-',
+                        'updatedAt': 0,
+                        'lastSender': '',
+                      });
+                    }
+                  } catch (e) {
+                    debugPrint('Gagal memperbarui metadata DM setelah hapus: $e');
+                  }
+                }
               }).catchError((err) {
                 _showSnackBar('Gagal menghapus pesan: $err', Colors.red);
               });
