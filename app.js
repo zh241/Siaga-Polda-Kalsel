@@ -4582,6 +4582,39 @@ function renderLiveGrid() {
                                 window.toggleVC(uid);
                             };
                         }
+
+                        // Tampilkan tombol kontrol Mic dan Kamera jika panggilan video call aktif
+                        if (controlsRow) {
+                            if (vcActive) {
+                                controlsRow.style.display = 'flex';
+                                const micActive = activePeerConnections[uid].micActive !== false;
+                                const camActive = activePeerConnections[uid].camActive !== false;
+
+                                const micBtn = document.getElementById(`vc-mic-btn-${uid}`);
+                                if (micBtn) {
+                                    micBtn.style.background = micActive ? '#10b981' : '#18181b';
+                                    micBtn.style.borderColor = micActive ? '#10b981' : '#27272a';
+                                    micBtn.innerHTML = `<i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>${micActive ? 'Mute Mic' : 'Buka Mic'}</span>`;
+                                    micBtn.onclick = (e) => {
+                                        e.stopPropagation();
+                                        window.toggleVCMic(uid);
+                                    };
+                                }
+
+                                const camBtn = document.getElementById(`vc-cam-btn-${uid}`);
+                                if (camBtn) {
+                                    camBtn.style.background = camActive ? '#3b82f6' : '#18181b';
+                                    camBtn.style.borderColor = camActive ? '#3b82f6' : '#27272a';
+                                    camBtn.innerHTML = `<i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>${camActive ? 'Matikan Cam' : 'Aktifkan Cam'}</span>`;
+                                    camBtn.onclick = (e) => {
+                                        e.stopPropagation();
+                                        window.toggleVCCam(uid);
+                                    };
+                                }
+                            } else {
+                                controlsRow.style.display = 'none';
+                            }
+                        }
                     }
                 } else {
                     vcBtnContainer.style.display = 'none';
