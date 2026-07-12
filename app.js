@@ -3646,6 +3646,10 @@ window.kirimPesanFloat = function () {
 };
 
 window.toggleFloatingChat = function () {
+    if (window.floatBtnDragged) {
+        window.floatBtnDragged = false;
+        return; // Jangan buka chat panel jika tombol baru saja digeser/drag
+    }
     const panel = document.getElementById('chat-float-panel');
     if (!panel) return;
     _chatFloatOpen = !_chatFloatOpen;
@@ -3664,18 +3668,23 @@ window.toggleFloatingChat = function () {
     }
 };
 
-function makeElementDraggable(elmnt, handle) {
+function makeElementDraggable(elmnt, handle, isButton = false) {
     let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    let startX = 0, startY = 0;
+    let hasMoved = false;
     
     handle.onmousedown = dragMouseDown;
     handle.ontouchstart = dragTouchStart;
 
     function dragMouseDown(e) {
         e = e || window.event;
-        if (e.target.closest('button') || e.target.closest('i')) return;
+        if (!isButton && (e.target.closest('button') || e.target.closest('i'))) return;
         e.preventDefault();
         pos3 = e.clientX;
         pos4 = e.clientY;
+        startX = e.clientX;
+        startY = e.clientY;
+        hasMoved = false;
         document.onmouseup = closeDragElement;
         document.onmousemove = elementDrag;
         handle.style.cursor = 'grabbing';
@@ -3689,6 +3698,13 @@ function makeElementDraggable(elmnt, handle) {
         pos3 = e.clientX;
         pos4 = e.clientY;
         
+        if (Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5) {
+            hasMoved = true;
+            if (isButton) {
+                window.floatBtnDragged = true;
+            }
+        }
+        
         const rect = elmnt.getBoundingClientRect();
         elmnt.style.bottom = 'auto';
         elmnt.style.right = 'auto';
@@ -3699,14 +3715,25 @@ function makeElementDraggable(elmnt, handle) {
     function closeDragElement() {
         document.onmouseup = null;
         document.onmousemove = null;
-        handle.style.cursor = 'grab';
+        handle.style.cursor = isButton ? 'pointer' : 'grab';
+        
+        if (isButton && hasMoved) {
+            // Beri jeda kecil agar handler event click bawaan tidak men-trigger toggle
+            setTimeout(() => {
+                window.floatBtnDragged = false;
+            }, 50);
+        }
     }
     
+    // Support sentuhan jari (mobile/tablet)
     function dragTouchStart(e) {
-        if (e.target.closest('button') || e.target.closest('i')) return;
+        if (!isButton && (e.target.closest('button') || e.target.closest('i'))) return;
         const touch = e.touches[0];
         pos3 = touch.clientX;
         pos4 = touch.clientY;
+        startX = touch.clientX;
+        startY = touch.clientY;
+        hasMoved = false;
         document.ontouchend = closeTouchDragElement;
         document.ontouchmove = touchElementDrag;
     }
@@ -3718,6 +3745,13 @@ function makeElementDraggable(elmnt, handle) {
         pos3 = touch.clientX;
         pos4 = touch.clientY;
         
+        if (Math.abs(touch.clientX - startX) > 5 || Math.abs(touch.clientY - startY) > 5) {
+            hasMoved = true;
+            if (isButton) {
+                window.floatBtnDragged = true;
+            }
+        }
+        
         const rect = elmnt.getBoundingClientRect();
         elmnt.style.bottom = 'auto';
         elmnt.style.right = 'auto';
@@ -3728,6 +3762,11 @@ function makeElementDraggable(elmnt, handle) {
     function closeTouchDragElement() {
         document.ontouchend = null;
         document.ontouchmove = null;
+        if (isButton && hasMoved) {
+            setTimeout(() => {
+                window.floatBtnDragged = false;
+            }, 50);
+        }
     }
 }
 
@@ -3742,13 +3781,15 @@ function initChatUI() {
         } else {
             floatBtn.style.display = 'flex';
         }
+        // Buat tombol chat bulat melayang bisa digeser-geser oleh user
+        makeElementDraggable(floatBtn, floatBtn, true);
     }
 
     // Inisialisasi fitur geser (draggable) untuk panel chat melayang
     const panel = document.getElementById('chat-float-panel');
     const header = document.getElementById('chat-float-header');
     if (panel && header) {
-        makeElementDraggable(panel, header);
+        makeElementDraggable(panel, header, false);
     }
     // Cleanup previous listeners
     _chatFloatUnsubs.forEach(unsub => { try { unsub(); } catch (e) { } });
