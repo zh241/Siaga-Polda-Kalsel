@@ -3230,11 +3230,44 @@ function renderChatFromMemory(msgsObj, container, emptyId, isFloat) {
 }
 
 window.hapusPesanChat = function (messageKey) {
-    window.showCustomConfirm("Hapus Pesan", "Apakah Anda yakin ingin menghapus pesan ini secara permanen?", () => {
+    window.showCustomConfirm("Hapus Pesan", "Apakah Anda yakin ingin menghapus pesan ini secara permanen?", async () => {
         const path = _chatPath + '/' + messageKey;
-        remove(ref(db, path)).catch(err => {
+        try {
+            await remove(ref(db, path));
+            
+            // Jika ini DM, perbarui metadata obrolan terakhir (lastMessage & updatedAt) agar konsisten di bilah samping
+            if (_currentDmConvId) {
+                const msgSnap = await get(ref(db, `chat/dm/${_currentDmConvId}/messages`));
+                if (msgSnap.exists() && msgSnap.val() !== null) {
+                    const messages = msgSnap.val();
+                    const keys = Object.keys(messages).sort();
+                    if (keys.length > 0) {
+                        const lastMsgKey = keys[keys.length - 1];
+                        const lastMsg = messages[lastMsgKey];
+                        await update(ref(db, `chat/dm/${_currentDmConvId}`), {
+                            lastMessage: (lastMsg.pesan || '').substring(0, 80),
+                            updatedAt: lastMsg.waktu ? new Date(lastMsg.waktu).getTime() : Date.now(),
+                            lastSender: lastMsg.uid || ''
+                        });
+                    } else {
+                        await update(ref(db, `chat/dm/${_currentDmConvId}`), {
+                            lastMessage: '-',
+                            updatedAt: 0,
+                            lastSender: ''
+                        });
+                    }
+                } else {
+                    await update(ref(db, `chat/dm/${_currentDmConvId}`), {
+                        lastMessage: '-',
+                        updatedAt: 0,
+                        lastSender: ''
+                    });
+                }
+            }
+        } catch (err) {
+            console.error('[Chat] Delete error:', err);
             alert('Gagal menghapus pesan: ' + err.message, 'Error', 'danger');
-        });
+        }
     }, "danger");
 };
 
@@ -3598,23 +3631,40 @@ function listenDmPreviews(myUid, users) {
 
             console.log(`[DM-Debug] Conv: ${child.key} | otherUid: ${otherUid} | hasMsg: ${hasMessage} | isFromOther: ${isFromOther} | updatedAt: ${updatedAt} | lastReadLocal: ${lastReadLocal} | lastReadDb: ${lastReadDb} | isUnread: ${isUnread}`);
 
+            let unreadCount = 0;
             if (isUnread) {
-                localDmUnread++;
+                if (conv.messages) {
+                    for (const msgKey in conv.messages) {
+                        const msg = conv.messages[msgKey];
+                        const msgTime = msg.waktu ? new Date(msg.waktu).getTime() : 0;
+                        if (msg.uid !== myUid && msgTime > lastRead) {
+                            unreadCount++;
+                        }
+                    }
+                }
+                if (unreadCount === 0) {
+                    unreadCount = 1;
+                }
+            }
+
+            if (unreadCount > 0) {
+                localDmUnread += unreadCount;
             }
 
             if (badgeEl) {
-                if (isUnread) {
+                if (unreadCount > 0) {
                     badgeEl.style.display = 'flex';
-                    badgeEl.textContent = '1';
+                    badgeEl.textContent = unreadCount > 99 ? '99+' : unreadCount;
                     badgeEl.style.background = '#ef4444';
                     badgeEl.style.color = '#fff';
                     badgeEl.style.borderRadius = '50%';
-                    badgeEl.style.width = '16px';
-                    badgeEl.style.height = '16px';
+                    badgeEl.style.minWidth = '18px';
+                    badgeEl.style.height = '18px';
                     badgeEl.style.fontSize = '9px';
                     badgeEl.style.fontWeight = 'bold';
                     badgeEl.style.alignItems = 'center';
                     badgeEl.style.justifyContent = 'center';
+                    badgeEl.style.padding = '0 4px';
                 } else {
                     badgeEl.style.display = 'none';
                 }
