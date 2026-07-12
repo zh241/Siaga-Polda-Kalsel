@@ -3592,9 +3592,8 @@ function listenDmPreviews(myUid, users) {
             const otherUid = Object.keys(participants).find(uid => uid !== myUid);
             if (!otherUid) return;
 
-            // Verify if messages node exists in the database for this DM conversation
-            const hasMessagesInDb = conv.messages && Object.keys(conv.messages).length > 0;
-            const lastMessage = hasMessagesInDb ? (conv.lastMessage || '') : '';
+            // Ambil lastMessage langsung dari database tanpa perlu memeriksa keberadaan conv.messages
+            const lastMessage = conv.lastMessage || '';
 
             // Update preview text
             const previewEl = document.getElementById(`dm-preview-${otherUid}`);
