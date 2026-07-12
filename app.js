@@ -3611,17 +3611,21 @@ function listenDmPreviews(myUid, users) {
             const updatedAt = conv.updatedAt || 0;
             const lastSender = conv.lastSender || '';
 
-            // Auto-read if currently viewing
+            // Auto-read if currently viewing (only write if DB is outdated to prevent infinite recursion loop)
             if (_currentDmTargetUid === otherUid) {
-                const newRead = Math.max(Date.now(), updatedAt);
-                localStorage.setItem(lastReadKey, newRead.toString());
-                if (auth.currentUser) {
-                    console.log(`[DM-Debug] Marking as read in DB for ${child.key}: ${newRead}`);
-                    update(ref(db, `chat/dm/${child.key}/last_read`), {
-                        [auth.currentUser.uid]: newRead
-                    }).catch(e => console.warn('[DM-Debug] DB update failed:', e));
+                if (lastReadDb < updatedAt) {
+                    const newRead = Math.max(Date.now(), updatedAt);
+                    localStorage.setItem(lastReadKey, newRead.toString());
+                    if (auth.currentUser) {
+                        console.log(`[DM-Debug] Marking as read in DB for ${child.key}: ${newRead}`);
+                        update(ref(db, `chat/dm/${child.key}/last_read`), {
+                            [auth.currentUser.uid]: newRead
+                        }).catch(e => console.warn('[DM-Debug] DB update failed:', e));
+                    }
+                    lastRead = newRead;
+                } else {
+                    lastRead = lastReadDb;
                 }
-                lastRead = newRead;
             }
 
             const badgeEl = document.getElementById(`dm-badge-${otherUid}`);
