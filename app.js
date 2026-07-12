@@ -4528,6 +4528,7 @@ function renderLiveGrid() {
         // If card already exists, update dynamic parts
         const existingCard = document.getElementById(`stream-card-${uid}`);
         if (existingCard) {
+            const conn = activePeerConnections[uid];
             if (isFocused) {
                 existingCard.classList.add('focused');
             } else {
@@ -4636,7 +4637,6 @@ function renderLiveGrid() {
                 }
             }
 
-            const conn = activePeerConnections[uid];
             if (isWatching && conn) {
                 const videoEl = existingCard.querySelector(`#video-${uid}`);
                 if (videoEl && conn.remoteStream && conn.remoteStream.getTracks().length > 0 && !videoEl.srcObject) {
