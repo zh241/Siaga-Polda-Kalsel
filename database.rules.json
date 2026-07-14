@@ -46,8 +46,8 @@
       }
     },
     "chat": {
-      ".read": "auth != null && root.child('users').child(auth.uid).child('status').val() == 'active'",
       "umum": {
+        ".read": "auth != null && root.child('users').child(auth.uid).child('status').val() == 'active'",
         ".write": "auth != null && root.child('users').child(auth.uid).child('status').val() == 'active'",
         ".indexOn": ["waktu"],
         "$msgId": {

@@ -1,0 +1,13 @@
+{
+  "name": "siaga-polda-kalsel",
+  "version": "1.0.0",
+  "description": "Siaga Polda Kalsel Web Dashboard Tests",
+  "main": "app.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "@firebase/rules-unit-testing": "^3.0.2"
+  }
+}

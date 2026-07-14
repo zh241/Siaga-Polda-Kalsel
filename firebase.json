@@ -2,9 +2,6 @@
   "database": {
     "rules": "database.rules.json"
   },
-  "functions": {
-    "source": "functions"
-  },
   "hosting": {
     "public": ".",
     "cleanUrls": true,
@@ -29,5 +26,13 @@
         ]
       }
     ]
+  },
+  "emulators": {
+    "database": {
+      "port": 9000
+    },
+    "ui": {
+      "enabled": true
+    }
   }
 }
