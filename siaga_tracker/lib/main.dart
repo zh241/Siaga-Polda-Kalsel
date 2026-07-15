@@ -16,7 +16,6 @@ import 'package:permission_handler/permission_handler.dart' hide ServiceStatus;
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
-import 'utils/gps_throttle.dart';
 
 // Global ValueNotifier for ThemeMode
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
@@ -1581,7 +1580,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   StreamSubscription<DatabaseEvent>? _userSubscription;
   int _gpsInterval = 10;
   bool _maintenanceMode = false;
-  final GpsThrottle _gpsThrottle = GpsThrottle();
+  DateTime? _lastFirebaseWriteTime;
 
   // Sesi pelacakan aktif (Task 41 & 42)
   final List<Position> _sessionTrackingPositions = [];
@@ -2568,9 +2567,14 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     }
     
     // Throttle database writes based on _gpsInterval
-    if (!_gpsThrottle.shouldWrite(DateTime.now(), _gpsInterval)) {
-      return; // Skip Firebase write
+    final DateTime now = DateTime.now();
+    if (_lastFirebaseWriteTime != null) {
+      final difference = now.difference(_lastFirebaseWriteTime!);
+      if (difference.inSeconds < _gpsInterval) {
+        return; // Skip Firebase write
+      }
     }
+    _lastFirebaseWriteTime = now;
     
     final String opCodeText = _opCodeController.text.trim();
     final String activityTypeText = _activityTypeController.text.trim();
@@ -2617,7 +2621,6 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
 
     setState(() {
       _isTracking = false;
-      _gpsThrottle.reset();
       _homeState = HomeMissionState.standby;
       _missionStartTime = null;
       _elapsedSeconds = 0;
