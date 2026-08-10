@@ -15,7 +15,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart' hide ServiceStatus;
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
 
 // Global ValueNotifier for ThemeMode
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
@@ -6705,11 +6704,11 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
       });
 
       // Set untuk mencegah double-setup pada viewer yang sama
-      final Set<String> _setupInProgress = {};
+      final Set<String> setupInProgress = {};
 
       Future<void> handleViewerRequest(String viewerId) async {
-        if (_setupInProgress.contains(viewerId)) return; // sedang diproses, skip
-        _setupInProgress.add(viewerId);
+        if (setupInProgress.contains(viewerId)) return; // sedang diproses, skip
+        setupInProgress.add(viewerId);
         try {
           if (_peerConnections.length >= 3 && !_peerConnections.containsKey(viewerId)) {
             debugPrint("[WebRTC] Penonton penuh, menolak: $viewerId");
@@ -6724,7 +6723,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
           debugPrint("[WebRTC] Setup koneksi untuk viewer: $viewerId");
           await _setupViewerConnection(viewerId);
         } finally {
-          _setupInProgress.remove(viewerId);
+          setupInProgress.remove(viewerId);
         }
       }
 
@@ -7015,35 +7014,6 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
         setState(() {});
       }
     }
-  }
-
-  String _setMediaBitrates(String sdp, int bitrateKbps) {
-    List<String> lines = sdp.split('\r\n');
-    if (lines.length == 1) {
-      lines = sdp.split('\n');
-    }
-    List<String> newLines = [];
-    bool isVideoSection = false;
-
-    for (int i = 0; i < lines.length; i++) {
-      String line = lines[i];
-      newLines.add(line);
-
-      if (line.startsWith('m=video')) {
-        isVideoSection = true;
-      } else if (line.startsWith('m=')) {
-        isVideoSection = false;
-      }
-
-      if (isVideoSection && (line.startsWith('m=video') || line.startsWith('c=IN'))) {
-        String nextLine = (i + 1 < lines.length) ? lines[i + 1] : '';
-        if (!nextLine.startsWith('b=AS:')) {
-          newLines.add('b=AS:$bitrateKbps');
-          newLines.add('b=TIAS:${bitrateKbps * 1000}');
-        }
-      }
-    }
-    return newLines.join('\r\n');
   }
 
 
