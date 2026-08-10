@@ -117,17 +117,17 @@ Proyek ini terbagi menjadi **dua aplikasi utama yang saling terintegrasi** dan t
 
 ```mermaid
 graph TD
-    subgraph Klien Lapangan
-        Mobile[Aplikasi Mobile - Flutter]
+    subgraph "Klien Lapangan"
+        Mobile["Aplikasi Mobile (Flutter)"]
     end
 
-    subgraph Pusat Komando
-        Web[Dashboard Web - Vanilla JS]
+    subgraph "Pusat Komando"
+        Web["Dashboard Web (Vanilla JS)"]
     end
 
-    subgraph Firebase Cloud (Region: asia-southeast1)
-        Auth[Firebase Authentication<br>NRP-Based Virtual Email]
-        DB[(Firebase Realtime Database)]
+    subgraph "Firebase Cloud (Region: asia-southeast1)"
+        Auth["Firebase Authentication (NRP-Based)"]
+        DB[("Firebase Realtime Database")]
     end
 
     Mobile <-->|Sync Real-time 2 Arah| DB
