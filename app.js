@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getDatabase, ref, onValue, onChildAdded, onChildChanged, onChildRemoved, get, set, push, remove, update, query, orderByChild, limitToLast } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { firebaseConfig } from "./config.js";
 
 // =========================================================================
 // 1. SESSION GATE & CONFIG
@@ -20,17 +21,6 @@ function shouldFilterOutSatker(u) {
 
 // NOTE: Do not redirect immediately based on cached localStorage. Wait for onAuthStateChanged
 // to verify session and role from the server to avoid race conditions and tampering.
-
-// Konfigurasi SIAGA Baru
-const firebaseConfig = {
-    apiKey: "AIzaSyBcXluO0MGWA7QECYTy1uBdhanHYNG38_M",
-    authDomain: "siaga-polda-kalsel.firebaseapp.com",
-    databaseURL: "https://siaga-polda-kalsel-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "siaga-polda-kalsel",
-    storageBucket: "siaga-polda-kalsel.firebasestorage.app",
-    messagingSenderId: "972028267896",
-    appId: "1:972028267896:web:fd7cc50832a1ff3216cc8d"
-};
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);

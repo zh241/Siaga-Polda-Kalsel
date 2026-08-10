@@ -856,17 +856,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBcXluO0MGWA7QECYTy1uBdhanHYNG38_M",
-            authDomain: "siaga-polda-kalsel.firebaseapp.com",
-            databaseURL: "https://siaga-polda-kalsel-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "siaga-polda-kalsel",
-            storageBucket: "siaga-polda-kalsel.firebasestorage.app",
-            messagingSenderId: "972028267896",
-            appId: "1:972028267896:web:fd7cc50832a1ff3216cc8d"
-        };
+        import { firebaseConfig } from "./config.js";
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
