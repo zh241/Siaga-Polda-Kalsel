@@ -240,7 +240,7 @@ flutter run
 
 ## 👤 Kontribusi
 
-Proyek ini dirancang dan dikembangkan oleh **Haqi** — mahasiswa D4 Teknologi Rekayasa Komputer Jaringan, Politeknik Negeri Tanah Laut — sebagai bagian dari program Praktik Kerja Lapangan (PKL) di Bidang Teknologi Informasi dan Komunikasi (Bid TIK), Kepolisian Daerah Kalimantan Selatan.
+Proyek ini dirancang dan dikembangkan oleh **Muhammad Zainal Haqi** — mahasiswa D4 Teknologi Rekayasa Komputer Jaringan, Politeknik Negeri Tanah Laut — sebagai bagian dari program Praktik Kerja Lapangan (PKL) di Bidang Teknologi Informasi dan Komunikasi (Bid TIK), Kepolisian Daerah Kalimantan Selatan.
 
 ---
 <div align="center">
