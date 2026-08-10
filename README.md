@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/logo_polda.png" alt="Logo Polda Kalimantan Selatan" height="100"/>
+  <img src="assets/logo_polda.png" alt="Logo Polda Kalimantan Selatan" height="100"/> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <img src="assets/logo-tik.png" alt="Logo TIK Polri" height="100"/>
 
   # 🛡️ SIAGA
   ### Sistem Informasi Aktivitas dan Gerak Anggota
@@ -29,7 +29,7 @@
 - [📁 Struktur Repositori](#-struktur-repositori)
 - [⚠️ Keterbatasan Sistem (Known Limitations)](#️-keterbatasan-sistem-known-limitations)
 - [🚀 Menjalankan Proyek](#-menjalankan-proyek)
-- [👤 Kontribusi](#-kontribusi)
+- [👤 Kontributor](#-kontributor)
 
 <br/>
 
@@ -238,13 +238,6 @@ flutter run
 
 <br/>
 
-## 👤 Kontribusi
+## 👤 Kontributor
 
-Proyek ini dirancang dan dikembangkan oleh **Muhammad Zainal Haqi** — mahasiswa D4 Teknologi Rekayasa Komputer Jaringan, Politeknik Negeri Tanah Laut — sebagai bagian dari program Praktik Kerja Lapangan (PKL) di Bidang Teknologi Informasi dan Komunikasi (Bid TIK), Kepolisian Daerah Kalimantan Selatan.
-
----
-<div align="center">
-  <img src="assets/mascot_presisi.png" height="80" alt="Mascot Presisi Polri"/>
-  <br/>
-  <sub><b>Presisi — Prediktif, Responsibilitas, Transparansi Berkeadilan</b></sub>
-</div>
+Proyek ini dirancang dan dikembangkan oleh **Muhammad Zainal Haqi** — Mahasiswa Program Studi Diploma IV Teknologi Rekayasa Komputer Jaringan, **Politeknik Negeri Tanah Laut**, sebagai proyek tugas akhir program Praktik Kerja Lapangan (PKL) pada **Bidang Teknologi Informasi dan Komunikasi (Bid TIK), Kepolisian Daerah Kalimantan Selatan**.
