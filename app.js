@@ -4393,6 +4393,44 @@ window.toggleVCCam = async function (uid) {
     }
 };
 
+function bindCardControls(parentEl, uid, streamFullName) {
+    const watchBtn = parentEl.querySelector('.stream-btn');
+    if (watchBtn) {
+        watchBtn.onclick = (e) => {
+            e.stopPropagation();
+            window.toggleWatchStream(uid, streamFullName);
+        };
+    }
+    const recordBtn = parentEl.querySelector(`#record-btn-${uid}`);
+    if (recordBtn) {
+        recordBtn.onclick = (e) => {
+            e.stopPropagation();
+            window.toggleWebRecord(uid, streamFullName);
+        };
+    }
+    const vcBtn = parentEl.querySelector(`#vc-btn-${uid}`);
+    if (vcBtn) {
+        vcBtn.onclick = (e) => {
+            e.stopPropagation();
+            window.toggleVC(uid);
+        };
+    }
+    const micBtn = parentEl.querySelector(`#vc-mic-btn-${uid}`);
+    if (micBtn) {
+        micBtn.onclick = (e) => {
+            e.stopPropagation();
+            window.toggleVCMic(uid);
+        };
+    }
+    const camBtn = parentEl.querySelector(`#vc-cam-btn-${uid}`);
+    if (camBtn) {
+        camBtn.onclick = (e) => {
+            e.stopPropagation();
+            window.toggleVCCam(uid);
+        };
+    }
+}
+
 function renderLiveGrid() {
     const grid = document.getElementById('live-ops-grid');
     const emptyState = document.getElementById('live-ops-empty-state');
@@ -4410,7 +4448,6 @@ function renderLiveGrid() {
     emptyState.style.display = 'none';
     grid.style.display = 'grid';
 
-    // Clean up focusedStreamUids that are no longer active
     window.focusedStreamUids = (window.focusedStreamUids || []).filter(uid => uids.includes(uid));
 
     const hasFocus = window.focusedStreamUids.length > 0;
@@ -4447,7 +4484,6 @@ function renderLiveGrid() {
         }
     }
 
-    // Track existing card UIDs to avoid unnecessary rebuilds
     grid.querySelectorAll('.stream-card').forEach(card => {
         const cardUid = card.dataset.uid;
         if (cardUid && !uids.includes(cardUid)) {
@@ -4470,7 +4506,6 @@ function renderLiveGrid() {
             const locContainer = cardEl.querySelector('.stream-location-container');
             if (locContainer) {
                 const trackingKey = 'POL-' + info.nrp;
-                
                 const processLocation = (data) => {
                     if (data && data.koordinat && data.koordinat.lat && data.koordinat.lng) {
                         locContainer.style.display = 'flex';
@@ -4482,16 +4517,12 @@ function renderLiveGrid() {
                         locContainer.style.display = 'none';
                     }
                 };
-
-                // Coba ambil dari snapshot tracking global
                 const trackingData = (window.lastTrackingSnapshotData && window.lastTrackingSnapshotData[trackingKey])
                     ? window.lastTrackingSnapshotData[trackingKey]
                     : null;
-
                 if (trackingData) {
                     processLocation(trackingData);
                 } else {
-                    // Fallback: Ambil langsung dari Firebase jika snapshot belum sinkron
                     const dbRef = ref(db, 'live_tracking/' + trackingKey);
                     get(dbRef).then((snapshot) => {
                         if (snapshot.exists()) {
@@ -4514,7 +4545,102 @@ function renderLiveGrid() {
                  <i class="fa-solid fa-location-dot"></i><span class="stream-location"></span>
                </div>`;
 
-        // If card already exists, update dynamic parts
+        let controlsHtml = '';
+        if (!isWatching) {
+            controlsHtml = `
+                <div style="display:flex; width:100%;">
+                    <button class="stream-btn" style="width:100%; padding:6px 12px; border:none; border-radius:4px; cursor:pointer; font-size:11px; font-weight:600; background:#3b82f6; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:28px;">
+                        <i class="fa-solid fa-play"></i><span>Tonton</span>
+                    </button>
+                </div>
+            `;
+        } else {
+            const vcActive = activePeerConnections[uid] && activePeerConnections[uid].vcActive;
+            const micActive = activePeerConnections[uid] && activePeerConnections[uid].micActive !== false;
+            const camActive = activePeerConnections[uid] && activePeerConnections[uid].camActive !== false;
+            const isRecording = window.webRecorders && window.webRecorders[uid] !== undefined;
+            const recordBg = isRecording ? '#ef4444' : '#18181b';
+            const recordBorder = isRecording ? '1px solid transparent' : '1px solid #27272a';
+            const recordIconColor = isRecording ? '#fff' : '#ef4444';
+            const recordAnim = isRecording ? 'pulse 1s infinite' : 'none';
+            const recordText = isRecording ? (isFocused ? 'Merekam...' : 'Merekam') : 'Rekam';
+
+            if (userRole !== 'admin') {
+                controlsHtml = `
+                    <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
+                        <div style="display:flex; gap:4px; align-items:center; width:100%;">
+                            <button class="stream-btn watching" style="flex:1; padding:4px 2px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; gap:2px; height:24px;">
+                                <i class="fa-solid fa-stop-circle" style="font-size:9px;"></i><span>Hentikan</span>
+                            </button>
+                            <button class="record-btn" id="record-btn-${uid}" style="flex:1; padding:4px 2px; display:flex; align-items:center; justify-content:center; gap:2px; height:24px; font-size:9px; font-weight:600; border:none; border-radius:4px; cursor:pointer; background:${recordBg}; border:${recordBorder}; color:#fff;">
+                                <i class="fa-solid fa-circle" id="record-icon-${uid}" style="color:${recordIconColor}; font-size:7px; animation:${recordAnim};"></i>
+                                <span id="record-label-${uid}">${recordText}</span>
+                            </button>
+                        </div>
+                        <div style="width:100%; text-align:center; padding:4px 8px; border-radius:4px; font-size:9px; font-weight:600; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-muted); display:flex; align-items:center; justify-content:center; height:22px;">Mode Pantau</div>
+                    </div>
+                `;
+            } else {
+                if (isFocused) {
+                    controlsHtml = `
+                        <div style="display:flex; flex-wrap:nowrap; gap:6px; align-items:center; width:100%; overflow-x:auto; padding-bottom:2px;">
+                            <button class="stream-btn watching" style="flex:1; min-width:80px; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:28px;">
+                                <i class="fa-solid fa-stop-circle"></i><span>Hentikan</span>
+                            </button>
+                            <button class="record-btn" id="record-btn-${uid}" style="flex:1; min-width:70px; display:flex; align-items:center; justify-content:center; gap:4px; height:28px; font-size:10px; font-weight:600; border:none; border-radius:4px; cursor:pointer; background:${recordBg}; border:${recordBorder}; color:#fff;">
+                                <i class="fa-solid fa-circle" id="record-icon-${uid}" style="color:${recordIconColor}; font-size:8px; animation:${recordAnim};"></i>
+                                <span id="record-label-${uid}">${recordText}</span>
+                            </button>
+                            <button class="vc-btn" id="vc-btn-${uid}" style="flex:1.2; min-width:110px; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:28px;">
+                                <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
+                                <span>${vcActive ? 'Tutup Call' : 'Video Call'}</span>
+                            </button>
+                            ${vcActive ? `
+                                <button id="vc-mic-btn-${uid}" style="flex:0.8; min-width:70px; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${micActive ? '#10b981' : '#18181b'}; border:1px solid ${micActive ? '#10b981' : '#27272a'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:28px;">
+                                    <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i>
+                                    <span>${micActive ? 'Mute' : 'Mic'}</span>
+                                </button>
+                                <button id="vc-cam-btn-${uid}" style="flex:1; min-width:85px; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${camActive ? '#3b82f6' : '#18181b'}; border:1px solid ${camActive ? '#3b82f6' : '#27272a'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:28px;">
+                                    <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i>
+                                    <span>${camActive ? 'Mati Cam' : 'Aktif Cam'}</span>
+                                </button>
+                            ` : ''}
+                        </div>
+                    `;
+                } else {
+                    controlsHtml = `
+                        <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
+                            <div style="display:flex; gap:4px; align-items:center; width:100%;">
+                                <button class="stream-btn watching" style="flex:1; padding:4px 2px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; gap:2px; height:24px;">
+                                    <i class="fa-solid fa-stop-circle" style="font-size:9px;"></i><span>Hentikan</span>
+                                </button>
+                                <button class="record-btn" id="record-btn-${uid}" style="flex:0.9; padding:4px 2px; display:flex; align-items:center; justify-content:center; gap:2px; height:24px; font-size:9px; font-weight:600; border:none; border-radius:4px; cursor:pointer; background:${recordBg}; border:${recordBorder}; color:#fff;">
+                                    <i class="fa-solid fa-circle" id="record-icon-${uid}" style="color:${recordIconColor}; font-size:7px; animation:${recordAnim};"></i>
+                                    <span id="record-label-${uid}">${recordText}</span>
+                                </button>
+                                <button class="vc-btn" id="vc-btn-${uid}" style="flex:1.1; padding:4px 2px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:2px; height:24px;">
+                                    <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}" style="font-size:9px;"></i>
+                                    <span>${vcActive ? 'Tutup' : 'Video Call'}</span>
+                                </button>
+                            </div>
+                            ${vcActive ? `
+                                <div style="display:flex; gap:4px; align-items:center; width:100%;">
+                                    <button id="vc-mic-btn-${uid}" style="flex:1; padding:3px 2px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${micActive ? '#10b981' : '#18181b'}; border:1px solid ${micActive ? '#10b981' : '#27272a'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
+                                        <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i>
+                                        <span>${micActive ? 'Mute' : 'Buka Mic'}</span>
+                                    </button>
+                                    <button id="vc-cam-btn-${uid}" style="flex:1; padding:3px 2px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${camActive ? '#3b82f6' : '#18181b'}; border:1px solid ${camActive ? '#3b82f6' : '#27272a'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
+                                        <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i>
+                                        <span>${camActive ? 'Mati Cam' : 'Aktif Cam'}</span>
+                                    </button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+            }
+        }
+
         const existingCard = document.getElementById(`stream-card-${uid}`);
         if (existingCard) {
             const conn = activePeerConnections[uid];
@@ -4538,10 +4664,8 @@ function renderLiveGrid() {
             const muteIcon = document.getElementById(`mute-icon-${uid}`);
             if (muteIcon) muteIcon.className = `fa-solid ${audioUnmuted ? 'fa-volume-high' : 'fa-volume-xmark'}`;
 
-            // Update location link
             updateCardLocation(existingCard);
 
-            // Update local camera preview visibility on the dispatcher screen
             const preview = existingCard.querySelector(`#local-preview-${uid}`);
             if (preview) {
                 const vcActive = conn && conn.vcActive;
@@ -4549,81 +4673,10 @@ function renderLiveGrid() {
                 preview.style.display = (vcActive && camActive) ? 'block' : 'none';
             }
 
-            const watchBtn = existingCard.querySelector('.stream-btn');
-            if (watchBtn) {
-                watchBtn.className = `stream-btn ${isWatching ? 'watching' : ''}`;
-                watchBtn.style.background = isWatching ? '#ef4444' : '#3b82f6';
-                watchBtn.innerHTML = `<i class="fa-solid ${isWatching ? 'fa-stop-circle' : 'fa-play'}"></i><span>${isWatching ? 'Hentikan' : 'Tonton'}</span>`;
-                watchBtn.onclick = () => window.toggleWatchStream(uid, streamFullName);
-            }
-
-            const recordBtn = document.getElementById(`record-btn-${uid}`);
-            if (recordBtn) {
-                recordBtn.style.display = isWatching ? 'flex' : 'none';
-            }
-
-            const vcBtnContainer = existingCard.querySelector('.vc-container');
-            const controlsRow = document.getElementById(`vc-controls-row-${uid}`);
-            if (vcBtnContainer) {
-                if (isWatching) {
-                    vcBtnContainer.style.display = 'block';
-                    if (userRole !== 'admin') {
-                        vcBtnContainer.innerHTML = `<div style="width:100%; text-align:center; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:600; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-muted); display:flex; align-items:center; justify-content:center; height:26px;">Mode Pantau</div>`;
-                        if (controlsRow) controlsRow.style.display = 'none';
-                    } else {
-                        const vcActive = activePeerConnections[uid] && activePeerConnections[uid].vcActive;
-                        vcBtnContainer.innerHTML = `
-                            <button class="vc-btn" id="vc-btn-${uid}" style="width:100%; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:26px;">
-                                <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i><span>${vcActive ? 'Tutup Panggilan' : 'Hubungi Video Call'}</span>
-                            </button>
-                        `;
-
-                        // Rebind vcBtn click
-                        const vcBtn = document.getElementById(`vc-btn-${uid}`);
-                        if (vcBtn) {
-                            vcBtn.onclick = (e) => {
-                                e.stopPropagation();
-                                window.toggleVC(uid);
-                            };
-                        }
-
-                        // Tampilkan tombol kontrol Mic dan Kamera jika panggilan video call aktif
-                        if (controlsRow) {
-                            if (vcActive) {
-                                controlsRow.style.display = 'flex';
-                                const micActive = activePeerConnections[uid].micActive !== false;
-                                const camActive = activePeerConnections[uid].camActive !== false;
-
-                                const micBtn = document.getElementById(`vc-mic-btn-${uid}`);
-                                if (micBtn) {
-                                    micBtn.style.background = micActive ? '#10b981' : '#18181b';
-                                    micBtn.style.borderColor = micActive ? '#10b981' : '#27272a';
-                                    micBtn.innerHTML = `<i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i><span>${micActive ? 'Mute Mic' : 'Buka Mic'}</span>`;
-                                    micBtn.onclick = (e) => {
-                                        e.stopPropagation();
-                                        window.toggleVCMic(uid);
-                                    };
-                                }
-
-                                const camBtn = document.getElementById(`vc-cam-btn-${uid}`);
-                                if (camBtn) {
-                                    camBtn.style.background = camActive ? '#3b82f6' : '#18181b';
-                                    camBtn.style.borderColor = camActive ? '#3b82f6' : '#27272a';
-                                    camBtn.innerHTML = `<i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i><span>${camActive ? 'Matikan Cam' : 'Aktifkan Cam'}</span>`;
-                                    camBtn.onclick = (e) => {
-                                        e.stopPropagation();
-                                        window.toggleVCCam(uid);
-                                    };
-                                }
-                            } else {
-                                controlsRow.style.display = 'none';
-                            }
-                        }
-                    }
-                } else {
-                    vcBtnContainer.style.display = 'none';
-                    if (controlsRow) controlsRow.style.display = 'none';
-                }
+            const controlsContainer = existingCard.querySelector('.stream-controls-container');
+            if (controlsContainer) {
+                controlsContainer.innerHTML = controlsHtml;
+                bindCardControls(existingCard, uid, streamFullName);
             }
 
             if (isWatching && conn) {
@@ -4635,7 +4688,6 @@ function renderLiveGrid() {
                 }
             }
 
-            // Move to correct parent if needed
             if (existingCard.parentElement !== targetParent) {
                 targetParent.appendChild(existingCard);
             }
@@ -4683,24 +4735,8 @@ function renderLiveGrid() {
                     </div>
                 </div>
                 <hr style="margin:8px 0; border-color:var(--border-color);">
-                <div style="display:flex; gap:6px; align-items:center;">
-                    <button class="stream-btn ${isWatching ? 'watching' : ''}" style="flex:1; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${isWatching ? '#ef4444' : '#3b82f6'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:26px;">
-                        <i class="fa-solid ${isWatching ? 'fa-stop-circle' : 'fa-play'}"></i>
-                        <span>${isWatching ? 'Hentikan' : 'Tonton'}</span>
-                    </button>
-                    <button class="record-btn" id="record-btn-${uid}" style="flex:1; display:${isWatching ? 'flex' : 'none'}; align-items:center; justify-content:center; gap:4px; height:26px; font-size:10px; font-weight:600; border:none; border-radius:4px; cursor:pointer; background:#18181b; border:1px solid #27272a; color:#fff;">
-                        <i class="fa-solid fa-circle" id="record-icon-${uid}" style="color:#ef4444; font-size:8px;"></i>
-                        <span id="record-label-${uid}">Rekam</span>
-                    </button>
-                </div>
-                <div class="vc-container" style="display:none; margin-top:6px; width:100%;"></div>
-                <div id="vc-controls-row-${uid}" style="display:none; gap:6px; margin-top:6px;">
-                    <button id="vc-mic-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:#18181b; border:1px solid #27272a; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
-                        <i class="fa-solid fa-microphone"></i><span>Mute</span>
-                    </button>
-                    <button id="vc-cam-btn-${uid}" style="flex:1; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:#18181b; border:1px solid #27272a; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
-                        <i class="fa-solid fa-video"></i><span>Matikan Cam</span>
-                    </button>
+                <div class="stream-controls-container" id="controls-container-${uid}" style="width:100%;">
+                    ${controlsHtml}
                 </div>
             </div>
         `;
@@ -4727,17 +4763,8 @@ function renderLiveGrid() {
                 window.toggleStreamMute(uid);
             });
         }
-        const watchBtn = card.querySelector('.stream-btn');
-        if (watchBtn) {
-            watchBtn.addEventListener('click', () => window.toggleWatchStream(uid, streamFullName));
-        }
-        const recordBtn = document.getElementById(`record-btn-${uid}`);
-        if (recordBtn) {
-            recordBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                window.toggleWebRecord(uid, streamFullName);
-            });
-        }
+
+        bindCardControls(card, uid, streamFullName);
 
         if (isWatching && activePeerConnections[uid]) {
             const conn = activePeerConnections[uid];
@@ -4759,7 +4786,6 @@ function renderLiveGrid() {
                 preview.style.display = 'none';
             }
 
-            // Sembunyikan overlay jika koneksi sudah terhubung
             const overlay = document.getElementById(`status-overlay-${uid}`);
             if (overlay) {
                 overlay.style.display = isConnected ? 'none' : 'flex';
@@ -4781,6 +4807,7 @@ window.toggleWatchStream = function (uid, fullName) {
         renderLiveGrid();
     } else {
         startWebRTCReceiver(uid, fullName, false);
+        renderLiveGrid();
     }
 };
 
