@@ -4583,26 +4583,26 @@ function renderLiveGrid() {
             } else {
                 if (isFocused) {
                     controlsHtml = `
-                        <div style="display:flex; flex-wrap:nowrap; gap:6px; align-items:center; width:100%; overflow-x:auto; padding-bottom:2px;">
-                            <button class="stream-btn watching" style="flex:1; min-width:80px; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:28px;">
-                                <i class="fa-solid fa-stop-circle"></i><span>Hentikan</span>
+                        <div style="display:flex; justify-content:center; align-items:center; gap:12px; width:100%; padding:6px 0;">
+                            <!-- Tombol Hentikan -->
+                            <button class="stream-btn watching" title="Hentikan Siaran" style="width:36px; height:36px; border:none; border-radius:50%; cursor:pointer; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
+                                <i class="fa-solid fa-stop"></i>
                             </button>
-                            <button class="record-btn" id="record-btn-${uid}" style="flex:1; min-width:70px; display:flex; align-items:center; justify-content:center; gap:4px; height:28px; font-size:10px; font-weight:600; border:none; border-radius:4px; cursor:pointer; background:${recordBg}; border:${recordBorder}; color:#fff;">
-                                <i class="fa-solid fa-circle" id="record-icon-${uid}" style="color:${recordIconColor}; font-size:8px; animation:${recordAnim};"></i>
-                                <span id="record-label-${uid}">${recordText}</span>
+                            <!-- Tombol Rekam -->
+                            <button class="record-btn" id="record-btn-${uid}" title="${isRecording ? 'Hentikan Rekam' : 'Rekam Siaran'}" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; border:none; border-radius:50%; cursor:pointer; background:${recordBg}; border:${recordBorder}; color:#fff; font-size:14px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
+                                <i class="fa-solid fa-circle" id="record-icon-${uid}" style="color:${recordIconColor}; font-size:10px; animation:${recordAnim};"></i>
                             </button>
-                            <button class="vc-btn" id="vc-btn-${uid}" style="flex:1.2; min-width:110px; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:28px;">
+                            <!-- Tombol Video Call -->
+                            <button class="vc-btn" id="vc-btn-${uid}" title="${vcActive ? 'Tutup Video Call' : 'Hubungi Video Call'}" style="width:36px; height:36px; border:none; border-radius:50%; cursor:pointer; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
                                 <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
-                                <span>${vcActive ? 'Tutup Call' : 'Video Call'}</span>
                             </button>
+                            <!-- Tombol Mic (Hanya jika VC aktif) -->
                             ${vcActive ? `
-                                <button id="vc-mic-btn-${uid}" style="flex:0.8; min-width:70px; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${micActive ? '#10b981' : '#18181b'}; border:1px solid ${micActive ? '#10b981' : '#27272a'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:28px;">
+                                <button id="vc-mic-btn-${uid}" title="${micActive ? 'Mute Mic' : 'Aktifkan Mic'}" style="width:36px; height:36px; border:none; border-radius:50%; cursor:pointer; background:${micActive ? '#10b981' : '#18181b'}; border:1px solid ${micActive ? '#10b981' : '#27272a'}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
                                     <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i>
-                                    <span>${micActive ? 'Mute' : 'Mic'}</span>
                                 </button>
-                                <button id="vc-cam-btn-${uid}" style="flex:1; min-width:85px; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:10px; font-weight:600; background:${camActive ? '#3b82f6' : '#18181b'}; border:1px solid ${camActive ? '#3b82f6' : '#27272a'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; height:28px;">
+                                <button id="vc-cam-btn-${uid}" title="${camActive ? 'Matikan Kamera' : 'Aktifkan Kamera'}" style="width:36px; height:36px; border:none; border-radius:50%; cursor:pointer; background:${camActive ? '#3b82f6' : '#18181b'}; border:1px solid ${camActive ? '#3b82f6' : '#27272a'}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
                                     <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i>
-                                    <span>${camActive ? 'Mati Cam' : 'Aktif Cam'}</span>
                                 </button>
                             ` : ''}
                         </div>
