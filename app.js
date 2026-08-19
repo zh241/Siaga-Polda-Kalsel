@@ -4753,7 +4753,7 @@ function renderLiveGrid() {
         card.dataset.uid = uid;
 
         card.innerHTML = `
-            <div class="stream-video-container" style="position:relative; background:#000; aspect-ratio:4/3; overflow:hidden; border-radius:8px;">
+            <div class="stream-video-container" style="position:relative; background:#000; overflow:hidden; border-radius:8px;">
                 <div class="stream-badge" style="position:absolute; top:8px; left:8px; z-index:10; background:#ef4444; color:#fff; font-size:8px; font-weight:700; padding:2px 6px; border-radius:3px; display:flex; align-items:center; gap:3px;">
                     <span style="width:4px;height:4px;background:#fff;border-radius:50%;display:inline-block;"></span>LIVE
                 </div>

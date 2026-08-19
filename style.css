@@ -1516,7 +1516,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .stream-video-container {
     position: relative;
     width: 100%;
-    aspect-ratio: 4/3;
+    aspect-ratio: 1/1 !important;
     background: #000;
 }
 .stream-video {
@@ -1601,7 +1601,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     box-shadow: 0 15px 35px rgba(0,0,0,0.5);
 }
 .live-grid.has-focus .stream-card.focused .stream-video-container {
-    aspect-ratio: 16/9 !important;
+    aspect-ratio: 4/3 !important; /* Focused stream is 4:3 (taller height) */
 }
 .live-grid.has-focus .other-streams-row {
     display: flex !important;
@@ -1620,7 +1620,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     margin: 0 !important;
 }
 .live-grid.has-focus .other-streams-row .stream-card .stream-video-container {
-    aspect-ratio: 4/3 !important;
+    aspect-ratio: 1/1 !important; /* Unfocused/other streams are square (taller height) */
 }
 
 .focused-streams-area {
@@ -1635,4 +1635,51 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .stream-card.full-video-mode .stream-overlay-info {
     opacity: 0 !important;
     pointer-events: none !important;
+}
+
+/* Responsive adjustments for unfocused (small) cards */
+.stream-card:not(.focused) .stream-overlay-info {
+    padding: 6px 8px !important;
+    gap: 2px !important;
+}
+.stream-card:not(.focused) .stream-location-container {
+    display: none !important;
+}
+.stream-card:not(.focused) .stream-meta {
+    display: none !important;
+}
+.stream-card:not(.focused) .stream-title {
+    font-size: 10px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    text-align: center !important;
+}
+.stream-card:not(.focused) .stream-controls-container {
+    margin-top: 0 !important;
+}
+/* Make control buttons small on unfocused cards */
+.stream-card:not(.focused) .stream-controls-container button {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 9px !important;
+}
+.stream-card:not(.focused) .stream-controls-container i {
+    font-size: 8px !important;
+}
+/* Hide local preview on unfocused cards */
+.stream-card:not(.focused) [id^="local-preview-"] {
+    display: none !important;
+}
+/* Hide unnecessary top-right buttons on unfocused cards to save space */
+.stream-card:not(.focused) [id^="rotate-btn-"],
+.stream-card:not(.focused) [id^="mute-btn-"] {
+    display: none !important;
+}
+/* Adjust positions of the remaining top-right buttons on unfocused cards */
+.stream-card:not(.focused) [id^="focus-btn-"] {
+    right: 8px !important;
+}
+.stream-card:not(.focused) [id^="toggle-info-btn-"] {
+    right: 36px !important;
 }
