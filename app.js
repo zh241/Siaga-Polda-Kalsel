@@ -4696,14 +4696,14 @@ function renderLiveGrid() {
                 preview.style.display = (vcActive && camActive) ? 'block' : 'none';
             }
 
-            // Update padding, fonts, and address text truncation based on focus state
-            const infoEl = existingCard.querySelector('.stream-info');
+            // Update padding, fonts, and address text truncation based on focus state in the overlay
+            const infoEl = existingCard.querySelector('.stream-overlay-info');
             if (infoEl) {
-                infoEl.style.padding = isFocused ? '8px 10px' : '6px 8px';
+                infoEl.style.padding = isFocused ? '10px' : '6px 8px';
                 
                 const titleEl = infoEl.querySelector('.stream-title');
                 if (titleEl) {
-                    titleEl.style.fontSize = isFocused ? '12px' : '11px';
+                    titleEl.style.fontSize = isFocused ? '12px' : '10px';
                     titleEl.style.whiteSpace = isFocused ? 'normal' : 'nowrap';
                     titleEl.style.overflow = isFocused ? 'visible' : 'hidden';
                     titleEl.style.textOverflow = isFocused ? 'clip' : 'ellipsis';
@@ -4719,11 +4719,6 @@ function renderLiveGrid() {
                     locEl.style.whiteSpace = isFocused ? 'normal' : 'nowrap';
                     locEl.style.overflow = isFocused ? 'visible' : 'hidden';
                     locEl.style.textOverflow = isFocused ? 'clip' : 'ellipsis';
-                }
-                
-                const hrEl = infoEl.querySelector('hr');
-                if (hrEl) {
-                    hrEl.style.margin = isFocused ? '8px 0' : '6px 0';
                 }
             }
 
@@ -4758,7 +4753,7 @@ function renderLiveGrid() {
         card.dataset.uid = uid;
 
         card.innerHTML = `
-            <div class="stream-video-container" style="position:relative; background:#000; aspect-ratio:4/3; overflow:hidden; border-radius:6px 6px 0 0;">
+            <div class="stream-video-container" style="position:relative; background:#000; aspect-ratio:4/3; overflow:hidden; border-radius:8px;">
                 <div class="stream-badge" style="position:absolute; top:8px; left:8px; z-index:10; background:#ef4444; color:#fff; font-size:8px; font-weight:700; padding:2px 6px; border-radius:3px; display:flex; align-items:center; gap:3px;">
                     <span style="width:4px;height:4px;background:#fff;border-radius:50%;display:inline-block;"></span>LIVE
                 </div>
@@ -4782,22 +4777,19 @@ function renderLiveGrid() {
                     <video id="local-video-${uid}" autoplay muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>
                 </div>
                 <video id="video-${uid}" autoplay playsinline style="width:100%; height:100%; object-fit:cover; display:block; transition: transform 0.2s;"></video>
-                <div class="stream-floating-label" id="floating-label-${uid}" style="position:absolute; bottom:8px; left:8px; z-index:11; background:rgba(0,0,0,0.5); color:#fff; font-size:10px; font-weight:700; padding:4px 8px; border-radius:4px; max-width:80%; pointer-events:none; display:none; flex-direction:column; gap:1px; font-family:var(--font-main); backdrop-filter:blur(2px); border:1px solid rgba(255,255,255,0.1);">
-                    <span>${streamFullName}</span>
-                    <span style="font-size:8px; color:#a1a1aa; font-weight:500;">NRP: ${info.nrp || '-'} • ${info.satker || 'Bid TIK'}</span>
-                </div>
-            </div>
-            <div class="stream-info" style="padding:${isFocused ? '8px 10px' : '6px 8px'}; background:var(--bg-card); border-top:1px solid var(--border-color);">
-                <div style="display:flex; justify-content:between; align-items:start; gap:4px; margin-bottom:4px; min-width:0; width:100%;">
-                    <div style="width:100%; min-width:0; overflow:hidden;">
-                        <h6 class="stream-title" style="margin:0; font-weight:700; color:var(--text-main); font-size:${isFocused ? '12px' : '11px'}; ${isFocused ? '' : 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'}" title="${streamFullName}">${streamFullName}</h6>
-                        <div class="stream-meta" style="font-size:${isFocused ? '9px' : '8px'}; color:var(--text-muted); margin-top:2px;">NRP: ${info.nrp || '-'} • ${info.satker || 'Bid TIK'}</div>
-                        ${locationHtml}
+                
+                <!-- Transparent Overlay (Name, Location, Controls) -->
+                <div class="stream-overlay-info" style="position:absolute; bottom:0; inset-x:0; z-index:8; background:linear-gradient(transparent, rgba(0,0,0,0.85)); padding:${isFocused ? '10px' : '6px 8px'}; display:flex; flex-direction:column; gap:4px; pointer-events:none; transition:opacity 0.2s;">
+                    <div style="display:flex; justify-content:between; align-items:start; gap:4px; min-width:0; width:100%;">
+                        <div style="width:100%; min-width:0; overflow:hidden; text-shadow:0 1px 2px rgba(0,0,0,0.8);">
+                            <h6 class="stream-title" style="margin:0; font-weight:700; color:#fff; font-size:${isFocused ? '12px' : '10px'}; ${isFocused ? '' : 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'}" title="${streamFullName}">${streamFullName}</h6>
+                            <div class="stream-meta" style="font-size:${isFocused ? '9px' : '8px'}; color:#d4d4d8; margin-top:1px;">NRP: ${info.nrp || '-'} • ${info.satker || 'Bid TIK'}</div>
+                            ${locationHtml}
+                        </div>
                     </div>
-                </div>
-                <hr style="margin:${isFocused ? '8px 0' : '6px 0'}; border-color:var(--border-color);">
-                <div class="stream-controls-container" id="controls-container-${uid}" style="width:100%;">
-                    ${controlsHtml}
+                    <div class="stream-controls-container" id="controls-container-${uid}" style="width:100%; pointer-events:auto; margin-top:2px;">
+                        ${controlsHtml}
+                    </div>
                 </div>
             </div>
         `;
