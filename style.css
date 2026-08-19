@@ -1642,3 +1642,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .stream-card.full-video-mode {
     padding-bottom: 0 !important;
 }
+.stream-floating-label {
+    display: none !important;
+}
+.stream-card.full-video-mode .stream-floating-label {
+    display: flex !important;
+}

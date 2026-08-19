@@ -4782,6 +4782,10 @@ function renderLiveGrid() {
                     <video id="local-video-${uid}" autoplay muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>
                 </div>
                 <video id="video-${uid}" autoplay playsinline style="width:100%; height:100%; object-fit:cover; display:block; transition: transform 0.2s;"></video>
+                <div class="stream-floating-label" id="floating-label-${uid}" style="position:absolute; bottom:8px; left:8px; z-index:11; background:rgba(0,0,0,0.5); color:#fff; font-size:10px; font-weight:700; padding:4px 8px; border-radius:4px; max-width:80%; pointer-events:none; display:none; flex-direction:column; gap:1px; font-family:var(--font-main); backdrop-filter:blur(2px); border:1px solid rgba(255,255,255,0.1);">
+                    <span>${streamFullName}</span>
+                    <span style="font-size:8px; color:#a1a1aa; font-weight:500;">NRP: ${info.nrp || '-'} • ${info.satker || 'Bid TIK'}</span>
+                </div>
             </div>
             <div class="stream-info" style="padding:${isFocused ? '8px 10px' : '6px 8px'}; background:var(--bg-card); border-top:1px solid var(--border-color);">
                 <div style="display:flex; justify-content:between; align-items:start; gap:4px; margin-bottom:4px; min-width:0; width:100%;">
