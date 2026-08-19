@@ -4538,11 +4538,13 @@ function renderLiveGrid() {
         };
 
         const locationHtml = info.lastSeenAddress 
-            ? `<div class="stream-location-container" style="display:flex; align-items:center; gap:4px; font-size:9px; color:var(--primary); margin-top:2px;">
-                 <i class="fa-solid fa-location-dot"></i><span class="stream-location">${info.lastSeenAddress}</span>
+            ? `<div class="stream-location-container" style="display:flex; align-items:center; gap:4px; font-size:9px; color:var(--primary); margin-top:2px; min-width:0; width:100%;">
+                 <i class="fa-solid fa-location-dot" style="flex-shrink:0;"></i>
+                 <span class="stream-location" style="display:inline-block; max-width:100%; vertical-align:middle; ${isFocused ? '' : 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'}" title="${info.lastSeenAddress}">${info.lastSeenAddress}</span>
                </div>`
-            : `<div class="stream-location-container" style="display:none; align-items:center; gap:4px; font-size:9px; color:var(--primary); margin-top:2px;">
-                 <i class="fa-solid fa-location-dot"></i><span class="stream-location"></span>
+            : `<div class="stream-location-container" style="display:none; align-items:center; gap:4px; font-size:9px; color:var(--primary); margin-top:2px; min-width:0; width:100%;">
+                 <i class="fa-solid fa-location-dot" style="flex-shrink:0;"></i>
+                 <span class="stream-location"></span>
                </div>`;
 
         let controlsHtml = '';
@@ -4609,29 +4611,30 @@ function renderLiveGrid() {
                     `;
                 } else {
                     controlsHtml = `
-                        <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
-                            <div style="display:flex; gap:4px; align-items:center; width:100%;">
-                                <button class="stream-btn watching" style="flex:1; padding:4px 2px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; gap:2px; height:24px;">
-                                    <i class="fa-solid fa-stop-circle" style="font-size:9px;"></i><span>Hentikan</span>
+                        <div style="display:flex; flex-direction:column; gap:4px; width:100%;">
+                            <div style="display:flex; justify-content:center; align-items:center; gap:8px; width:100%;">
+                                <!-- Tombol Hentikan -->
+                                <button class="stream-btn watching" title="Hentikan Siaran" style="width:26px; height:26px; border:none; border-radius:50%; cursor:pointer; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                                    <i class="fa-solid fa-stop"></i>
                                 </button>
-                                <button class="record-btn" id="record-btn-${uid}" style="flex:0.9; padding:4px 2px; display:flex; align-items:center; justify-content:center; gap:2px; height:24px; font-size:9px; font-weight:600; border:none; border-radius:4px; cursor:pointer; background:${recordBg}; border:${recordBorder}; color:#fff;">
-                                    <i class="fa-solid fa-circle" id="record-icon-${uid}" style="color:${recordIconColor}; font-size:7px; animation:${recordAnim};"></i>
-                                    <span id="record-label-${uid}">${recordText}</span>
+                                <!-- Tombol Rekam -->
+                                <button class="record-btn" id="record-btn-${uid}" title="${isRecording ? 'Hentikan Rekam' : 'Rekam Siaran'}" style="width:26px; height:26px; display:flex; align-items:center; justify-content:center; border:none; border-radius:50%; cursor:pointer; background:${recordBg}; border:${recordBorder}; color:#fff; font-size:11px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                                    <i class="fa-solid fa-circle" id="record-icon-${uid}" style="color:${recordIconColor}; font-size:8px; animation:${recordAnim};"></i>
                                 </button>
-                                <button class="vc-btn" id="vc-btn-${uid}" style="flex:1.1; padding:4px 2px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:2px; height:24px;">
-                                    <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}" style="font-size:9px;"></i>
-                                    <span>${vcActive ? 'Tutup' : 'Video Call'}</span>
+                                <!-- Tombol Video Call -->
+                                <button class="vc-btn" id="vc-btn-${uid}" title="${vcActive ? 'Tutup Video Call' : 'Hubungi Video Call'}" style="width:26px; height:26px; border:none; border-radius:50%; cursor:pointer; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                                    <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
                                 </button>
                             </div>
                             ${vcActive ? `
-                                <div style="display:flex; gap:4px; align-items:center; width:100%;">
-                                    <button id="vc-mic-btn-${uid}" style="flex:1; padding:3px 2px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${micActive ? '#10b981' : '#18181b'}; border:1px solid ${micActive ? '#10b981' : '#27272a'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
+                                <div style="display:flex; justify-content:center; align-items:center; gap:8px; width:100%; margin-top:2px;">
+                                    <!-- Tombol Mic -->
+                                    <button id="vc-mic-btn-${uid}" title="${micActive ? 'Mute Mic' : 'Aktifkan Mic'}" style="width:22px; height:22px; border:none; border-radius:50%; cursor:pointer; background:${micActive ? '#10b981' : '#18181b'}; border:1px solid ${micActive ? '#10b981' : '#27272a'}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:9px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
                                         <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i>
-                                        <span>${micActive ? 'Mute' : 'Buka Mic'}</span>
                                     </button>
-                                    <button id="vc-cam-btn-${uid}" style="flex:1; padding:3px 2px; border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:600; background:${camActive ? '#3b82f6' : '#18181b'}; border:1px solid ${camActive ? '#3b82f6' : '#27272a'}; color:#fff; display:flex; align-items:center; justify-content:center; gap:3px; height:22px;">
+                                    <!-- Tombol Kamera -->
+                                    <button id="vc-cam-btn-${uid}" title="${camActive ? 'Matikan Kamera' : 'Aktifkan Kamera'}" style="width:22px; height:22px; border:none; border-radius:50%; cursor:pointer; background:${camActive ? '#3b82f6' : '#18181b'}; border:1px solid ${camActive ? '#3b82f6' : '#27272a'}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:9px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
                                         <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i>
-                                        <span>${camActive ? 'Mati Cam' : 'Aktif Cam'}</span>
                                     </button>
                                 </div>
                             ` : ''}
@@ -4671,6 +4674,37 @@ function renderLiveGrid() {
                 const vcActive = conn && conn.vcActive;
                 const camActive = conn && conn.camActive !== false;
                 preview.style.display = (vcActive && camActive) ? 'block' : 'none';
+            }
+
+            // Update padding, fonts, and address text truncation based on focus state
+            const infoEl = existingCard.querySelector('.stream-info');
+            if (infoEl) {
+                infoEl.style.padding = isFocused ? '8px 10px' : '6px 8px';
+                
+                const titleEl = infoEl.querySelector('.stream-title');
+                if (titleEl) {
+                    titleEl.style.fontSize = isFocused ? '12px' : '11px';
+                    titleEl.style.whiteSpace = isFocused ? 'normal' : 'nowrap';
+                    titleEl.style.overflow = isFocused ? 'visible' : 'hidden';
+                    titleEl.style.textOverflow = isFocused ? 'clip' : 'ellipsis';
+                }
+                
+                const metaEl = infoEl.querySelector('.stream-meta');
+                if (metaEl) {
+                    metaEl.style.fontSize = isFocused ? '9px' : '8px';
+                }
+                
+                const locEl = infoEl.querySelector('.stream-location');
+                if (locEl) {
+                    locEl.style.whiteSpace = isFocused ? 'normal' : 'nowrap';
+                    locEl.style.overflow = isFocused ? 'visible' : 'hidden';
+                    locEl.style.textOverflow = isFocused ? 'clip' : 'ellipsis';
+                }
+                
+                const hrEl = infoEl.querySelector('hr');
+                if (hrEl) {
+                    hrEl.style.margin = isFocused ? '8px 0' : '6px 0';
+                }
             }
 
             const controlsContainer = existingCard.querySelector('.stream-controls-container');
@@ -4726,15 +4760,15 @@ function renderLiveGrid() {
                 </div>
                 <video id="video-${uid}" autoplay playsinline style="width:100%; height:100%; object-fit:cover; display:block; transition: transform 0.2s;"></video>
             </div>
-            <div class="stream-info" style="padding:8px 10px; background:var(--bg-card); border-top:1px solid var(--border-color);">
-                <div style="display:flex; justify-content:between; align-items:start; gap:4px; margin-bottom:4px;">
-                    <div>
-                        <h6 class="stream-title" style="margin:0; font-weight:700; color:var(--text-main); font-size:12px;">${streamFullName}</h6>
-                        <div class="stream-meta" style="font-size:9px; color:var(--text-muted); margin-top:2px;">NRP: ${info.nrp || '-'} • ${info.satker || 'Bid TIK'}</div>
+            <div class="stream-info" style="padding:${isFocused ? '8px 10px' : '6px 8px'}; background:var(--bg-card); border-top:1px solid var(--border-color);">
+                <div style="display:flex; justify-content:between; align-items:start; gap:4px; margin-bottom:4px; min-width:0; width:100%;">
+                    <div style="width:100%; min-width:0; overflow:hidden;">
+                        <h6 class="stream-title" style="margin:0; font-weight:700; color:var(--text-main); font-size:${isFocused ? '12px' : '11px'}; ${isFocused ? '' : 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'}" title="${streamFullName}">${streamFullName}</h6>
+                        <div class="stream-meta" style="font-size:${isFocused ? '9px' : '8px'}; color:var(--text-muted); margin-top:2px;">NRP: ${info.nrp || '-'} • ${info.satker || 'Bid TIK'}</div>
                         ${locationHtml}
                     </div>
                 </div>
-                <hr style="margin:8px 0; border-color:var(--border-color);">
+                <hr style="margin:${isFocused ? '8px 0' : '6px 0'}; border-color:var(--border-color);">
                 <div class="stream-controls-container" id="controls-container-${uid}" style="width:100%;">
                     ${controlsHtml}
                 </div>
