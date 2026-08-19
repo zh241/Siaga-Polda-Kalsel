@@ -4058,6 +4058,14 @@ window.toggleFocusStream = function (uid) {
     renderLiveGrid();
 };
 
+window.fullVideoStreamUids = {};
+window.toggleCardFullVideo = function (uid) {
+    if (!uid) return;
+    if (!window.fullVideoStreamUids) window.fullVideoStreamUids = {};
+    window.fullVideoStreamUids[uid] = !window.fullVideoStreamUids[uid];
+    renderLiveGrid();
+};
+
 window.rotateVideo = function (uid, event) {
     if (event) {
         event.stopPropagation();
@@ -4499,6 +4507,7 @@ function renderLiveGrid() {
         const streamFullName = ((info.pangkat || '').trim() + ' ' + (info.nama || 'Anggota')).trim();
 
         const isFocused = window.focusedStreamUids.includes(uid);
+        const isFullVideo = window.fullVideoStreamUids && window.fullVideoStreamUids[uid];
         const targetParent = isFocused ? focusedArea : (hasFocus ? otherStreamsRow : grid);
 
         const statusLabel = isConnected ? 'Terhubung' : (isWatching ? 'Menghubungkan...' : 'Menunggu');
@@ -4653,9 +4662,20 @@ function renderLiveGrid() {
                 existingCard.classList.remove('focused');
             }
 
+            if (isFullVideo) {
+                existingCard.classList.add('full-video-mode');
+            } else {
+                existingCard.classList.remove('full-video-mode');
+            }
+
             const focusIcon = document.getElementById(`focus-icon-${uid}`);
             if (focusIcon) {
                 focusIcon.className = `fa-solid ${isFocused ? 'fa-compress' : 'fa-expand'}`;
+            }
+
+            const toggleInfoIcon = document.getElementById(`toggle-info-icon-${uid}`);
+            if (toggleInfoIcon) {
+                toggleInfoIcon.className = `fa-solid ${isFullVideo ? 'fa-eye-slash' : 'fa-eye'}`;
             }
 
             const overlay = document.getElementById(`status-overlay-${uid}`);
@@ -4730,7 +4750,7 @@ function renderLiveGrid() {
         }
 
         const card = document.createElement('div');
-        card.className = `stream-card ${isFocused ? 'focused' : ''}`;
+        card.className = `stream-card ${isFocused ? 'focused' : ''} ${isFullVideo ? 'full-video-mode' : ''}`;
         if (isWatching) {
             card.className += ' watching';
         }
@@ -4744,6 +4764,9 @@ function renderLiveGrid() {
                 </div>
                 <button id="focus-btn-${uid}" title="Fokus/Perbesar" style="position:absolute; top:8px; right:36px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
                     <i class="fa-solid fa-expand" id="focus-icon-${uid}"></i>
+                </button>
+                <button id="toggle-info-btn-${uid}" title="Sembunyikan/Tampilkan Info & Kontrol" style="position:absolute; top:8px; right:92px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
+                    <i class="fa-solid ${isFullVideo ? 'fa-eye-slash' : 'fa-eye'}" id="toggle-info-icon-${uid}"></i>
                 </button>
                 <button id="rotate-btn-${uid}" title="Putar Tampilan" style="position:absolute; top:8px; right:64px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
                     <i class="fa-solid fa-rotate"></i>
@@ -4781,6 +4804,13 @@ function renderLiveGrid() {
             focusBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 window.toggleFocusStream(uid);
+            });
+        }
+        const toggleInfoBtn = document.getElementById(`toggle-info-btn-${uid}`);
+        if (toggleInfoBtn) {
+            toggleInfoBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                window.toggleCardFullVideo(uid);
             });
         }
         const rotateBtn = document.getElementById(`rotate-btn-${uid}`);
