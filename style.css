@@ -1632,9 +1632,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* Full Video Mode */
-.stream-card.full-video-mode .stream-overlay-info {
-    opacity: 0 !important;
-    pointer-events: none !important;
+.stream-card.full-video-mode .stream-controls-container {
+    display: none !important;
 }
 
 /* Responsive adjustments for unfocused (small) cards */
