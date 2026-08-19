@@ -4437,6 +4437,25 @@ function bindCardControls(parentEl, uid, streamFullName) {
             window.toggleVCCam(uid);
         };
     }
+
+    const videoEl = parentEl.querySelector(`#video-${uid}`);
+    if (videoEl) {
+        if (videoEl.style.objectFit === 'contain') {
+            videoEl.style.cursor = 'zoom-out';
+        } else {
+            videoEl.style.cursor = 'zoom-in';
+        }
+        videoEl.ondblclick = (e) => {
+            e.stopPropagation();
+            if (videoEl.style.objectFit === 'contain') {
+                videoEl.style.objectFit = 'cover';
+                videoEl.style.cursor = 'zoom-in';
+            } else {
+                videoEl.style.objectFit = 'contain';
+                videoEl.style.cursor = 'zoom-out';
+            }
+        };
+    }
 }
 
 function renderLiveGrid() {
