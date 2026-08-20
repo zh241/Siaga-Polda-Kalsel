@@ -4890,6 +4890,7 @@ function renderLiveGrid() {
                     videoEl.srcObject = conn.remoteStream;
                     videoEl.muted = !audioUnmuted;
                     videoEl.play().catch(() => {});
+                }
             }
 
             if (existingCard.parentElement !== targetParent) {
