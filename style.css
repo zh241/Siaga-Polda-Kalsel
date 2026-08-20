@@ -1757,3 +1757,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .stream-card:not(.focused) [id^="max-btn-"] {
     display: none !important;
 }
+/* Hide mute button on cards that are not being watched */
+.stream-card:not(.watching) [id^="mute-btn-"] {
+    display: none !important;
+}

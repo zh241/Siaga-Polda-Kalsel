@@ -5249,6 +5249,7 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
                 ? document.getElementById(`live-float-video-${uid}`)
                 : document.getElementById(`video-${uid}`);
             if (videoEl) {
+                if (videoEl.srcObject === remoteStream) return;
                 videoEl.srcObject = remoteStream;
                 videoEl.muted = false;
                 if (activePeerConnections[uid]) {
