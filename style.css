@@ -1595,13 +1595,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 .live-grid.has-focus .stream-card.focused {
     width: 100% !important;
-    max-width: 600px !important;
+    max-width: 800px !important;
     margin: 0 auto !important;
     border-color: rgba(16, 185, 129, 0.4) !important;
     box-shadow: 0 15px 35px rgba(0,0,0,0.5);
 }
 .live-grid.has-focus .stream-card.focused .stream-video-container {
-    aspect-ratio: 4/3 !important; /* Focused stream is 4:3 (taller height) */
+    aspect-ratio: 16/9 !important; /* Focused stream is 16:9 (matching standard widescreen formats) */
 }
 .live-grid.has-focus .other-streams-row {
     display: flex !important;
