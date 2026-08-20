@@ -4132,35 +4132,18 @@ window.toggleCardFullVideo = function (uid) {
 
 window.updateVideoElementRatio = function (uid) {
     const videoEl = document.getElementById(`video-${uid}`);
-    if (!videoEl || !videoEl.videoWidth || !videoEl.videoHeight) return;
+    if (!videoEl) return;
 
     let rotation = parseInt(videoEl.dataset.rotation || '0');
-    let width = videoEl.videoWidth;
-    let height = videoEl.videoHeight;
-
-    // If rotated 90 or 270, the visual dimensions are swapped
-    let visualWidth = (rotation === 90 || rotation === 270) ? height : width;
-    let visualHeight = (rotation === 90 || rotation === 270) ? width : height;
-
-    const ratio = visualWidth / visualHeight;
     const container = videoEl.parentElement;
     if (container) {
-        let targetRatio = '16/9';
-        if (ratio < 0.8) {
-            targetRatio = '9/16';
-        } else if (ratio > 1.2) {
-            targetRatio = '16/9';
-        } else {
-            targetRatio = '4/3';
-        }
-        
-        container.style.setProperty('aspect-ratio', targetRatio, 'important');
-        console.log(`[Layout] Updated aspect-ratio for video ${uid} to ${targetRatio} (Native: ${ratio.toFixed(2)})`);
-        
-        // Update dimensions if rotated
+        // Update dimensions if rotated 90 or 270 degrees
         if (rotation === 90 || rotation === 270) {
             videoEl.style.width = container.clientHeight + 'px';
             videoEl.style.height = container.clientWidth + 'px';
+        } else {
+            videoEl.style.width = '100%';
+            videoEl.style.height = '100%';
         }
     }
 };
