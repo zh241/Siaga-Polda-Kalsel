@@ -4130,6 +4130,41 @@ window.toggleCardFullVideo = function (uid) {
     renderLiveGrid();
 };
 
+window.updateVideoElementRatio = function (uid) {
+    const videoEl = document.getElementById(`video-${uid}`);
+    if (!videoEl || !videoEl.videoWidth || !videoEl.videoHeight) return;
+
+    let rotation = parseInt(videoEl.dataset.rotation || '0');
+    let width = videoEl.videoWidth;
+    let height = videoEl.videoHeight;
+
+    // If rotated 90 or 270, the visual dimensions are swapped
+    let visualWidth = (rotation === 90 || rotation === 270) ? height : width;
+    let visualHeight = (rotation === 90 || rotation === 270) ? width : height;
+
+    const ratio = visualWidth / visualHeight;
+    const container = videoEl.parentElement;
+    if (container) {
+        let targetRatio = '16/9';
+        if (ratio < 0.8) {
+            targetRatio = '9/16';
+        } else if (ratio > 1.2) {
+            targetRatio = '16/9';
+        } else {
+            targetRatio = '4/3';
+        }
+        
+        container.style.setProperty('aspect-ratio', targetRatio, 'important');
+        console.log(`[Layout] Updated aspect-ratio for video ${uid} to ${targetRatio} (Native: ${ratio.toFixed(2)})`);
+        
+        // Update dimensions if rotated
+        if (rotation === 90 || rotation === 270) {
+            videoEl.style.width = container.clientHeight + 'px';
+            videoEl.style.height = container.clientWidth + 'px';
+        }
+    }
+};
+
 window.rotateVideo = function (uid, event) {
     if (event) {
         event.stopPropagation();
@@ -4156,6 +4191,9 @@ window.rotateVideo = function (uid, event) {
     videoEl.style.top = '50%';
     videoEl.style.left = '50%';
     videoEl.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+    
+    // Dynamically adjust container aspect-ratio to match rotated bounds
+    window.updateVideoElementRatio(uid);
     console.log(`[WebRTC] Video ${uid} rotated to ${rotation} degrees dynamically`);
 };
 
@@ -4528,6 +4566,16 @@ function bindCardControls(parentEl, uid, streamFullName) {
                 videoEl.style.cursor = 'zoom-out';
             }
         };
+        videoEl.onloadedmetadata = () => {
+            window.updateVideoElementRatio(uid);
+        };
+        videoEl.onresize = () => {
+            window.updateVideoElementRatio(uid);
+        };
+        // Run initial check in case metadata is already loaded
+        setTimeout(() => {
+            window.updateVideoElementRatio(uid);
+        }, 150);
     }
 }
 
@@ -4866,21 +4914,23 @@ function renderLiveGrid() {
                 <div class="stream-badge" style="position:absolute; top:8px; left:8px; z-index:10; background:#ef4444; color:#fff; font-size:8px; font-weight:700; padding:2px 6px; border-radius:3px; display:flex; align-items:center; gap:3px;">
                     <span style="width:4px;height:4px;background:#fff;border-radius:50%;display:inline-block;"></span>LIVE
                 </div>
-                <button id="focus-btn-${uid}" title="${isFocused ? 'Kecilkan' : 'Fokus/Perbesar'}" style="position:absolute; top:8px; right:64px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
-                    <i class="fa-solid ${isFocused ? 'fa-compress' : 'fa-expand'}" id="focus-icon-${uid}"></i>
-                </button>
-                <button id="max-btn-${uid}" title="Layar Penuh" style="position:absolute; top:8px; right:92px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
-                    <i class="fa-solid fa-maximize" id="max-icon-${uid}"></i>
-                </button>
-                <button id="toggle-info-btn-${uid}" title="Sembunyikan/Tampilkan Info & Kontrol" style="position:absolute; top:8px; right:36px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
-                    <i class="fa-solid ${isFullVideo ? 'fa-eye-slash' : 'fa-eye'}" id="toggle-info-icon-${uid}"></i>
-                </button>
-                <button id="rotate-btn-${uid}" title="Putar Tampilan" style="position:absolute; top:8px; right:120px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
-                    <i class="fa-solid fa-rotate"></i>
-                </button>
-                <button id="mute-btn-${uid}" title="Buka/Tutup Suara" style="position:absolute; top:8px; right:8px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
-                    <i class="fa-solid ${audioUnmuted ? 'fa-volume-high' : 'fa-volume-xmark'}" id="mute-icon-${uid}"></i>
-                </button>
+                <div class="stream-top-actions" style="position:absolute; top:8px; right:8px; z-index:10; display:flex; gap:6px; align-items:center;">
+                    <button id="rotate-btn-${uid}" title="Putar Tampilan" class="control-hud-btn">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                    <button id="max-btn-${uid}" title="Layar Penuh" class="control-hud-btn">
+                        <i class="fa-solid fa-maximize" id="max-icon-${uid}"></i>
+                    </button>
+                    <button id="focus-btn-${uid}" title="${isFocused ? 'Kecilkan' : 'Fokus/Perbesar'}" class="control-hud-btn">
+                        <i class="fa-solid ${isFocused ? 'fa-compress' : 'fa-expand'}" id="focus-icon-${uid}"></i>
+                    </button>
+                    <button id="toggle-info-btn-${uid}" title="Sembunyikan/Tampilkan Info & Kontrol" class="control-hud-btn">
+                        <i class="fa-solid ${isFullVideo ? 'fa-eye-slash' : 'fa-eye'}" id="toggle-info-icon-${uid}"></i>
+                    </button>
+                    <button id="mute-btn-${uid}" title="Buka/Tutup Suara" class="control-hud-btn">
+                        <i class="fa-solid ${audioUnmuted ? 'fa-volume-high' : 'fa-volume-xmark'}" id="mute-icon-${uid}"></i>
+                    </button>
+                </div>
                 <div id="status-overlay-${uid}" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.75); z-index:5; gap:6px;">
                     <div style="width:24px; height:24px; border:2px solid #3b82f6; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></div>
                     <span id="status-label-${uid}" style="font-size:9px; color:#a1a1aa;">${statusLabel}</span>
