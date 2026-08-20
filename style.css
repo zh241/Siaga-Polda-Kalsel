@@ -1659,10 +1659,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     border-radius: 0 !important;
     aspect-ratio: auto !important;
 }
-.stream-card:fullscreen video {
-    width: 100% !important;
-    height: 100% !important;
-}
+
 .stream-card:fullscreen .stream-overlay-info {
     padding: 16px 24px !important;
     gap: 8px !important;
@@ -1696,10 +1693,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     border-radius: 0 !important;
     aspect-ratio: auto !important;
 }
-.stream-card:-webkit-full-screen video {
-    width: 100% !important;
-    height: 100% !important;
-}
+
 .stream-card:-webkit-full-screen .stream-overlay-info {
     padding: 16px 24px !important;
     gap: 8px !important;

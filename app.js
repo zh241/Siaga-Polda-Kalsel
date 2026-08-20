@@ -5646,3 +5646,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// ============================================================
+// DYNAMIC FULLSCREEN DIMENSIONS UPDATE FOR ROTATED VIDEOS
+// ============================================================
+const handleFullscreenChange = () => {
+    const fullscreenEl = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fullscreenEl && fullscreenEl.classList.contains('stream-card')) {
+        const uid = fullscreenEl.dataset.uid;
+        const videoEl = document.getElementById(`video-${uid}`);
+        if (videoEl) {
+            let rotation = parseInt(videoEl.dataset.rotation || '0');
+            const parent = videoEl.parentElement;
+            if (rotation === 90 || rotation === 270) {
+                // Wait 100ms for browser transition to complete and size to stabilize
+                setTimeout(() => {
+                    videoEl.style.width = parent.clientHeight + 'px';
+                    videoEl.style.height = parent.clientWidth + 'px';
+                }, 100);
+            }
+        }
+    } else {
+        // Exited fullscreen, restore standard grid layouts
+        setTimeout(() => {
+            renderLiveGrid();
+        }, 100);
+    }
+};
+
+document.addEventListener('fullscreenchange', handleFullscreenChange);
+document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+
