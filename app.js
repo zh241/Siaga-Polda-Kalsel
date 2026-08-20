@@ -4137,13 +4137,22 @@ window.updateVideoElementRatio = function (uid) {
     let rotation = parseInt(videoEl.dataset.rotation || '0');
     const container = videoEl.parentElement;
     if (container) {
+        const blurVideoEl = document.getElementById(`video-blur-${uid}`);
         // Update dimensions if rotated 90 or 270 degrees
         if (rotation === 90 || rotation === 270) {
             videoEl.style.width = container.clientHeight + 'px';
             videoEl.style.height = container.clientWidth + 'px';
+            if (blurVideoEl) {
+                blurVideoEl.style.width = container.clientHeight + 'px';
+                blurVideoEl.style.height = container.clientWidth + 'px';
+            }
         } else {
             videoEl.style.width = '100%';
             videoEl.style.height = '100%';
+            if (blurVideoEl) {
+                blurVideoEl.style.width = '100%';
+                blurVideoEl.style.height = '100%';
+            }
         }
     }
 };
@@ -4161,23 +4170,42 @@ window.rotateVideo = function (uid, event) {
     videoEl.dataset.rotation = rotation;
 
     const parent = videoEl.parentElement;
+    const blurVideoEl = document.getElementById(`video-blur-${uid}`);
+    if (blurVideoEl) {
+        blurVideoEl.dataset.rotation = rotation;
+    }
+
     if (rotation === 90 || rotation === 270) {
         // Swap width and height dynamically based on container dimensions
         videoEl.style.width = parent.clientHeight + 'px';
         videoEl.style.height = parent.clientWidth + 'px';
+        if (blurVideoEl) {
+            blurVideoEl.style.width = parent.clientHeight + 'px';
+            blurVideoEl.style.height = parent.clientWidth + 'px';
+        }
     } else {
         // Restore normal 100% width and height
         videoEl.style.width = '100%';
         videoEl.style.height = '100%';
+        if (blurVideoEl) {
+            blurVideoEl.style.width = '100%';
+            blurVideoEl.style.height = '100%';
+        }
     }
+    
     videoEl.style.position = 'absolute';
     videoEl.style.top = '50%';
     videoEl.style.left = '50%';
     videoEl.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+
+    if (blurVideoEl) {
+        blurVideoEl.style.position = 'absolute';
+        blurVideoEl.style.top = '50%';
+        blurVideoEl.style.left = '50%';
+        blurVideoEl.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+    }
     
-    // Dynamically adjust container aspect-ratio to match rotated bounds
-    window.updateVideoElementRatio(uid);
-    console.log(`[WebRTC] Video ${uid} rotated to ${rotation} degrees dynamically`);
+    console.log(`[WebRTC] Video ${uid} (and blur background) rotated to ${rotation} degrees dynamically`);
 };
 
 window.webRecorders = {};
@@ -4875,6 +4903,11 @@ function renderLiveGrid() {
                     videoEl.muted = !audioUnmuted;
                     videoEl.play().catch(() => {});
                 }
+                const blurVideoEl = existingCard.querySelector(`#video-blur-${uid}`);
+                if (blurVideoEl && conn.remoteStream && conn.remoteStream.getTracks().length > 0 && !blurVideoEl.srcObject) {
+                    blurVideoEl.srcObject = conn.remoteStream;
+                    blurVideoEl.play().catch(() => {});
+                }
             }
 
             if (existingCard.parentElement !== targetParent) {
@@ -4921,7 +4954,8 @@ function renderLiveGrid() {
                 <div id="local-preview-${uid}" style="display:none; position:absolute; bottom:8px; right:8px; width:60px; aspect-ratio:4/3; background:#000; border:1px solid rgba(255,255,255,0.4); border-radius:4px; overflow:hidden; z-index:12;">
                     <video id="local-video-${uid}" autoplay muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>
                 </div>
-                <video id="video-${uid}" autoplay playsinline style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(0deg); width:100%; height:100%; object-fit:contain; display:block; transition: transform 0.2s, width 0.2s, height 0.2s;"></video>
+                <video id="video-blur-${uid}" autoplay muted playsinline style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(0deg); width:100%; height:100%; object-fit:cover; display:block; filter:blur(15px); opacity:0.4; z-index:1; pointer-events:none; transition: transform 0.2s, width 0.2s, height 0.2s;"></video>
+                <video id="video-${uid}" autoplay playsinline style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(0deg); width:100%; height:100%; object-fit:contain; display:block; z-index:2; transition: transform 0.2s, width 0.2s, height 0.2s;"></video>
                 
                 <!-- Transparent Overlay (Name, Location, Controls) -->
                 <div class="stream-overlay-info" style="position:absolute; bottom:0; inset-x:0; z-index:8; background:linear-gradient(transparent, rgba(0,0,0,0.85)); padding:${isFocused ? '10px' : '6px 8px'}; display:flex; flex-direction:column; gap:4px; pointer-events:none; transition:opacity 0.2s;">
@@ -4985,6 +5019,11 @@ function renderLiveGrid() {
                 videoEl.srcObject = conn.remoteStream;
                 videoEl.muted = !audioUnmuted;
                 videoEl.play().catch(() => { });
+            }
+            const blurVideoEl = document.getElementById(`video-blur-${uid}`);
+            if (blurVideoEl && conn.remoteStream && conn.remoteStream.getTracks().length > 0) {
+                blurVideoEl.srcObject = conn.remoteStream;
+                blurVideoEl.play().catch(() => { });
             }
             const preview = document.getElementById(`local-preview-${uid}`);
             const previewVideo = document.getElementById(`local-video-${uid}`);
@@ -5329,33 +5368,42 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
                 ? document.getElementById(`live-float-video-${uid}`)
                 : document.getElementById(`video-${uid}`);
             if (videoEl) {
-                if (videoEl.srcObject === remoteStream) return;
-                videoEl.srcObject = remoteStream;
-                videoEl.muted = false;
-                if (activePeerConnections[uid]) {
-                    activePeerConnections[uid].audioUnmuted = true;
-                }
-                
-                videoEl.play()
-                    .then(() => {
-                        console.log('[WebRTC] Autoplay succeeded with sound!');
-                        const muteIcon = document.getElementById(`mute-icon-${uid}`);
-                        if (muteIcon) muteIcon.className = 'fa-solid fa-volume-high';
-                    })
-                    .catch(e => {
-                        console.warn('[WebRTC] Autoplay with sound blocked, muting to autoplay:', e);
-                        videoEl.muted = true;
-                        if (activePeerConnections[uid]) {
-                            activePeerConnections[uid].audioUnmuted = false;
-                        }
-                        const muteIcon = document.getElementById(`mute-icon-${uid}`);
-                        if (muteIcon) muteIcon.className = 'fa-solid fa-volume-xmark';
-                        
-                        // Retry playing muted (guaranteed to succeed)
-                        videoEl.play().catch(playErr => {
-                            console.error('[WebRTC] Muted autoplay failed too:', playErr);
+                if (videoEl.srcObject !== remoteStream) {
+                    videoEl.srcObject = remoteStream;
+                    videoEl.muted = false;
+                    if (activePeerConnections[uid]) {
+                        activePeerConnections[uid].audioUnmuted = true;
+                    }
+                    
+                    videoEl.play()
+                        .then(() => {
+                            console.log('[WebRTC] Autoplay succeeded with sound!');
+                            const muteIcon = document.getElementById(`mute-icon-${uid}`);
+                            if (muteIcon) muteIcon.className = 'fa-solid fa-volume-high';
+                        })
+                        .catch(e => {
+                            console.warn('[WebRTC] Autoplay with sound blocked, muting to autoplay:', e);
+                            videoEl.muted = true;
+                            if (activePeerConnections[uid]) {
+                                activePeerConnections[uid].audioUnmuted = false;
+                            }
+                            const muteIcon = document.getElementById(`mute-icon-${uid}`);
+                            if (muteIcon) muteIcon.className = 'fa-solid fa-volume-xmark';
+                            
+                            // Retry playing muted (guaranteed to succeed)
+                            videoEl.play().catch(playErr => {
+                                console.error('[WebRTC] Muted autoplay failed too:', playErr);
+                            });
                         });
-                    });
+                }
+            }
+
+            if (!currentlyFloating) {
+                const blurVideoEl = document.getElementById(`video-blur-${uid}`);
+                if (blurVideoEl && blurVideoEl.srcObject !== remoteStream) {
+                    blurVideoEl.srcObject = remoteStream;
+                    blurVideoEl.play().catch(() => {});
+                }
             }
 
             if (currentlyFloating) {
@@ -5542,6 +5590,12 @@ function closePeerConnection(uid, shouldStopStreamOnMobile = false) {
     if (videoEl) {
         videoEl.srcObject = null;
     }
+    if (!conn.isFloating) {
+        const blurVideoEl = document.getElementById(`video-blur-${uid}`);
+        if (blurVideoEl) {
+            blurVideoEl.srcObject = null;
+        }
+    }
 
     // Reset mute icon when connection closes
     if (!conn.isFloating) {
@@ -5690,11 +5744,16 @@ const handleFullscreenChange = () => {
         if (videoEl) {
             let rotation = parseInt(videoEl.dataset.rotation || '0');
             const parent = videoEl.parentElement;
+            const blurVideoEl = document.getElementById(`video-blur-${uid}`);
             if (rotation === 90 || rotation === 270) {
                 // Wait 100ms for browser transition to complete and size to stabilize
                 setTimeout(() => {
                     videoEl.style.width = parent.clientHeight + 'px';
                     videoEl.style.height = parent.clientWidth + 'px';
+                    if (blurVideoEl) {
+                        blurVideoEl.style.width = parent.clientHeight + 'px';
+                        blurVideoEl.style.height = parent.clientWidth + 'px';
+                    }
                 }, 100);
             }
         }
