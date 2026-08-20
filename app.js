@@ -4505,7 +4505,7 @@ function bindCardControls(parentEl, uid, streamFullName) {
 
     const videoEl = parentEl.querySelector(`#video-${uid}`);
     if (videoEl) {
-        if (videoEl.style.objectFit === 'contain') {
+        if (videoEl.style.objectFit === 'cover') {
             videoEl.style.cursor = 'zoom-out';
         } else {
             videoEl.style.cursor = 'zoom-in';
@@ -4513,19 +4513,19 @@ function bindCardControls(parentEl, uid, streamFullName) {
         videoEl.ondblclick = (e) => {
             e.stopPropagation();
             let rotation = parseInt(videoEl.dataset.rotation || '0');
-            if (videoEl.style.objectFit === 'contain') {
-                videoEl.style.objectFit = 'cover';
+            if (videoEl.style.objectFit === 'cover') {
+                videoEl.style.objectFit = 'contain';
                 videoEl.style.cursor = 'zoom-in';
                 if (rotation === 90 || rotation === 270) {
-                    videoEl.style.transform = `rotate(${rotation}deg) scale(1.78)`;
+                    videoEl.style.transform = `rotate(${rotation}deg) scale(0.56)`;
                 } else {
                     videoEl.style.transform = `rotate(${rotation}deg) scale(1)`;
                 }
             } else {
-                videoEl.style.objectFit = 'contain';
+                videoEl.style.objectFit = 'cover';
                 videoEl.style.cursor = 'zoom-out';
                 if (rotation === 90 || rotation === 270) {
-                    videoEl.style.transform = `rotate(${rotation}deg) scale(0.56)`;
+                    videoEl.style.transform = `rotate(${rotation}deg) scale(1.78)`;
                 } else {
                     videoEl.style.transform = `rotate(${rotation}deg) scale(1)`;
                 }
@@ -4891,7 +4891,7 @@ function renderLiveGrid() {
                 <div id="local-preview-${uid}" style="display:none; position:absolute; bottom:8px; right:8px; width:60px; aspect-ratio:4/3; background:#000; border:1px solid rgba(255,255,255,0.4); border-radius:4px; overflow:hidden; z-index:12;">
                     <video id="local-video-${uid}" autoplay muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>
                 </div>
-                <video id="video-${uid}" autoplay playsinline style="width:100%; height:100%; object-fit:cover; display:block; transition: transform 0.2s;"></video>
+                <video id="video-${uid}" autoplay playsinline style="width:100%; height:100%; object-fit:contain; display:block; transition: transform 0.2s;"></video>
                 
                 <!-- Transparent Overlay (Name, Location, Controls) -->
                 <div class="stream-overlay-info" style="position:absolute; bottom:0; inset-x:0; z-index:8; background:linear-gradient(transparent, rgba(0,0,0,0.85)); padding:${isFocused ? '10px' : '6px 8px'}; display:flex; flex-direction:column; gap:4px; pointer-events:none; transition:opacity 0.2s;">

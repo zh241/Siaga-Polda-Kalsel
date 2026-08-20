@@ -1522,7 +1522,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .stream-video {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
 }
 .stream-badge {
     position: absolute;
