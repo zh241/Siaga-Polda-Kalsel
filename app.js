@@ -4050,22 +4050,28 @@ window.maximizedStreamUid = null;
 window.toggleFocusStream = function (uid) {
     if (!uid) return;
     if (!window.focusedStreamUids) window.focusedStreamUids = [];
-    
     const idx = window.focusedStreamUids.indexOf(uid);
     if (idx > -1) {
-        // Stream is already focused. If it is already maximized, we de-maximize and de-focus it.
-        // If it is not maximized yet, we maximize it (Zoom Level 2)!
+        window.focusedStreamUids.splice(idx, 1);
         if (window.maximizedStreamUid === uid) {
             window.maximizedStreamUid = null;
-            window.focusedStreamUids.splice(idx, 1);
-        } else {
-            window.maximizedStreamUid = uid;
         }
     } else {
-        // Stream is unfocused. Focus it (Zoom Level 1).
         window.focusedStreamUids.push(uid);
-        // Clear any existing maximized stream just in case
+    }
+    renderLiveGrid();
+};
+
+window.toggleMaximizeStream = function (uid) {
+    if (!uid) return;
+    if (window.maximizedStreamUid === uid) {
         window.maximizedStreamUid = null;
+    } else {
+        window.maximizedStreamUid = uid;
+        // Make sure it is also in focusedStreamUids so layout maps correctly
+        if (!window.focusedStreamUids.includes(uid)) {
+            window.focusedStreamUids.push(uid);
+        }
     }
     renderLiveGrid();
 };
@@ -4727,24 +4733,22 @@ function renderLiveGrid() {
 
             const focusIcon = document.getElementById(`focus-icon-${uid}`);
             if (focusIcon) {
-                if (isCurrentMaximized) {
-                    focusIcon.className = 'fa-solid fa-compress';
-                } else if (isFocused) {
-                    focusIcon.className = 'fa-solid fa-maximize';
-                } else {
-                    focusIcon.className = 'fa-solid fa-expand';
-                }
+                focusIcon.className = `fa-solid ${isFocused || isCurrentMaximized ? 'fa-compress' : 'fa-expand'}`;
             }
 
             const focusBtn = document.getElementById(`focus-btn-${uid}`);
             if (focusBtn) {
-                if (isCurrentMaximized) {
-                    focusBtn.title = 'Kembalikan Ukuran';
-                } else if (isFocused) {
-                    focusBtn.title = 'Penuhi Layar';
-                } else {
-                    focusBtn.title = 'Fokus/Perbesar';
-                }
+                focusBtn.title = isFocused || isCurrentMaximized ? 'Kecilkan' : 'Fokus/Perbesar';
+            }
+
+            const maxIcon = document.getElementById(`max-icon-${uid}`);
+            if (maxIcon) {
+                maxIcon.className = `fa-solid ${isCurrentMaximized ? 'fa-minimize' : 'fa-maximize'}`;
+            }
+
+            const maxBtn = document.getElementById(`max-btn-${uid}`);
+            if (maxBtn) {
+                maxBtn.title = isCurrentMaximized ? 'Pulihkan Ukuran' : 'Layar Penuh';
             }
 
             const toggleInfoIcon = document.getElementById(`toggle-info-icon-${uid}`);
@@ -4831,10 +4835,13 @@ function renderLiveGrid() {
                 <div class="stream-badge" style="position:absolute; top:8px; left:8px; z-index:10; background:#ef4444; color:#fff; font-size:8px; font-weight:700; padding:2px 6px; border-radius:3px; display:flex; align-items:center; gap:3px;">
                     <span style="width:4px;height:4px;background:#fff;border-radius:50%;display:inline-block;"></span>LIVE
                 </div>
-                <button id="focus-btn-${uid}" title="${isCurrentMaximized ? 'Kembalikan Ukuran' : (isFocused ? 'Penuhi Layar' : 'Fokus/Perbesar')}" style="position:absolute; top:8px; right:36px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
-                    <i class="fa-solid ${isCurrentMaximized ? 'fa-compress' : (isFocused ? 'fa-maximize' : 'fa-expand')}" id="focus-icon-${uid}"></i>
+                <button id="focus-btn-${uid}" title="${isFocused || isCurrentMaximized ? 'Kecilkan' : 'Fokus/Perbesar'}" style="position:absolute; top:8px; right:36px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
+                    <i class="fa-solid ${isFocused || isCurrentMaximized ? 'fa-compress' : 'fa-expand'}" id="focus-icon-${uid}"></i>
                 </button>
-                <button id="toggle-info-btn-${uid}" title="Sembunyikan/Tampilkan Info & Kontrol" style="position:absolute; top:8px; right:92px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
+                <button id="max-btn-${uid}" title="${isCurrentMaximized ? 'Pulihkan Ukuran' : 'Layar Penuh'}" style="position:absolute; top:8px; right:92px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
+                    <i class="fa-solid ${isCurrentMaximized ? 'fa-minimize' : 'fa-maximize'}" id="max-icon-${uid}"></i>
+                </button>
+                <button id="toggle-info-btn-${uid}" title="Sembunyikan/Tampilkan Info & Kontrol" style="position:absolute; top:8px; right:120px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
                     <i class="fa-solid ${isFullVideo ? 'fa-eye-slash' : 'fa-eye'}" id="toggle-info-icon-${uid}"></i>
                 </button>
                 <button id="rotate-btn-${uid}" title="Putar Tampilan" style="position:absolute; top:8px; right:64px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
@@ -4874,6 +4881,13 @@ function renderLiveGrid() {
             focusBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 window.toggleFocusStream(uid);
+            });
+        }
+        const maxBtn = document.getElementById(`max-btn-${uid}`);
+        if (maxBtn) {
+            maxBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                window.toggleMaximizeStream(uid);
             });
         }
         const toggleInfoBtn = document.getElementById(`toggle-info-btn-${uid}`);
