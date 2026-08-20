@@ -4142,12 +4142,13 @@ window.rotateVideo = function (uid, event) {
     rotation = (rotation + 90) % 360;
     videoEl.dataset.rotation = rotation;
 
+    const isCover = videoEl.style.objectFit !== 'contain';
     if (rotation === 90 || rotation === 270) {
-        videoEl.style.transform = `rotate(${rotation}deg) scale(0.75)`;
+        videoEl.style.transform = `rotate(${rotation}deg) scale(${isCover ? 1.78 : 0.56})`;
     } else {
         videoEl.style.transform = `rotate(${rotation}deg) scale(1)`;
     }
-    console.log(`[WebRTC] Video ${uid} rotated to ${rotation} degrees`);
+    console.log(`[WebRTC] Video ${uid} rotated to ${rotation} degrees (Scale: ${rotation === 90 || rotation === 270 ? (isCover ? 1.78 : 0.56) : 1})`);
 };
 
 window.webRecorders = {};
@@ -4511,12 +4512,23 @@ function bindCardControls(parentEl, uid, streamFullName) {
         }
         videoEl.ondblclick = (e) => {
             e.stopPropagation();
+            let rotation = parseInt(videoEl.dataset.rotation || '0');
             if (videoEl.style.objectFit === 'contain') {
                 videoEl.style.objectFit = 'cover';
                 videoEl.style.cursor = 'zoom-in';
+                if (rotation === 90 || rotation === 270) {
+                    videoEl.style.transform = `rotate(${rotation}deg) scale(1.78)`;
+                } else {
+                    videoEl.style.transform = `rotate(${rotation}deg) scale(1)`;
+                }
             } else {
                 videoEl.style.objectFit = 'contain';
                 videoEl.style.cursor = 'zoom-out';
+                if (rotation === 90 || rotation === 270) {
+                    videoEl.style.transform = `rotate(${rotation}deg) scale(0.56)`;
+                } else {
+                    videoEl.style.transform = `rotate(${rotation}deg) scale(1)`;
+                }
             }
         };
     }
