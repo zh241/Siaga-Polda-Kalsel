@@ -1722,17 +1722,20 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     gap: 2px !important;
 }
 .stream-card:not(.focused) .stream-location-container {
-    display: none !important;
+    display: flex !important;
+    font-size: 8px !important;
+    margin-top: 1px !important;
 }
 .stream-card:not(.focused) .stream-meta {
-    display: none !important;
+    display: block !important;
+    font-size: 8px !important;
 }
 .stream-card:not(.focused) .stream-title {
     font-size: 10px !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    text-align: center !important;
+    text-align: left !important;
 }
 .stream-card:not(.focused) .stream-controls-container {
     margin-top: 0 !important;
@@ -1748,9 +1751,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .stream-card:not(.focused) .stream-controls-container button:not(.stream-btn:not(.watching)) i {
     font-size: 8px !important;
 }
-/* Hide local preview on unfocused cards */
+/* Responsive sizing for local preview camera based on card focus state */
+.stream-card.focused [id^="local-preview-"] {
+    width: 70px !important;
+    bottom: 10px !important;
+    right: 10px !important;
+}
 .stream-card:not(.focused) [id^="local-preview-"] {
-    display: none !important;
+    width: 40px !important;
+    bottom: 6px !important;
+    right: 6px !important;
+    border-radius: 3px !important;
 }
 /* Hide unnecessary top-right buttons on unfocused cards to save space */
 .stream-card:not(.focused) [id^="rotate-btn-"],
