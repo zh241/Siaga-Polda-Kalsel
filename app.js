@@ -4725,6 +4725,12 @@ function renderLiveGrid() {
                 existingCard.classList.remove('full-video-mode');
             }
 
+            if (isWatching) {
+                existingCard.classList.add('watching');
+            } else {
+                existingCard.classList.remove('watching');
+            }
+
             const focusIcon = document.getElementById(`focus-icon-${uid}`);
             if (focusIcon) {
                 focusIcon.className = `fa-solid ${isFocused ? 'fa-compress' : 'fa-expand'}`;
