@@ -1492,7 +1492,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .live-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 12px;
 }
 .stream-card {
@@ -1504,7 +1504,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     flex-direction: column;
     height: auto !important;
     min-height: min-content;
-    max-width: 280px;
+    max-width: 320px;
     width: 100%;
     transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -1633,8 +1633,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     border: 1px solid var(--border-color) !important;
 }
 .live-grid.has-focus .other-streams-row .stream-card {
-    flex: 0 0 220px !important;
-    max-width: 220px !important;
+    flex: 0 0 280px !important;
+    max-width: 280px !important;
     margin: 0 !important;
 }
 .live-grid.has-focus .other-streams-row .stream-card .stream-video-container {
