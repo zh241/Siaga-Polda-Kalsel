@@ -1516,7 +1516,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .stream-video-container {
     position: relative;
     width: 100%;
-    aspect-ratio: 1/1 !important;
+    aspect-ratio: 4/3 !important;
     background: #000;
 }
 .stream-video {
@@ -1638,7 +1638,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     margin: 0 !important;
 }
 .live-grid.has-focus .other-streams-row .stream-card .stream-video-container {
-    aspect-ratio: 1/1 !important; /* Unfocused/other streams are square (taller height) */
+    aspect-ratio: 4/3 !important; /* Unfocused/other streams are 4:3 (wider height) */
 }
 
 .focused-streams-area {
