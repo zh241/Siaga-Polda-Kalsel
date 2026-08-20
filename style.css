@@ -1662,7 +1662,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .stream-card:fullscreen video {
     width: 100% !important;
     height: 100% !important;
-    object-fit: contain !important;
 }
 .stream-card:fullscreen .stream-overlay-info {
     padding: 16px 24px !important;
@@ -1700,7 +1699,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .stream-card:-webkit-full-screen video {
     width: 100% !important;
     height: 100% !important;
-    object-fit: contain !important;
 }
 .stream-card:-webkit-full-screen .stream-overlay-info {
     padding: 16px 24px !important;
