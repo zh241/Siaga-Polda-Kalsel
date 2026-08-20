@@ -1492,8 +1492,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .live-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
 }
 .stream-card {
     background: var(--bg-card);
@@ -1504,7 +1504,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     flex-direction: column;
     height: auto !important;
     min-height: min-content;
-    max-width: 260px;
+    max-width: 280px;
     width: 100%;
     transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -1615,8 +1615,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     border: 1px solid var(--border-color) !important;
 }
 .live-grid.has-focus .other-streams-row .stream-card {
-    flex: 0 0 200px !important;
-    max-width: 200px !important;
+    flex: 0 0 220px !important;
+    max-width: 220px !important;
     margin: 0 !important;
 }
 .live-grid.has-focus .other-streams-row .stream-card .stream-video-container {
@@ -1636,49 +1636,63 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     display: none !important;
 }
 
+/* Maximized Mode (Zoom Level 2) */
+.stream-card.maximized {
+    width: 100% !important;
+    max-width: 900px !important;
+    margin: 0 auto !important;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.65);
+    border-color: rgba(59, 130, 246, 0.5) !important;
+}
+.stream-card.maximized .stream-video-container {
+    aspect-ratio: 16/9 !important;
+}
+
 /* Responsive adjustments for unfocused (small) cards */
-.stream-card:not(.focused) .stream-overlay-info {
+.stream-card:not(.focused):not(.maximized) .stream-overlay-info {
     padding: 6px 8px !important;
     gap: 2px !important;
 }
-.stream-card:not(.focused) .stream-location-container {
+.stream-card:not(.focused):not(.maximized) .stream-location-container {
     display: none !important;
 }
-.stream-card:not(.focused) .stream-meta {
+.stream-card:not(.focused):not(.maximized) .stream-meta {
     display: none !important;
 }
-.stream-card:not(.focused) .stream-title {
+.stream-card:not(.focused):not(.maximized) .stream-title {
     font-size: 10px !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     text-align: center !important;
 }
-.stream-card:not(.focused) .stream-controls-container {
+.stream-card:not(.focused):not(.maximized) .stream-controls-container {
     margin-top: 0 !important;
 }
-/* Make control buttons small on unfocused cards */
-.stream-card:not(.focused) .stream-controls-container button {
+/* Make control buttons small on unfocused cards, but exclude the Tonton button */
+.stream-card:not(.focused):not(.maximized) .stream-controls-container button:not(.stream-btn:not(.watching)) {
     width: 22px !important;
     height: 22px !important;
     font-size: 9px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
 }
-.stream-card:not(.focused) .stream-controls-container i {
+.stream-card:not(.focused):not(.maximized) .stream-controls-container button:not(.stream-btn:not(.watching)) i {
     font-size: 8px !important;
 }
 /* Hide local preview on unfocused cards */
-.stream-card:not(.focused) [id^="local-preview-"] {
+.stream-card:not(.focused):not(.maximized) [id^="local-preview-"] {
     display: none !important;
 }
 /* Hide unnecessary top-right buttons on unfocused cards to save space */
-.stream-card:not(.focused) [id^="rotate-btn-"],
-.stream-card:not(.focused) [id^="mute-btn-"] {
+.stream-card:not(.focused):not(.maximized) [id^="rotate-btn-"],
+.stream-card:not(.focused):not(.maximized) [id^="mute-btn-"] {
     display: none !important;
 }
 /* Adjust positions of the remaining top-right buttons on unfocused cards */
-.stream-card:not(.focused) [id^="focus-btn-"] {
+.stream-card:not(.focused):not(.maximized) [id^="focus-btn-"] {
     right: 8px !important;
 }
-.stream-card:not(.focused) [id^="toggle-info-btn-"] {
+.stream-card:not(.focused):not(.maximized) [id^="toggle-info-btn-"] {
     right: 36px !important;
 }

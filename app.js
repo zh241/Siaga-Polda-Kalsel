@@ -4046,14 +4046,26 @@ function initLiveOpsListener() {
 }
 
 window.focusedStreamUids = [];
+window.maximizedStreamUid = null;
 window.toggleFocusStream = function (uid) {
     if (!uid) return;
     if (!window.focusedStreamUids) window.focusedStreamUids = [];
+    
     const idx = window.focusedStreamUids.indexOf(uid);
     if (idx > -1) {
-        window.focusedStreamUids.splice(idx, 1);
+        // Stream is already focused. If it is already maximized, we de-maximize and de-focus it.
+        // If it is not maximized yet, we maximize it (Zoom Level 2)!
+        if (window.maximizedStreamUid === uid) {
+            window.maximizedStreamUid = null;
+            window.focusedStreamUids.splice(idx, 1);
+        } else {
+            window.maximizedStreamUid = uid;
+        }
     } else {
+        // Stream is unfocused. Focus it (Zoom Level 1).
         window.focusedStreamUids.push(uid);
+        // Clear any existing maximized stream just in case
+        window.maximizedStreamUid = null;
     }
     renderLiveGrid();
 };
@@ -4475,9 +4487,21 @@ function renderLiveGrid() {
     emptyState.style.display = 'none';
     grid.style.display = 'grid';
 
+    if (!window.maximizedStreamUid) window.maximizedStreamUid = null;
+    if (window.maximizedStreamUid && !uids.includes(window.maximizedStreamUid)) {
+        window.maximizedStreamUid = null;
+    }
     window.focusedStreamUids = (window.focusedStreamUids || []).filter(uid => uids.includes(uid));
 
-    const hasFocus = window.focusedStreamUids.length > 0;
+    const isAnyMaximized = window.maximizedStreamUid !== null;
+    const hasFocus = window.focusedStreamUids.length > 0 && !isAnyMaximized;
+    
+    if (isAnyMaximized) {
+        grid.classList.add('has-maximized');
+    } else {
+        grid.classList.remove('has-maximized');
+    }
+
     if (hasFocus) {
         grid.classList.add('has-focus');
     } else {
@@ -4527,7 +4551,9 @@ function renderLiveGrid() {
 
         const isFocused = window.focusedStreamUids.includes(uid);
         const isFullVideo = window.fullVideoStreamUids && window.fullVideoStreamUids[uid];
-        const targetParent = isFocused ? focusedArea : (hasFocus ? otherStreamsRow : grid);
+        const isCurrentMaximized = window.maximizedStreamUid === uid;
+        const isHidden = isAnyMaximized && !isCurrentMaximized;
+        const targetParent = isCurrentMaximized ? grid : (isFocused ? focusedArea : (hasFocus ? otherStreamsRow : grid));
 
         const statusLabel = isConnected ? 'Terhubung' : (isWatching ? 'Menghubungkan...' : 'Menunggu');
         const updateCardLocation = (cardEl) => {
@@ -4639,32 +4665,27 @@ function renderLiveGrid() {
                     `;
                 } else {
                     controlsHtml = `
-                        <div style="display:flex; flex-direction:column; gap:4px; width:100%;">
-                            <div style="display:flex; justify-content:center; align-items:center; gap:8px; width:100%;">
-                                <!-- Tombol Hentikan -->
-                                <button class="stream-btn watching" title="Hentikan Siaran" style="width:26px; height:26px; border:none; border-radius:50%; cursor:pointer; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                                    <i class="fa-solid fa-stop"></i>
-                                </button>
-                                <!-- Tombol Rekam -->
-                                <button class="record-btn" id="record-btn-${uid}" title="${isRecording ? 'Hentikan Rekam' : 'Rekam Siaran'}" style="width:26px; height:26px; display:flex; align-items:center; justify-content:center; border:none; border-radius:50%; cursor:pointer; background:${recordBg}; border:${recordBorder}; color:#fff; font-size:11px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                                    <i class="fa-solid fa-circle" id="record-icon-${uid}" style="color:${recordIconColor}; font-size:8px; animation:${recordAnim};"></i>
-                                </button>
-                                <!-- Tombol Video Call -->
-                                <button class="vc-btn" id="vc-btn-${uid}" title="${vcActive ? 'Tutup Video Call' : 'Hubungi Video Call'}" style="width:26px; height:26px; border:none; border-radius:50%; cursor:pointer; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                                    <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
-                                </button>
-                            </div>
+                        <div style="display:flex; justify-content:center; align-items:center; gap:6px; width:100%;">
+                            <!-- Tombol Hentikan -->
+                            <button class="stream-btn watching" title="Hentikan Siaran" style="width:22px; height:22px; border:none; border-radius:50%; cursor:pointer; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; font-size:9px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                                <i class="fa-solid fa-stop"></i>
+                            </button>
+                            <!-- Tombol Rekam -->
+                            <button class="record-btn" id="record-btn-${uid}" title="${isRecording ? 'Hentikan Rekam' : 'Rekam Siaran'}" style="width:22px; height:22px; display:flex; align-items:center; justify-content:center; border:none; border-radius:50%; cursor:pointer; background:${recordBg}; border:${recordBorder}; color:#fff; font-size:9px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                                <i class="fa-solid fa-circle" id="record-icon-${uid}" style="color:${recordIconColor}; font-size:6px; animation:${recordAnim};"></i>
+                            </button>
+                            <!-- Tombol Video Call -->
+                            <button class="vc-btn" id="vc-btn-${uid}" title="${vcActive ? 'Tutup Video Call' : 'Hubungi Video Call'}" style="width:22px; height:22px; border:none; border-radius:50%; cursor:pointer; background:${vcActive ? '#ef4444' : '#10b981'}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:9px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                                <i class="fa-solid ${vcActive ? 'fa-phone-slash' : 'fa-video'}"></i>
+                            </button>
+                            <!-- Tombol Mic (Hanya jika VC aktif) -->
                             ${vcActive ? `
-                                <div style="display:flex; justify-content:center; align-items:center; gap:8px; width:100%; margin-top:2px;">
-                                    <!-- Tombol Mic -->
-                                    <button id="vc-mic-btn-${uid}" title="${micActive ? 'Mute Mic' : 'Aktifkan Mic'}" style="width:22px; height:22px; border:none; border-radius:50%; cursor:pointer; background:${micActive ? '#10b981' : '#18181b'}; border:1px solid ${micActive ? '#10b981' : '#27272a'}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:9px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                                        <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i>
-                                    </button>
-                                    <!-- Tombol Kamera -->
-                                    <button id="vc-cam-btn-${uid}" title="${camActive ? 'Matikan Kamera' : 'Aktifkan Kamera'}" style="width:22px; height:22px; border:none; border-radius:50%; cursor:pointer; background:${camActive ? '#3b82f6' : '#18181b'}; border:1px solid ${camActive ? '#3b82f6' : '#27272a'}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:9px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                                        <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i>
-                                    </button>
-                                </div>
+                                <button id="vc-mic-btn-${uid}" title="${micActive ? 'Mute Mic' : 'Aktifkan Mic'}" style="width:22px; height:22px; border:none; border-radius:50%; cursor:pointer; background:${micActive ? '#10b981' : '#18181b'}; border:1px solid ${micActive ? '#10b981' : '#27272a'}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:9px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                                    <i class="fa-solid ${micActive ? 'fa-microphone' : 'fa-microphone-slash'}"></i>
+                                </button>
+                                <button id="vc-cam-btn-${uid}" title="${camActive ? 'Matikan Kamera' : 'Aktifkan Kamera'}" style="width:22px; height:22px; border:none; border-radius:50%; cursor:pointer; background:${camActive ? '#3b82f6' : '#18181b'}; border:1px solid ${camActive ? '#3b82f6' : '#27272a'}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:9px; transition:transform 0.15s ease-in-out;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                                    <i class="fa-solid ${camActive ? 'fa-video' : 'fa-video-slash'}"></i>
+                                </button>
                             ` : ''}
                         </div>
                     `;
@@ -4673,12 +4694,29 @@ function renderLiveGrid() {
         }
 
         const existingCard = document.getElementById(`stream-card-${uid}`);
+        if (isHidden) {
+            if (existingCard) {
+                existingCard.style.display = 'none';
+                if (existingCard.parentElement !== grid) {
+                    grid.appendChild(existingCard);
+                }
+            }
+            return;
+        }
+
         if (existingCard) {
+            existingCard.style.display = '';
             const conn = activePeerConnections[uid];
-            if (isFocused) {
+            
+            if (isCurrentMaximized) {
+                existingCard.classList.add('maximized');
+                existingCard.classList.remove('focused');
+            } else if (isFocused) {
                 existingCard.classList.add('focused');
+                existingCard.classList.remove('maximized');
             } else {
                 existingCard.classList.remove('focused');
+                existingCard.classList.remove('maximized');
             }
 
             if (isFullVideo) {
@@ -4689,7 +4727,24 @@ function renderLiveGrid() {
 
             const focusIcon = document.getElementById(`focus-icon-${uid}`);
             if (focusIcon) {
-                focusIcon.className = `fa-solid ${isFocused ? 'fa-compress' : 'fa-expand'}`;
+                if (isCurrentMaximized) {
+                    focusIcon.className = 'fa-solid fa-compress';
+                } else if (isFocused) {
+                    focusIcon.className = 'fa-solid fa-maximize';
+                } else {
+                    focusIcon.className = 'fa-solid fa-expand';
+                }
+            }
+
+            const focusBtn = document.getElementById(`focus-btn-${uid}`);
+            if (focusBtn) {
+                if (isCurrentMaximized) {
+                    focusBtn.title = 'Kembalikan Ukuran';
+                } else if (isFocused) {
+                    focusBtn.title = 'Penuhi Layar';
+                } else {
+                    focusBtn.title = 'Fokus/Perbesar';
+                }
             }
 
             const toggleInfoIcon = document.getElementById(`toggle-info-icon-${uid}`);
@@ -4764,7 +4819,7 @@ function renderLiveGrid() {
         }
 
         const card = document.createElement('div');
-        card.className = `stream-card ${isFocused ? 'focused' : ''} ${isFullVideo ? 'full-video-mode' : ''}`;
+        card.className = `stream-card ${isCurrentMaximized ? 'maximized' : (isFocused ? 'focused' : '')} ${isFullVideo ? 'full-video-mode' : ''}`;
         if (isWatching) {
             card.className += ' watching';
         }
@@ -4776,8 +4831,8 @@ function renderLiveGrid() {
                 <div class="stream-badge" style="position:absolute; top:8px; left:8px; z-index:10; background:#ef4444; color:#fff; font-size:8px; font-weight:700; padding:2px 6px; border-radius:3px; display:flex; align-items:center; gap:3px;">
                     <span style="width:4px;height:4px;background:#fff;border-radius:50%;display:inline-block;"></span>LIVE
                 </div>
-                <button id="focus-btn-${uid}" title="Fokus/Perbesar" style="position:absolute; top:8px; right:36px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
-                    <i class="fa-solid fa-expand" id="focus-icon-${uid}"></i>
+                <button id="focus-btn-${uid}" title="${isCurrentMaximized ? 'Kembalikan Ukuran' : (isFocused ? 'Penuhi Layar' : 'Fokus/Perbesar')}" style="position:absolute; top:8px; right:36px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
+                    <i class="fa-solid ${isCurrentMaximized ? 'fa-compress' : (isFocused ? 'fa-maximize' : 'fa-expand')}" id="focus-icon-${uid}"></i>
                 </button>
                 <button id="toggle-info-btn-${uid}" title="Sembunyikan/Tampilkan Info & Kontrol" style="position:absolute; top:8px; right:92px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
                     <i class="fa-solid ${isFullVideo ? 'fa-eye-slash' : 'fa-eye'}" id="toggle-info-icon-${uid}"></i>
