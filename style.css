@@ -1754,14 +1754,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 /* Hide unnecessary top-right buttons on unfocused cards to save space */
 .stream-card:not(.focused) [id^="rotate-btn-"],
-.stream-card:not(.focused) [id^="mute-btn-"],
 .stream-card:not(.focused) [id^="max-btn-"] {
     display: none !important;
-}
-/* Adjust positions of the remaining top-right buttons on unfocused cards */
-.stream-card:not(.focused) [id^="focus-btn-"] {
-    right: 8px !important;
-}
-.stream-card:not(.focused) [id^="toggle-info-btn-"] {
-    right: 36px !important;
 }
