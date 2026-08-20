@@ -4142,13 +4142,21 @@ window.rotateVideo = function (uid, event) {
     rotation = (rotation + 90) % 360;
     videoEl.dataset.rotation = rotation;
 
-    const isCover = videoEl.style.objectFit !== 'contain';
+    const parent = videoEl.parentElement;
     if (rotation === 90 || rotation === 270) {
-        videoEl.style.transform = `rotate(${rotation}deg) scale(${isCover ? 1.78 : 0.56})`;
+        // Swap width and height dynamically based on container dimensions
+        videoEl.style.width = parent.clientHeight + 'px';
+        videoEl.style.height = parent.clientWidth + 'px';
     } else {
-        videoEl.style.transform = `rotate(${rotation}deg) scale(1)`;
+        // Restore normal 100% width and height
+        videoEl.style.width = '100%';
+        videoEl.style.height = '100%';
     }
-    console.log(`[WebRTC] Video ${uid} rotated to ${rotation} degrees (Scale: ${rotation === 90 || rotation === 270 ? (isCover ? 1.78 : 0.56) : 1})`);
+    videoEl.style.position = 'absolute';
+    videoEl.style.top = '50%';
+    videoEl.style.left = '50%';
+    videoEl.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+    console.log(`[WebRTC] Video ${uid} rotated to ${rotation} degrees dynamically`);
 };
 
 window.webRecorders = {};
@@ -4512,23 +4520,12 @@ function bindCardControls(parentEl, uid, streamFullName) {
         }
         videoEl.ondblclick = (e) => {
             e.stopPropagation();
-            let rotation = parseInt(videoEl.dataset.rotation || '0');
             if (videoEl.style.objectFit === 'cover') {
                 videoEl.style.objectFit = 'contain';
                 videoEl.style.cursor = 'zoom-in';
-                if (rotation === 90 || rotation === 270) {
-                    videoEl.style.transform = `rotate(${rotation}deg) scale(0.56)`;
-                } else {
-                    videoEl.style.transform = `rotate(${rotation}deg) scale(1)`;
-                }
             } else {
                 videoEl.style.objectFit = 'cover';
                 videoEl.style.cursor = 'zoom-out';
-                if (rotation === 90 || rotation === 270) {
-                    videoEl.style.transform = `rotate(${rotation}deg) scale(1.78)`;
-                } else {
-                    videoEl.style.transform = `rotate(${rotation}deg) scale(1)`;
-                }
             }
         };
     }
@@ -4891,7 +4888,7 @@ function renderLiveGrid() {
                 <div id="local-preview-${uid}" style="display:none; position:absolute; bottom:8px; right:8px; width:60px; aspect-ratio:4/3; background:#000; border:1px solid rgba(255,255,255,0.4); border-radius:4px; overflow:hidden; z-index:12;">
                     <video id="local-video-${uid}" autoplay muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>
                 </div>
-                <video id="video-${uid}" autoplay playsinline style="width:100%; height:100%; object-fit:contain; display:block; transition: transform 0.2s;"></video>
+                <video id="video-${uid}" autoplay playsinline style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(0deg); width:100%; height:100%; object-fit:contain; display:block; transition: transform 0.2s, width 0.2s, height 0.2s;"></video>
                 
                 <!-- Transparent Overlay (Name, Location, Controls) -->
                 <div class="stream-overlay-info" style="position:absolute; bottom:0; inset-x:0; z-index:8; background:linear-gradient(transparent, rgba(0,0,0,0.85)); padding:${isFocused ? '10px' : '6px 8px'}; display:flex; flex-direction:column; gap:4px; pointer-events:none; transition:opacity 0.2s;">
