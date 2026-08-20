@@ -1654,6 +1654,82 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     aspect-ratio: 16/9 !important;
 }
 
+/* HTML5 Fullscreen API Styles for Tactical videotron */
+.stream-card:fullscreen {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    background: #000 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+}
+.stream-card:fullscreen .stream-video-container {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    aspect-ratio: auto !important;
+}
+.stream-card:fullscreen video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+}
+.stream-card:fullscreen .stream-overlay-info {
+    padding: 16px 24px !important;
+    gap: 8px !important;
+}
+.stream-card:fullscreen .stream-title {
+    font-size: 16px !important;
+}
+.stream-card:fullscreen .stream-meta {
+    font-size: 11px !important;
+    display: block !important;
+}
+.stream-card:fullscreen .stream-location-container {
+    font-size: 11px !important;
+    display: flex !important;
+}
+
+/* Chrome, Safari and Opera (WebKit) Fullscreen prefixes */
+.stream-card:-webkit-full-screen {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    background: #000 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+}
+.stream-card:-webkit-full-screen .stream-video-container {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    aspect-ratio: auto !important;
+}
+.stream-card:-webkit-full-screen video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+}
+.stream-card:-webkit-full-screen .stream-overlay-info {
+    padding: 16px 24px !important;
+    gap: 8px !important;
+}
+.stream-card:-webkit-full-screen .stream-title {
+    font-size: 16px !important;
+}
+.stream-card:-webkit-full-screen .stream-meta {
+    font-size: 11px !important;
+    display: block !important;
+}
+.stream-card:-webkit-full-screen .stream-location-container {
+    font-size: 11px !important;
+    display: flex !important;
+}
+
 /* Responsive adjustments for unfocused (small) cards */
 .stream-card:not(.focused):not(.maximized) .stream-overlay-info {
     padding: 6px 8px !important;

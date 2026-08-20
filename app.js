@@ -4064,7 +4064,13 @@ window.toggleFocusStream = function (uid) {
 
 window.toggleMaximizeStream = function (uid) {
     if (!uid) return;
+    const card = document.getElementById(`stream-card-${uid}`);
+    if (!card) return;
+
     if (window.maximizedStreamUid === uid) {
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+        }
         window.maximizedStreamUid = null;
     } else {
         window.maximizedStreamUid = uid;
@@ -4072,9 +4078,25 @@ window.toggleMaximizeStream = function (uid) {
         if (!window.focusedStreamUids.includes(uid)) {
             window.focusedStreamUids.push(uid);
         }
+        if (card.requestFullscreen) {
+            card.requestFullscreen().catch(() => {});
+        } else if (card.webkitRequestFullscreen) {
+            card.webkitRequestFullscreen().catch(() => {});
+        } else if (card.msRequestFullscreen) {
+            card.msRequestFullscreen().catch(() => {});
+        }
     }
     renderLiveGrid();
 };
+
+document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+        if (window.maximizedStreamUid !== null) {
+            window.maximizedStreamUid = null;
+            renderLiveGrid();
+        }
+    }
+});
 
 window.fullVideoStreamUids = {};
 window.toggleCardFullVideo = function (uid) {
