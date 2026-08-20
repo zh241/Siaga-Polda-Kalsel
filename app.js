@@ -4515,20 +4515,9 @@ function renderLiveGrid() {
     emptyState.style.display = 'none';
     grid.style.display = 'grid';
 
-    if (!window.maximizedStreamUid) window.maximizedStreamUid = null;
-    if (window.maximizedStreamUid && !uids.includes(window.maximizedStreamUid)) {
-        window.maximizedStreamUid = null;
-    }
     window.focusedStreamUids = (window.focusedStreamUids || []).filter(uid => uids.includes(uid));
 
-    const isAnyMaximized = window.maximizedStreamUid !== null;
-    const hasFocus = window.focusedStreamUids.length > 0 && !isAnyMaximized;
-    
-    if (isAnyMaximized) {
-        grid.classList.add('has-maximized');
-    } else {
-        grid.classList.remove('has-maximized');
-    }
+    const hasFocus = window.focusedStreamUids.length > 0;
 
     if (hasFocus) {
         grid.classList.add('has-focus');
@@ -4579,9 +4568,7 @@ function renderLiveGrid() {
 
         const isFocused = window.focusedStreamUids.includes(uid);
         const isFullVideo = window.fullVideoStreamUids && window.fullVideoStreamUids[uid];
-        const isCurrentMaximized = window.maximizedStreamUid === uid;
-        const isHidden = isAnyMaximized && !isCurrentMaximized;
-        const targetParent = isCurrentMaximized ? grid : (isFocused ? focusedArea : (hasFocus ? otherStreamsRow : grid));
+        const targetParent = isFocused ? focusedArea : (hasFocus ? otherStreamsRow : grid);
 
         const statusLabel = isConnected ? 'Terhubung' : (isWatching ? 'Menghubungkan...' : 'Menunggu');
         const updateCardLocation = (cardEl) => {
@@ -4722,29 +4709,14 @@ function renderLiveGrid() {
         }
 
         const existingCard = document.getElementById(`stream-card-${uid}`);
-        if (isHidden) {
-            if (existingCard) {
-                existingCard.style.display = 'none';
-                if (existingCard.parentElement !== grid) {
-                    grid.appendChild(existingCard);
-                }
-            }
-            return;
-        }
-
         if (existingCard) {
             existingCard.style.display = '';
             const conn = activePeerConnections[uid];
             
-            if (isCurrentMaximized) {
-                existingCard.classList.add('maximized');
-                existingCard.classList.remove('focused');
-            } else if (isFocused) {
+            if (isFocused) {
                 existingCard.classList.add('focused');
-                existingCard.classList.remove('maximized');
             } else {
                 existingCard.classList.remove('focused');
-                existingCard.classList.remove('maximized');
             }
 
             if (isFullVideo) {
@@ -4755,22 +4727,12 @@ function renderLiveGrid() {
 
             const focusIcon = document.getElementById(`focus-icon-${uid}`);
             if (focusIcon) {
-                focusIcon.className = `fa-solid ${isFocused || isCurrentMaximized ? 'fa-compress' : 'fa-expand'}`;
+                focusIcon.className = `fa-solid ${isFocused ? 'fa-compress' : 'fa-expand'}`;
             }
 
             const focusBtn = document.getElementById(`focus-btn-${uid}`);
             if (focusBtn) {
-                focusBtn.title = isFocused || isCurrentMaximized ? 'Kecilkan' : 'Fokus/Perbesar';
-            }
-
-            const maxIcon = document.getElementById(`max-icon-${uid}`);
-            if (maxIcon) {
-                maxIcon.className = `fa-solid ${isCurrentMaximized ? 'fa-minimize' : 'fa-maximize'}`;
-            }
-
-            const maxBtn = document.getElementById(`max-btn-${uid}`);
-            if (maxBtn) {
-                maxBtn.title = isCurrentMaximized ? 'Pulihkan Ukuran' : 'Layar Penuh';
+                focusBtn.title = isFocused ? 'Kecilkan' : 'Fokus/Perbesar';
             }
 
             const toggleInfoIcon = document.getElementById(`toggle-info-icon-${uid}`);
@@ -4845,7 +4807,7 @@ function renderLiveGrid() {
         }
 
         const card = document.createElement('div');
-        card.className = `stream-card ${isCurrentMaximized ? 'maximized' : (isFocused ? 'focused' : '')} ${isFullVideo ? 'full-video-mode' : ''}`;
+        card.className = `stream-card ${isFocused ? 'focused' : ''} ${isFullVideo ? 'full-video-mode' : ''}`;
         if (isWatching) {
             card.className += ' watching';
         }
@@ -4857,11 +4819,11 @@ function renderLiveGrid() {
                 <div class="stream-badge" style="position:absolute; top:8px; left:8px; z-index:10; background:#ef4444; color:#fff; font-size:8px; font-weight:700; padding:2px 6px; border-radius:3px; display:flex; align-items:center; gap:3px;">
                     <span style="width:4px;height:4px;background:#fff;border-radius:50%;display:inline-block;"></span>LIVE
                 </div>
-                <button id="focus-btn-${uid}" title="${isFocused || isCurrentMaximized ? 'Kecilkan' : 'Fokus/Perbesar'}" style="position:absolute; top:8px; right:36px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
-                    <i class="fa-solid ${isFocused || isCurrentMaximized ? 'fa-compress' : 'fa-expand'}" id="focus-icon-${uid}"></i>
+                <button id="focus-btn-${uid}" title="${isFocused ? 'Kecilkan' : 'Fokus/Perbesar'}" style="position:absolute; top:8px; right:36px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
+                    <i class="fa-solid ${isFocused ? 'fa-compress' : 'fa-expand'}" id="focus-icon-${uid}"></i>
                 </button>
-                <button id="max-btn-${uid}" title="${isCurrentMaximized ? 'Pulihkan Ukuran' : 'Layar Penuh'}" style="position:absolute; top:8px; right:92px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
-                    <i class="fa-solid ${isCurrentMaximized ? 'fa-minimize' : 'fa-maximize'}" id="max-icon-${uid}"></i>
+                <button id="max-btn-${uid}" title="Layar Penuh" style="position:absolute; top:8px; right:92px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
+                    <i class="fa-solid fa-maximize" id="max-icon-${uid}"></i>
                 </button>
                 <button id="toggle-info-btn-${uid}" title="Sembunyikan/Tampilkan Info & Kontrol" style="position:absolute; top:8px; right:120px; z-index:10; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; transition:background 0.2s;">
                     <i class="fa-solid ${isFullVideo ? 'fa-eye-slash' : 'fa-eye'}" id="toggle-info-icon-${uid}"></i>
