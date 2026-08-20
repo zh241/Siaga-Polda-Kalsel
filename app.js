@@ -4540,29 +4540,15 @@ function bindCardControls(parentEl, uid, streamFullName) {
         }
         videoEl.ondblclick = (e) => {
             e.stopPropagation();
-            const isCover = videoEl.style.objectFit === 'cover' || videoEl.dataset.zoomMode === 'true';
             let rotation = parseInt(videoEl.dataset.rotation || '0');
-            const isVerticalStream = videoEl.videoWidth && videoEl.videoHeight && (videoEl.videoWidth < videoEl.videoHeight);
-
-            if (isCover) {
-                // Switch to FIT mode
+            if (videoEl.style.objectFit === 'cover') {
                 videoEl.style.objectFit = 'contain';
                 videoEl.style.cursor = 'zoom-in';
-                videoEl.dataset.zoomMode = 'false';
-                videoEl.style.transform = `translate(-50%, -50%) rotate(${rotation}deg) scale(1)`;
+                videoEl.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
             } else {
-                // Switch to ZOOM mode
+                videoEl.style.objectFit = 'cover';
                 videoEl.style.cursor = 'zoom-out';
-                videoEl.dataset.zoomMode = 'true';
-                if (isVerticalStream && (rotation === 0 || rotation === 180)) {
-                    // Vertical video zoom: keep contain but scale up moderately (1.5x) to avoid 3x zoom blurriness
-                    videoEl.style.objectFit = 'contain';
-                    videoEl.style.transform = `translate(-50%, -50%) rotate(${rotation}deg) scale(1.5)`;
-                } else {
-                    // Landscape or rotated video zoom: standard cover mode
-                    videoEl.style.objectFit = 'cover';
-                    videoEl.style.transform = `translate(-50%, -50%) rotate(${rotation}deg) scale(1)`;
-                }
+                videoEl.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
             }
         };
         videoEl.onloadedmetadata = () => {
