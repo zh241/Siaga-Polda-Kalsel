@@ -4579,8 +4579,16 @@ function renderLiveGrid() {
                     if (data && data.koordinat && data.koordinat.lat && data.koordinat.lng) {
                         locContainer.style.display = 'flex';
                         const linkEl = locContainer.querySelector('.stream-location');
+                        const latFixed = data.koordinat.lat.toFixed(4);
+                        const lngFixed = data.koordinat.lng.toFixed(4);
+                        if (cardEl.dataset.lastLat === latFixed && cardEl.dataset.lastLng === lngFixed) {
+                            return;
+                        }
+                        cardEl.dataset.lastLat = latFixed;
+                        cardEl.dataset.lastLng = lngFixed;
                         window.getReverseGeocode(data.koordinat.lat, data.koordinat.lng).then(address => {
                             if (linkEl) linkEl.textContent = address;
+                            info.lastSeenAddress = address;
                         });
                     } else {
                         locContainer.style.display = 'none';
