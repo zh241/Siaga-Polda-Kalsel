@@ -5254,14 +5254,27 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
                 if (activePeerConnections[uid]) {
                     activePeerConnections[uid].audioUnmuted = true;
                 }
-                videoEl.play().catch(e => {
-                    console.warn('[WebRTC] Autoplay blocked:', e);
-                    if (activePeerConnections[uid]) {
-                        activePeerConnections[uid].audioUnmuted = false;
-                    }
-                });
-                const muteIcon = document.getElementById(`mute-icon-${uid}`);
-                if (muteIcon) muteIcon.className = 'fa-solid fa-volume-high';
+                
+                videoEl.play()
+                    .then(() => {
+                        console.log('[WebRTC] Autoplay succeeded with sound!');
+                        const muteIcon = document.getElementById(`mute-icon-${uid}`);
+                        if (muteIcon) muteIcon.className = 'fa-solid fa-volume-high';
+                    })
+                    .catch(e => {
+                        console.warn('[WebRTC] Autoplay with sound blocked, muting to autoplay:', e);
+                        videoEl.muted = true;
+                        if (activePeerConnections[uid]) {
+                            activePeerConnections[uid].audioUnmuted = false;
+                        }
+                        const muteIcon = document.getElementById(`mute-icon-${uid}`);
+                        if (muteIcon) muteIcon.className = 'fa-solid fa-volume-xmark';
+                        
+                        // Retry playing muted (guaranteed to succeed)
+                        videoEl.play().catch(playErr => {
+                            console.error('[WebRTC] Muted autoplay failed too:', playErr);
+                        });
+                    });
             }
 
             if (currentlyFloating) {
