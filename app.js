@@ -3948,27 +3948,20 @@ window.getReverseGeocode = function (lat, lng, callback) {
             return;
         }
 
-        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=17`;
-        fetch(url, {
-            headers: {
-                'User-Agent': 'SIAGA-Polda-Kalsel-Command-Center'
-            }
-        })
+        // Try BigDataCloud Client API first (Faster, no strict rate limits)
+        const bdcUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=id`;
+        fetch(bdcUrl)
         .then(res => res.json())
         .then(data => {
-            if (data && data.address) {
-                const road = data.address.road || '';
-                const suburb = data.address.suburb || data.address.village || data.address.neighbourhood || '';
-                const city = data.address.city || data.address.regency || data.address.county || '';
+            if (data) {
+                const locality = data.locality || '';
+                const city = data.city || '';
+                const province = data.principalSubdivision || '';
 
                 let addr = '';
-                if (road) addr += road;
-                if (suburb) addr += (addr ? ', ' : '') + suburb;
+                if (locality) addr += locality;
                 if (city) addr += (addr ? ', ' : '') + city;
-
-                if (!addr && data.display_name) {
-                    addr = data.display_name.split(',').slice(0, 3).join(',');
-                }
+                if (province) addr += (addr ? ', ' : '') + province;
 
                 if (addr) {
                     window.geocodedAddresses[cacheKey] = addr;
@@ -3976,11 +3969,42 @@ window.getReverseGeocode = function (lat, lng, callback) {
                     return;
                 }
             }
-            resolve(`Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
+            throw new Error('BigDataCloud resolved no address');
         })
-        .catch(err => {
-            console.error('Reverse geocode error:', err);
-            resolve(`Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
+        .catch(bdcErr => {
+            console.warn('[Geocode] BigDataCloud failed, falling back to Nominatim:', bdcErr);
+            
+            // Fallback to Nominatim
+            const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=17`;
+            fetch(nominatimUrl)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.address) {
+                    const road = data.address.road || '';
+                    const suburb = data.address.suburb || data.address.village || data.address.neighbourhood || '';
+                    const city = data.address.city || data.address.regency || data.address.county || '';
+
+                    let addr = '';
+                    if (road) addr += road;
+                    if (suburb) addr += (addr ? ', ' : '') + suburb;
+                    if (city) addr += (addr ? ', ' : '') + city;
+
+                    if (!addr && data.display_name) {
+                        addr = data.display_name.split(',').slice(0, 3).join(',');
+                    }
+
+                    if (addr) {
+                        window.geocodedAddresses[cacheKey] = addr;
+                        resolve(addr);
+                        return;
+                    }
+                }
+                resolve(`Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
+            })
+            .catch(nomErr => {
+                console.error('[Geocode] Both geocoders failed:', nomErr);
+                resolve(`Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
+            });
         });
     });
 
