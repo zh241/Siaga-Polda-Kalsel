@@ -6849,11 +6849,13 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
           final participants = _lkRoom!.remoteParticipants.values;
           lk.VideoTrack? remoteVideo;
           for (var p in participants) {
-            final pub = p.videoTrackPublications.firstOrNull;
-            if (pub != null && pub.track != null) {
-              remoteVideo = pub.track as lk.VideoTrack?;
-              break;
+            for (var pub in p.videoTrackPublications) {
+              if (pub.track != null) {
+                remoteVideo = pub.track as lk.VideoTrack?;
+                break;
+              }
             }
+            if (remoteVideo != null) break;
           }
           if (mounted) {
             setState(() {

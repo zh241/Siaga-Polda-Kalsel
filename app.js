@@ -4530,9 +4530,26 @@ window.toggleVC = async function (uid) {
     if (!conn) return;
 
     if (conn.vcActive) {
-        console.log(`[WebRTC] Stopping two-way VC for ${uid}`);
-        if (conn.videoSender) await conn.videoSender.replaceTrack(null);
-        if (conn.audioSender) await conn.audioSender.replaceTrack(null);
+        console.log(`[VC] Stopping two-way VC for ${uid}`);
+
+        if (conn.isLiveKit && conn.room) {
+            try {
+                if (conn.lkVideoPublication) {
+                    await conn.room.localParticipant.unpublishTrack(conn.lkVideoPublication.track);
+                    conn.lkVideoPublication = null;
+                }
+                if (conn.lkAudioPublication) {
+                    await conn.room.localParticipant.unpublishTrack(conn.lkAudioPublication.track);
+                    conn.lkAudioPublication = null;
+                }
+            } catch (e) {
+                console.warn('[LiveKit VC] Error unpublishing VC tracks:', e);
+            }
+        } else {
+            if (conn.videoSender) await conn.videoSender.replaceTrack(null);
+            if (conn.audioSender) await conn.audioSender.replaceTrack(null);
+        }
+
         conn.vcActive = false;
         
         // Update Firebase status
@@ -4558,7 +4575,7 @@ window.toggleVC = async function (uid) {
         
         alert('Panggilan dua arah dihentikan.', 'Video Call', 'info');
     } else {
-        console.log(`[WebRTC] Starting two-way VC for ${uid}`);
+        console.log(`[VC] Starting two-way VC for ${uid}`);
         const stream = await ensureLocalVCStream();
         if (!stream) {
             alert('Gagal mengakses kamera/mikrofon. Pastikan izin diberikan.', 'Error', 'danger');
@@ -4568,14 +4585,36 @@ window.toggleVC = async function (uid) {
         stream.getAudioTracks().forEach(t => t.enabled = true);
         stream.getVideoTracks().forEach(t => t.enabled = true);
 
-        if (conn.videoSender) {
-            const videoTrack = stream.getVideoTracks()[0];
-            await conn.videoSender.replaceTrack(videoTrack);
+        if (conn.isLiveKit && conn.room) {
+            try {
+                const videoTrack = stream.getVideoTracks()[0];
+                if (videoTrack) {
+                    conn.lkVideoPublication = await conn.room.localParticipant.publishTrack(videoTrack, {
+                        name: 'dispatcher_video',
+                        simulcast: false
+                    });
+                }
+                const audioTrack = stream.getAudioTracks()[0];
+                if (audioTrack) {
+                    conn.lkAudioPublication = await conn.room.localParticipant.publishTrack(audioTrack, {
+                        name: 'dispatcher_audio'
+                    });
+                }
+                console.log('[LiveKit VC] Successfully published dispatcher audio & video tracks!');
+            } catch (e) {
+                console.error('[LiveKit VC] Error publishing VC tracks:', e);
+            }
+        } else {
+            if (conn.videoSender) {
+                const videoTrack = stream.getVideoTracks()[0];
+                await conn.videoSender.replaceTrack(videoTrack);
+            }
+            if (conn.audioSender) {
+                const audioTrack = stream.getAudioTracks()[0];
+                await conn.audioSender.replaceTrack(audioTrack);
+            }
         }
-        if (conn.audioSender) {
-            const audioTrack = stream.getAudioTracks()[0];
-            await conn.audioSender.replaceTrack(audioTrack);
-        }
+
         conn.vcActive = true;
         conn.micActive = true;
         conn.camActive = true;
@@ -4610,7 +4649,15 @@ window.toggleVCMic = async function (uid) {
     const isCurrentlyActive = conn.micActive !== false;
     const trackToUse = isCurrentlyActive ? null : window.localVCStream.getAudioTracks()[0];
     try {
-        if (conn.audioSender) {
+        if (conn.isLiveKit && conn.lkAudioPublication) {
+            if (isCurrentlyActive) {
+                await conn.lkAudioPublication.track.mute();
+            } else {
+                await conn.lkAudioPublication.track.unmute();
+            }
+            conn.micActive = !isCurrentlyActive;
+            renderLiveGrid();
+        } else if (conn.audioSender) {
             await conn.audioSender.replaceTrack(trackToUse);
             conn.micActive = !isCurrentlyActive;
             renderLiveGrid();
@@ -4626,19 +4673,23 @@ window.toggleVCCam = async function (uid) {
     const isCurrentlyActive = conn.camActive !== false;
     const trackToUse = isCurrentlyActive ? null : window.localVCStream.getVideoTracks()[0];
     try {
-        if (conn.videoSender) {
+        if (conn.isLiveKit && conn.lkVideoPublication) {
+            if (isCurrentlyActive) {
+                await conn.lkVideoPublication.track.mute();
+            } else {
+                await conn.lkVideoPublication.track.unmute();
+            }
+            conn.camActive = !isCurrentlyActive;
+            const videoTrack = window.localVCStream.getVideoTracks()[0];
+            if (videoTrack) videoTrack.enabled = conn.camActive;
+            await set(ref(db, `streams/${uid}/info/vcVideoActive`), conn.camActive);
+            renderLiveGrid();
+        } else if (conn.videoSender) {
             await conn.videoSender.replaceTrack(trackToUse);
             conn.camActive = !isCurrentlyActive;
-            
-            // Nonaktifkan track kamera lokal untuk mematikan sensor kamera & menghemat daya
             const videoTrack = window.localVCStream.getVideoTracks()[0];
-            if (videoTrack) {
-                videoTrack.enabled = conn.camActive;
-            }
-
-            // Update Firebase video status
+            if (videoTrack) videoTrack.enabled = conn.camActive;
             await set(ref(db, `streams/${uid}/info/vcVideoActive`), conn.camActive);
-            
             renderLiveGrid();
         }
     } catch (e) {
