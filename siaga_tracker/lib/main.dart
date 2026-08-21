@@ -15,6 +15,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart' hide ServiceStatus;
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:flutter/services.dart';
+import 'package:livekit_client/livekit_client.dart' as lk;
+import 'package:crypto/crypto.dart';
 
 // Global ValueNotifier for ThemeMode
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
@@ -6533,6 +6535,11 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
   MediaStream? _localStream;
   MediaStream? _remoteStream;
 
+  bool _isLiveKit = false;
+  lk.Room? _lkRoom;
+  lk.VideoTrack? _lkLocalVideoTrack;
+  lk.VideoTrack? _lkRemoteVideoTrack;
+
   final Map<String, RTCPeerConnection> _peerConnections = {};
   final Map<String, List<StreamSubscription>> _viewerSubscriptions = {};
   StreamSubscription<DatabaseEvent>? _viewersAddedSubscription;
@@ -6643,9 +6650,166 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
   // Simpan timestamp viewer request terakhir yang diproses
   final Map<String, int> _processedViewerTimestamps = {};
 
+  String generateLiveKitToken({
+    required String apiKey,
+    required String apiSecret,
+    required String room,
+    required String identity,
+  }) {
+    final header = {
+      'alg': 'HS256',
+      'typ': 'JWT',
+    };
+    
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final payload = {
+      'sub': identity,
+      'iss': apiKey,
+      'exp': now + 3600,
+      'nbf': now - 5,
+      'video': {
+        'room': room,
+        'roomJoin': true,
+        'subscribe': true,
+        'canSubscribe': true,
+        'canPublish': true,
+        'canPublishData': false,
+      },
+    };
+    
+    String base64UrlEncode(Map<String, dynamic> jsonMap) {
+      final bytes = utf8.encode(jsonEncode(jsonMap));
+      return base64Url.encode(bytes).replaceAll('=', '');
+    }
+    
+    final stringifiedHeader = base64UrlEncode(header);
+    final stringifiedPayload = base64UrlEncode(payload);
+    final tokenInput = '$stringifiedHeader.$stringifiedPayload';
+    
+    final key = utf8.encode(apiSecret);
+    final bytes = utf8.encode(tokenInput);
+    
+    final hmacSha256 = Hmac(sha256, key);
+    final digest = hmacSha256.convert(bytes);
+    
+    final signature = base64Url.encode(digest.bytes).replaceAll('=', '');
+    return '$tokenInput.$signature';
+  }
+
   Future<void> _startStreaming() async {
     try {
       if (!await _requestMediaPermissions()) {
+        return;
+      }
+
+      setState(() {
+        _statusText = 'Mengecek Konfigurasi Media Server...';
+      });
+
+      final lkSnap = await widget.dbRef.child('system_settings/livekit_config').get();
+      String? websocketUrl;
+      String? apiKey;
+      String? apiSecret;
+
+      if (lkSnap.exists && lkSnap.value is Map) {
+        final Map<dynamic, dynamic> lkVal = lkSnap.value as Map;
+        websocketUrl = lkVal['websocket_url']?.toString();
+        apiKey = lkVal['api_key']?.toString();
+        apiSecret = lkVal['api_secret']?.toString();
+      }
+
+      if (websocketUrl != null && websocketUrl.isNotEmpty &&
+          apiKey != null && apiKey.isNotEmpty &&
+          apiSecret != null && apiSecret.isNotEmpty) {
+        
+        setState(() {
+          _isLiveKit = true;
+          _statusText = 'Menghubungkan ke LiveKit...';
+        });
+
+        final roomName = 'room_${widget.uid}';
+        final identity = 'streamer_${widget.uid}';
+        final token = generateLiveKitToken(
+          apiKey: apiKey,
+          apiSecret: apiSecret,
+          room: roomName,
+          identity: identity,
+        );
+
+        final room = lk.Room();
+        _lkRoom = room;
+        await room.connect(websocketUrl, token);
+
+        _lkRoom!.addListener(() {
+          if (mounted) {
+            setState(() {
+              _isConnected = _lkRoom!.connectionState == lk.ConnectionState.connected;
+              _statusText = _lkRoom!.connectionState == lk.ConnectionState.connected
+                  ? 'LIVEKIT AKTIF'
+                  : 'Koneksi LiveKit: ${_lkRoom!.connectionState.name.toUpperCase()}';
+            });
+          }
+        });
+
+        await _lkRoom!.localParticipant?.setCameraEnabled(true);
+        await _lkRoom!.localParticipant?.setMicrophoneEnabled(true);
+
+        if (mounted) {
+          setState(() {
+            final videoPub = _lkRoom!.localParticipant?.videoTrackPublications.firstOrNull;
+            _lkLocalVideoTrack = videoPub?.track as lk.VideoTrack?;
+            _statusText = 'LIVE MEDIA SERVER AKTIF';
+            _isConnected = true;
+          });
+        }
+
+        final streamRef = widget.dbRef.child('streams/${widget.uid}');
+        
+        await streamRef.child('info').set({
+          'uid': widget.uid,
+          'nrp': widget.nrp,
+          'nama': widget.nama,
+          'pangkat': widget.pangkat,
+          'satker': widget.satker,
+          'active': true,
+          'isLiveKit': true,
+          'startedAt': DateTime.now().toIso8601String(),
+        });
+
+        _activeStreamSubscription = streamRef.child('info/active').onValue.listen((event) {
+          if (!mounted) return;
+          final val = event.snapshot.value;
+          if (val == false) {
+            _stopStreaming();
+            Navigator.of(context).pop();
+          }
+        });
+
+        _vcActiveSubscription = streamRef.child('info/vcActive').onValue.listen((event) {
+          if (!mounted) return;
+          final val = event.snapshot.value;
+          setState(() {
+            _isVCActive = val == true;
+          });
+        });
+
+        _lkRoom!.addListener(() {
+          final participants = _lkRoom!.remoteParticipants.values;
+          lk.VideoTrack? remoteVideo;
+          for (var p in participants) {
+            final pub = p.videoTrackPublications.firstOrNull;
+            if (pub != null && pub.track != null) {
+              remoteVideo = pub.track as lk.VideoTrack?;
+              break;
+            }
+          }
+          if (mounted) {
+            setState(() {
+              _lkRemoteVideoTrack = remoteVideo;
+            });
+          }
+        });
+
         return;
       }
 
@@ -6984,6 +7148,14 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
   }
 
   Future<void> _toggleMute() async {
+    if (_isLiveKit) {
+      if (_lkRoom != null) {
+        _isMuted = !_isMuted;
+        await _lkRoom!.localParticipant?.setMicrophoneEnabled(!_isMuted);
+        setState(() {});
+      }
+      return;
+    }
     if (_localStream != null) {
       final audioTrack = _localStream!.getAudioTracks().firstOrNull;
       if (audioTrack != null) {
@@ -7006,6 +7178,17 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
   }
 
   Future<void> _switchCamera() async {
+    if (_isLiveKit) {
+      if (_lkRoom != null) {
+        final videoTrack = _lkLocalVideoTrack;
+        if (videoTrack is lk.LocalVideoTrack) {
+          await Helper.switchCamera(videoTrack.mediaStreamTrack);
+          _isFrontCamera = !_isFrontCamera;
+          setState(() {});
+        }
+      }
+      return;
+    }
     if (_localStream != null) {
       final videoTrack = _localStream!.getVideoTracks().firstOrNull;
       if (videoTrack != null) {
@@ -7015,7 +7198,6 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
       }
     }
   }
-
 
   Future<void> _stopStreaming() async {
     try {
@@ -7031,25 +7213,29 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
     _vcActiveSubscription?.cancel();
     _vcVideoActiveSubscription?.cancel();
 
-    // Hentikan semua koneksi viewer
-    final viewerIds = List<String>.from(_peerConnections.keys);
-    for (var vid in viewerIds) {
-      _cleanupViewerConnection(vid);
+    if (_isLiveKit) {
+      _lkRoom?.disconnect();
+      _lkRoom = null;
+    } else {
+      // Hentikan semua koneksi viewer
+      final viewerIds = List<String>.from(_peerConnections.keys);
+      for (var vid in viewerIds) {
+        _cleanupViewerConnection(vid);
+      }
+
+      _localStream?.getTracks().forEach((track) {
+        track.stop();
+      });
+      _localStream?.dispose();
+
+      _remoteStream?.getTracks().forEach((track) {
+        track.stop();
+      });
+      _remoteStream?.dispose();
+
+      _localRenderer.dispose();
+      _remoteRenderer.dispose();
     }
-
-
-    _localStream?.getTracks().forEach((track) {
-      track.stop();
-    });
-    _localStream?.dispose();
-
-    _remoteStream?.getTracks().forEach((track) {
-      track.stop();
-    });
-    _remoteStream?.dispose();
-
-    _localRenderer.dispose();
-    _remoteRenderer.dispose();
   }
 
   @override
@@ -7065,14 +7251,23 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: _localStream != null
-                ? RTCVideoView(_localRenderer, objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover)
-                : Container(
-                    color: Colors.black87,
-                    child: const Center(
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
+            child: _isLiveKit
+                ? (_lkLocalVideoTrack != null
+                    ? lk.VideoTrackRenderer(_lkLocalVideoTrack!, fit: lk.VideoViewFit.cover)
+                    : Container(
+                        color: Colors.black87,
+                        child: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      ))
+                : (_localStream != null
+                    ? RTCVideoView(_localRenderer, objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover)
+                    : Container(
+                        color: Colors.black87,
+                        child: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      )),
           ),
 
           // Video/Audio Dua Arah (Panggilan dari Komandan / Web)
@@ -7099,12 +7294,14 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
                   borderRadius: BorderRadius.circular(14),
                   child: Stack(
                     children: [
-                      if (_isVCVideoActive && _remoteStream != null)
-                        RTCVideoView(
-                          _remoteRenderer,
-                          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                        )
-                      else if (_isVCVideoActive && _remoteStream == null)
+                      if (_isVCVideoActive && (_isLiveKit ? _lkRemoteVideoTrack != null : _remoteStream != null))
+                        (_isLiveKit
+                            ? lk.VideoTrackRenderer(_lkRemoteVideoTrack!, fit: lk.VideoViewFit.cover)
+                            : RTCVideoView(
+                                _remoteRenderer,
+                                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                              ))
+                      else if (_isVCVideoActive && (_isLiveKit ? _lkRemoteVideoTrack == null : _remoteStream == null))
                         const Center(
                           child: CircularProgressIndicator(
                             color: Color(0xFF10B981),
