@@ -4368,13 +4368,22 @@ window.toggleWebRecord = function (uid, fullName) {
 
     // Start recording
     const videoEl = document.getElementById(`video-${uid}`);
-    if (!videoEl || !videoEl.srcObject) {
+    if (!videoEl) {
         alert('Video belum aktif. Tunggu hingga video muncul.', 'Peringatan', 'warning');
         return;
     }
 
-    const stream = videoEl.srcObject;
-    if (stream.getTracks().length === 0) {
+    // Ambil track video & audio dari LiveKit (subscribedTracks) atau dari srcObject P2P
+    let allTracks = [];
+    if (conn.isLiveKit && conn.subscribedTracks && conn.subscribedTracks.length > 0) {
+        conn.subscribedTracks.forEach(t => {
+            if (t.mediaStreamTrack) allTracks.push(t.mediaStreamTrack);
+        });
+    } else if (videoEl.srcObject) {
+        allTracks = videoEl.srcObject.getTracks();
+    }
+
+    if (allTracks.length === 0) {
         alert('Tidak ada track media aktif untuk direkam.', 'Peringatan', 'warning');
         return;
     }
@@ -4385,7 +4394,7 @@ window.toggleWebRecord = function (uid, fullName) {
         let mixedAudioTrack = null;
 
         // Mix remote voice (member) and local voice (admin mic) if VC is active
-        const remoteAudioTrack = stream.getAudioTracks()[0];
+        const remoteAudioTrack = allTracks.find(t => t.kind === 'audio');
         const localAudioStream = window.localVCStream;
         const localAudioTrack = localAudioStream ? localAudioStream.getAudioTracks()[0] : null;
 
@@ -4400,15 +4409,15 @@ window.toggleWebRecord = function (uid, fullName) {
                 localSource.connect(destination);
                 
                 mixedAudioTrack = destination.stream.getAudioTracks()[0];
-                console.log('[WebRTC] Successfully mixed remote and local audio tracks for two-way recording.');
+                console.log('[Recorder] Successfully mixed remote and local audio tracks for two-way recording.');
             } catch (mixErr) {
-                console.warn('[WebRTC] Failed to mix audio tracks, falling back to remote audio only:', mixErr);
+                console.warn('[Recorder] Failed to mix audio tracks, falling back to remote audio only:', mixErr);
             }
         }
 
         // Construct MediaStream to record
         let tracksToRecord = [];
-        const videoTrack = stream.getVideoTracks()[0];
+        const videoTrack = allTracks.find(t => t.kind === 'video');
         if (videoTrack) tracksToRecord.push(videoTrack);
 
         if (mixedAudioTrack) {
@@ -5482,8 +5491,8 @@ async function generateLiveKitToken(apiKey, apiSecret, roomName, identity) {
             roomJoin: true,
             subscribe: true,
             canSubscribe: true,
-            canPublish: false,
-            canPublishData: false
+            canPublish: true,
+            canPublishData: true
         }
     };
     
