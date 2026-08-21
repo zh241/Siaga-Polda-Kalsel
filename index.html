@@ -12,7 +12,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Security handled by Firebase Hosting HTTPS/HSTS and Firebase Database Rules -->
-<link rel="stylesheet" href="style.css?v=2.26.0">
+<link rel="stylesheet" href="style.css?v=2.27.0">
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@1.15.5/dist/livekit-client.umd.min.js"></script>
 </head>
 <body>
 <script>
@@ -401,6 +402,30 @@ window.onerror = function(message, source, lineno, colno, error) {
                             </div>
                             <div class="col-md-6 d-flex align-items-center justify-content-md-end">
                                 <button class="btn btn-danger fw-bold" id="btn-purge-db" onclick="window.bersihkanDatabaseLama()"><i class="fa-solid fa-trash-can me-2"></i> BERSIHKAN DATA LAMA (>30 HARI)</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 4: LiveKit Media Server Configuration -->
+                <div class="col-12">
+                    <div class="dashboard-card">
+                        <h6 class="fw-bold mb-4" style="font-size: 11px; letter-spacing: 1px; text-transform: uppercase;"><i class="fa-solid fa-tower-broadcast text-success me-2"></i> Konfigurasi LiveKit Media Server</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted small fw-bold">LiveKit WebSocket URL (WSS):</label>
+                                <input type="text" id="set-livekit-url" class="form-control text-white bg-dark border-secondary" placeholder="Contoh: wss://siaga-livekit.livekit.cloud">
+                                <small class="text-muted d-block mt-1">Alamat WebSocket server LiveKit (gunakan awalan wss:// untuk koneksi terenkripsi).</small>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label text-muted small fw-bold">LiveKit API Key:</label>
+                                <input type="text" id="set-livekit-key" class="form-control text-white bg-dark border-secondary" placeholder="Masukkan API Key...">
+                                <small class="text-muted d-block mt-1">Kunci publik API untuk otentikasi proyek LiveKit.</small>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label text-muted small fw-bold">LiveKit API Secret:</label>
+                                <input type="password" id="set-livekit-secret" class="form-control text-white bg-dark border-secondary" placeholder="Masukkan API Secret...">
+                                <small class="text-muted d-block mt-1">Kode rahasia penandatanganan token keamanan.</small>
                             </div>
                         </div>
                     </div>
@@ -905,6 +930,6 @@ window.onerror = function(message, source, lineno, colno, error) {
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script type="module" src="app.js?v=2.26.0"></script>
+<script type="module" src="app.js?v=2.27.0"></script>
 </body>
 </html>

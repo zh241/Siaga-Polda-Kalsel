@@ -540,6 +540,24 @@ document.addEventListener('DOMContentLoaded', () => {
             update(ref(db, 'system_settings'), { maintenance_mode: e.target.checked });
         });
     }
+    const setLivekitUrl = document.getElementById('set-livekit-url');
+    if (setLivekitUrl) {
+        setLivekitUrl.addEventListener('change', (e) => {
+            update(ref(db, 'system_settings/livekit_config'), { websocket_url: e.target.value.trim() });
+        });
+    }
+    const setLivekitKey = document.getElementById('set-livekit-key');
+    if (setLivekitKey) {
+        setLivekitKey.addEventListener('change', (e) => {
+            update(ref(db, 'system_settings/livekit_config'), { api_key: e.target.value.trim() });
+        });
+    }
+    const setLivekitSecret = document.getElementById('set-livekit-secret');
+    if (setLivekitSecret) {
+        setLivekitSecret.addEventListener('change', (e) => {
+            update(ref(db, 'system_settings/livekit_config'), { api_secret: e.target.value.trim() });
+        });
+    }
 });
 
 // =========================================================================
@@ -2465,19 +2483,30 @@ window.systemSettings = {
     stale_timeout: 15,
     sos_sound: true,
     geofence_sound: true,
-    maintenance_mode: false
+    maintenance_mode: false,
+    livekit_config: {
+        websocket_url: '',
+        api_key: '',
+        api_secret: ''
+    }
 };
 
 const refSettings = ref(db, 'system_settings');
 onValue(refSettings, (snapshot) => {
     if (snapshot.exists()) {
         const val = snapshot.val();
+        const lkConfig = val.livekit_config || {};
         window.systemSettings = {
             gps_interval: (val.gps_interval !== undefined && !isNaN(parseInt(val.gps_interval))) ? parseInt(val.gps_interval) : 10,
             stale_timeout: (val.stale_timeout !== undefined && !isNaN(parseInt(val.stale_timeout))) ? parseInt(val.stale_timeout) : 15,
             sos_sound: val.sos_sound !== false,
             geofence_sound: val.geofence_sound !== false,
-            maintenance_mode: val.maintenance_mode === true
+            maintenance_mode: val.maintenance_mode === true,
+            livekit_config: {
+                websocket_url: lkConfig.websocket_url || '',
+                api_key: lkConfig.api_key || '',
+                api_secret: lkConfig.api_secret || ''
+            }
         };
     } else {
         set(refSettings, {
@@ -2485,7 +2514,12 @@ onValue(refSettings, (snapshot) => {
             stale_timeout: 15,
             sos_sound: true,
             geofence_sound: true,
-            maintenance_mode: false
+            maintenance_mode: false,
+            livekit_config: {
+                websocket_url: '',
+                api_key: '',
+                api_secret: ''
+            }
         });
     }
 
@@ -2493,10 +2527,16 @@ onValue(refSettings, (snapshot) => {
     const setGps = document.getElementById('set-gps-interval');
     const setStale = document.getElementById('set-stale-timeout');
     const setMaint = document.getElementById('set-maintenance-mode');
+    const setLkUrl = document.getElementById('set-livekit-url');
+    const setLkKey = document.getElementById('set-livekit-key');
+    const setLkSecret = document.getElementById('set-livekit-secret');
 
     if (setGps) setGps.value = window.systemSettings.gps_interval;
     if (setStale) setStale.value = window.systemSettings.stale_timeout;
     if (setMaint) setMaint.checked = window.systemSettings.maintenance_mode;
+    if (setLkUrl) setLkUrl.value = window.systemSettings.livekit_config.websocket_url;
+    if (setLkKey) setLkKey.value = window.systemSettings.livekit_config.api_key;
+    if (setLkSecret) setLkSecret.value = window.systemSettings.livekit_config.api_secret;
 });
 
 // =========================================================================
@@ -5267,9 +5307,164 @@ const iceConfiguration = {
     ]
 };
 
+async function generateLiveKitToken(apiKey, apiSecret, roomName, identity) {
+    const header = {
+        alg: "HS256",
+        typ: "JWT"
+    };
+    
+    const now = Math.floor(Date.now() / 1000);
+    const payload = {
+        sub: identity,
+        iss: apiKey,
+        exp: now + 3600, // 1 hour expiration
+        nbf: now - 5,
+        video: {
+            room: roomName,
+            roomJoin: true,
+            subscribe: true,
+            canSubscribe: true,
+            canPublish: false,
+            canPublishData: false
+        }
+    };
+    
+    function base64url(source) {
+        let encoded = btoa(JSON.stringify(source));
+        encoded = encoded.replace(/=+$/, '');
+        encoded = encoded.replace(/\+/g, '-');
+        encoded = encoded.replace(/\//g, '_');
+        return encoded;
+    }
+    
+    const stringifiedHeader = base64url(header);
+    const stringifiedPayload = base64url(payload);
+    const tokenInput = stringifiedHeader + "." + stringifiedPayload;
+    
+    const enc = new TextEncoder();
+    const keyData = enc.encode(apiSecret);
+    const key = await window.crypto.subtle.importKey(
+        "raw",
+        keyData,
+        { name: "HMAC", hash: { name: "SHA-256" } },
+        false,
+        ["sign"]
+    );
+    
+    const signature = await window.crypto.subtle.sign(
+        "HMAC",
+        key,
+        enc.encode(tokenInput)
+    );
+    
+    const hashArray = Array.from(new Uint8Array(signature));
+    const binaryString = hashArray.map(b => String.fromCharCode(b)).join("");
+    let base64Sign = btoa(binaryString);
+    base64Sign = base64Sign.replace(/=+$/, '');
+    base64Sign = base64Sign.replace(/\+/g, '-');
+    base64Sign = base64Sign.replace(/\//g, '_');
+    
+    return tokenInput + "." + base64Sign;
+}
+
 async function startWebRTCReceiver(uid, fullName, isFloating) {
     if (activePeerConnections[uid]) {
         closePeerConnection(uid);
+    }
+
+    const lkConfig = window.systemSettings?.livekit_config || {};
+    const useLiveKit = lkConfig.websocket_url && lkConfig.api_key && lkConfig.api_secret;
+
+    if (useLiveKit) {
+        console.log(`[LiveKit] Connecting to room room_${uid} for ${fullName} (Floating: ${isFloating})`);
+        
+        if (isFloating) {
+            createDynamicFloatingPanel(uid, fullName);
+        }
+
+        const statusLabel = document.getElementById(`status-label-${uid}`);
+        if (statusLabel) statusLabel.textContent = "Connecting to LiveKit...";
+
+        try {
+            const roomName = `room_${uid}`;
+            const identity = auth.currentUser ? auth.currentUser.uid : 'dispatcher_' + Math.random().toString(36).substr(2, 9);
+            const token = await generateLiveKitToken(lkConfig.api_key, lkConfig.api_secret, roomName, identity);
+
+            const room = new LivekitClient.Room({
+                adaptiveStream: true,
+                dynacast: true
+            });
+
+            activePeerConnections[uid] = {
+                room: room,
+                isFloating: isFloating,
+                connected: false,
+                isLiveKit: true,
+                audioUnmuted: true
+            };
+
+            room.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+                console.log(`[LiveKit] Subscribed to track: ${track.kind} from ${participant.identity}`);
+                const videoEl = isFloating
+                    ? document.getElementById(`live-float-video-${uid}`)
+                    : document.getElementById(`video-${uid}`);
+                
+                if (videoEl) {
+                    track.attach(videoEl);
+                    if (track.kind === LivekitClient.Track.Kind.Video) {
+                        videoEl.muted = false;
+                        videoEl.play().then(() => {
+                            const muteIcon = document.getElementById(`mute-icon-${uid}`);
+                            if (muteIcon) muteIcon.className = 'fa-solid fa-volume-high';
+                        }).catch(e => {
+                            videoEl.muted = true;
+                            const muteIcon = document.getElementById(`mute-icon-${uid}`);
+                            if (muteIcon) muteIcon.className = 'fa-solid fa-volume-xmark';
+                            videoEl.play().catch(() => {});
+                        });
+                        window.updateVideoElementRatio(uid);
+                    }
+                }
+            });
+
+            room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
+                console.log(`[LiveKit] Unsubscribed track: ${track.kind}`);
+                const videoEl = isFloating
+                    ? document.getElementById(`live-float-video-${uid}`)
+                    : document.getElementById(`video-${uid}`);
+                if (videoEl) {
+                    track.detach(videoEl);
+                }
+            });
+
+            room.on(LivekitClient.RoomEvent.Connected, () => {
+                console.log(`[LiveKit] Connected to room ${roomName}`);
+                if (activePeerConnections[uid]) {
+                    activePeerConnections[uid].connected = true;
+                }
+                const overlay = document.getElementById(`status-overlay-${uid}`);
+                if (overlay) overlay.style.display = 'none';
+                
+                if (isFloating) {
+                    const loading = document.getElementById(`live-float-loading-${uid}`);
+                    if (loading) loading.style.display = 'none';
+                }
+                renderLiveGrid();
+            });
+
+            room.on(LivekitClient.RoomEvent.Disconnected, () => {
+                console.log(`[LiveKit] Disconnected from room ${roomName}`);
+                closePeerConnection(uid);
+            });
+
+            await room.connect(lkConfig.websocket_url, token);
+
+        } catch (e) {
+            console.error('[LiveKit] Connection failed:', e);
+            if (statusLabel) statusLabel.textContent = "LiveKit Connection Failed";
+            closePeerConnection(uid);
+        }
+        return;
     }
 
     const myUid = auth.currentUser ? auth.currentUser.uid : '';
@@ -5522,23 +5717,33 @@ function closePeerConnection(uid, shouldStopStreamOnMobile = false) {
     // Jika admin klik Hentikan → matikan live di HP juga
     if (shouldStopStreamOnMobile) {
         set(ref(db, `streams/${uid}/info/active`), false);
-        console.log(`[WebRTC] Admin menghentikan live HP: ${uid}`);
+        console.log(`[WebRTC/LiveKit] Admin menghentikan live HP: ${uid}`);
     }
 
     // Bersihkan status VC
     set(ref(db, `streams/${uid}/info/vcActive`), null);
     set(ref(db, `streams/${uid}/info/vcVideoActive`), null);
 
-    if (conn.candidateListener) conn.candidateListener();
-    if (conn.offerListener) conn.offerListener();
-    if (conn.statusListener) conn.statusListener();
+    if (conn.isLiveKit) {
+        if (conn.room) {
+            try {
+                conn.room.disconnect();
+            } catch (e) {
+                console.error('[LiveKit] Error during disconnect:', e);
+            }
+        }
+    } else {
+        if (conn.candidateListener) conn.candidateListener();
+        if (conn.offerListener) conn.offerListener();
+        if (conn.statusListener) conn.statusListener();
 
-    if (conn.viewerId) {
-        remove(ref(db, `streams/${uid}/viewers/${conn.viewerId}`));
-    }
+        if (conn.viewerId) {
+            remove(ref(db, `streams/${uid}/viewers/${conn.viewerId}`));
+        }
 
-    if (conn.pc) {
-        conn.pc.close();
+        if (conn.pc) {
+            conn.pc.close();
+        }
     }
 
     const videoEl = conn.isFloating ?
