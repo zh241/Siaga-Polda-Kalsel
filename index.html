@@ -430,6 +430,31 @@ window.onerror = function(message, source, lineno, colno, error) {
                         </div>
                     </div>
                 </div>
+
+                <!-- Card 5: TURN Server Configuration -->
+                <div class="col-12">
+                    <div class="dashboard-card">
+                        <h6 class="fw-bold mb-2" style="font-size: 11px; letter-spacing: 1px; text-transform: uppercase;"><i class="fa-solid fa-network-wired text-warning me-2"></i> Konfigurasi TURN Server Cadangan</h6>
+                        <p class="text-muted mb-4" style="font-size: 11px;">TURN dipakai sebagai jembatan jaringan pada mode siaran P2P (cadangan) agar tetap bisa menembus operator seluler berbeda. Setelan ini tersimpan <strong class="text-warning">permanen terpisah</strong> dari LiveKit — menghapus LiveKit tidak akan menghapus setelan TURN ini.</p>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted small fw-bold">TURN Server URL:</label>
+                                <input type="text" id="set-turn-url" class="form-control text-white bg-dark border-secondary" placeholder="Contoh: turn:global.relay.metered.ca:80">
+                                <small class="text-muted d-block mt-1">Alamat server TURN (bisa diisi lebih dari satu, pisahkan dengan koma).</small>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label text-muted small fw-bold">TURN Username:</label>
+                                <input type="text" id="set-turn-username" class="form-control text-white bg-dark border-secondary" placeholder="Masukkan username TURN...">
+                                <small class="text-muted d-block mt-1">Username untuk otentikasi ke server TURN.</small>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label text-muted small fw-bold">TURN Credential (Password):</label>
+                                <input type="password" id="set-turn-credential" class="form-control text-white bg-dark border-secondary" placeholder="Masukkan password TURN...">
+                                <small class="text-muted d-block mt-1">Password untuk otentikasi ke server TURN.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

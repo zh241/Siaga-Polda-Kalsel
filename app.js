@@ -558,6 +558,25 @@ document.addEventListener('DOMContentLoaded', () => {
             update(ref(db, 'system_settings/livekit_config'), { api_secret: e.target.value.trim() });
         });
     }
+    // TURN config — disimpan ke path TERPISAH, tidak ikut terhapus saat LiveKit dikosongkan
+    const setTurnUrl = document.getElementById('set-turn-url');
+    if (setTurnUrl) {
+        setTurnUrl.addEventListener('change', (e) => {
+            update(ref(db, 'system_settings/turn_config'), { url: e.target.value.trim() });
+        });
+    }
+    const setTurnUsername = document.getElementById('set-turn-username');
+    if (setTurnUsername) {
+        setTurnUsername.addEventListener('change', (e) => {
+            update(ref(db, 'system_settings/turn_config'), { username: e.target.value.trim() });
+        });
+    }
+    const setTurnCredential = document.getElementById('set-turn-credential');
+    if (setTurnCredential) {
+        setTurnCredential.addEventListener('change', (e) => {
+            update(ref(db, 'system_settings/turn_config'), { credential: e.target.value.trim() });
+        });
+    }
 });
 
 // =========================================================================
@@ -2488,6 +2507,11 @@ window.systemSettings = {
         websocket_url: '',
         api_key: '',
         api_secret: ''
+    },
+    turn_config: {
+        url: '',
+        username: '',
+        credential: ''
     }
 };
 
@@ -2496,6 +2520,7 @@ onValue(refSettings, (snapshot) => {
     if (snapshot.exists()) {
         const val = snapshot.val();
         const lkConfig = val.livekit_config || {};
+        const turnCfg = val.turn_config || {};
         window.systemSettings = {
             gps_interval: (val.gps_interval !== undefined && !isNaN(parseInt(val.gps_interval))) ? parseInt(val.gps_interval) : 10,
             stale_timeout: (val.stale_timeout !== undefined && !isNaN(parseInt(val.stale_timeout))) ? parseInt(val.stale_timeout) : 15,
@@ -2506,6 +2531,11 @@ onValue(refSettings, (snapshot) => {
                 websocket_url: lkConfig.websocket_url || '',
                 api_key: lkConfig.api_key || '',
                 api_secret: lkConfig.api_secret || ''
+            },
+            turn_config: {
+                url: turnCfg.url || '',
+                username: turnCfg.username || '',
+                credential: turnCfg.credential || ''
             }
         };
     } else {
@@ -2530,6 +2560,9 @@ onValue(refSettings, (snapshot) => {
     const setLkUrl = document.getElementById('set-livekit-url');
     const setLkKey = document.getElementById('set-livekit-key');
     const setLkSecret = document.getElementById('set-livekit-secret');
+    const setTurnUrl = document.getElementById('set-turn-url');
+    const setTurnUser = document.getElementById('set-turn-username');
+    const setTurnCred = document.getElementById('set-turn-credential');
 
     if (setGps) setGps.value = window.systemSettings.gps_interval;
     if (setStale) setStale.value = window.systemSettings.stale_timeout;
@@ -2537,6 +2570,10 @@ onValue(refSettings, (snapshot) => {
     if (setLkUrl) setLkUrl.value = window.systemSettings.livekit_config.websocket_url;
     if (setLkKey) setLkKey.value = window.systemSettings.livekit_config.api_key;
     if (setLkSecret) setLkSecret.value = window.systemSettings.livekit_config.api_secret;
+    // Sync TURN fields — terpisah dari LiveKit, tidak saling menghapus
+    if (setTurnUrl) setTurnUrl.value = window.systemSettings.turn_config.url;
+    if (setTurnUser) setTurnUser.value = window.systemSettings.turn_config.username;
+    if (setTurnCred) setTurnCred.value = window.systemSettings.turn_config.credential;
 });
 
 // =========================================================================
@@ -4649,10 +4686,13 @@ function renderLiveGrid() {
         }
     } else {
         if (focusedArea) {
+            // Pindahkan elemen card kembali ke grid agar DOM node tidak terhapus
+            Array.from(focusedArea.children).forEach(child => grid.appendChild(child));
             focusedArea.remove();
             focusedArea = null;
         }
         if (otherStreamsRow) {
+            Array.from(otherStreamsRow.children).forEach(child => grid.appendChild(child));
             otherStreamsRow.remove();
             otherStreamsRow = null;
         }
@@ -4912,10 +4952,18 @@ function renderLiveGrid() {
 
             if (isWatching && conn) {
                 const videoEl = existingCard.querySelector(`#video-${uid}`);
-                if (videoEl && conn.remoteStream && conn.remoteStream.getTracks().length > 0 && !videoEl.srcObject) {
-                    videoEl.srcObject = conn.remoteStream;
-                    videoEl.muted = !audioUnmuted;
-                    videoEl.play().catch(() => {});
+                if (videoEl) {
+                    if (conn.isLiveKit && conn.subscribedTracks && conn.subscribedTracks.length > 0) {
+                        conn.subscribedTracks.forEach(track => {
+                            try { track.attach(videoEl); } catch (e) {}
+                        });
+                        videoEl.muted = !audioUnmuted;
+                        videoEl.play().catch(() => {});
+                    } else if (conn.remoteStream && conn.remoteStream.getTracks().length > 0 && !videoEl.srcObject) {
+                        videoEl.srcObject = conn.remoteStream;
+                        videoEl.muted = !audioUnmuted;
+                        videoEl.play().catch(() => {});
+                    }
                 }
             }
 
@@ -5023,10 +5071,18 @@ function renderLiveGrid() {
         if (isWatching && activePeerConnections[uid]) {
             const conn = activePeerConnections[uid];
             const videoEl = document.getElementById(`video-${uid}`);
-            if (videoEl && conn.remoteStream && conn.remoteStream.getTracks().length > 0) {
-                videoEl.srcObject = conn.remoteStream;
-                videoEl.muted = !audioUnmuted;
-                videoEl.play().catch(() => { });
+            if (videoEl) {
+                if (conn.isLiveKit && conn.subscribedTracks && conn.subscribedTracks.length > 0) {
+                    conn.subscribedTracks.forEach(track => {
+                        try { track.attach(videoEl); } catch (e) {}
+                    });
+                    videoEl.muted = !audioUnmuted;
+                    videoEl.play().catch(() => {});
+                } else if (conn.remoteStream && conn.remoteStream.getTracks().length > 0) {
+                    videoEl.srcObject = conn.remoteStream;
+                    videoEl.muted = !audioUnmuted;
+                    videoEl.play().catch(() => {});
+                }
             }
             const preview = document.getElementById(`local-preview-${uid}`);
             const previewVideo = document.getElementById(`local-video-${uid}`);
@@ -5258,54 +5314,30 @@ window.closeFloatingLiveStream = function (uid) {
     renderLiveGrid();
 };
 
-const iceConfiguration = {
-    iceServers: [
+// Bangun konfigurasi ICE secara dinamis dari setelan TURN di Firebase
+// Jika TURN diisi di Pengaturan → pakai TURN tersebut
+// Jika TURN kosong → hanya pakai STUN publik (P2P saja, tanpa jembatan TURN)
+function getIceConfiguration() {
+    const iceServers = [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun2.l.google.com:19302' },
-        {
-            urls: 'turn:global.relay.metered.ca:80',
-            username: 'f70015eec8deaa9ac60b9e9d',
-            credential: 'JUdl1rA+ZXvisE3P'
-        },
-        {
-            urls: 'turn:global.relay.metered.ca:443',
-            username: 'f70015eec8deaa9ac60b9e9d',
-            credential: 'JUdl1rA+ZXvisE3P'
-        },
-        {
-            urls: 'turn:global.relay.metered.ca:443?transport=tcp',
-            username: 'f70015eec8deaa9ac60b9e9d',
-            credential: 'JUdl1rA+ZXvisE3P'
-        },
-        {
-            urls: 'turns:global.relay.metered.ca:443',
-            username: 'f70015eec8deaa9ac60b9e9d',
-            credential: 'JUdl1rA+ZXvisE3P'
-        },
-        {
-            urls: 'turns:global.relay.metered.ca:443?transport=tcp',
-            username: 'f70015eec8deaa9ac60b9e9d',
-            credential: 'JUdl1rA+ZXvisE3P'
-        },
-        // IP Fallbacks (bila resolusi DNS global.relay.metered.ca diblokir/timeout di jaringan lokal)
-        {
-            urls: 'turn:172.236.136.45:80',
-            username: 'f70015eec8deaa9ac60b9e9d',
-            credential: 'JUdl1rA+ZXvisE3P'
-        },
-        {
-            urls: 'turn:172.236.136.45:443',
-            username: 'f70015eec8deaa9ac60b9e9d',
-            credential: 'JUdl1rA+ZXvisE3P'
-        },
-        {
-            urls: 'turn:172.236.136.45:443?transport=tcp',
-            username: 'f70015eec8deaa9ac60b9e9d',
-            credential: 'JUdl1rA+ZXvisE3P'
+    ];
+
+    const turn = window.systemSettings?.turn_config || {};
+    if (turn.url && turn.url.trim() && turn.username && turn.username.trim() && turn.credential && turn.credential.trim()) {
+        // Pisahkan jika ada beberapa URL dipisah koma
+        const urls = turn.url.split(',').map(u => u.trim()).filter(u => u.length > 0);
+        for (const url of urls) {
+            iceServers.push({ urls: url, username: turn.username.trim(), credential: turn.credential.trim() });
         }
-    ]
-};
+        console.log('[ICE] Menggunakan TURN dari pengaturan:', urls);
+    } else {
+        console.log('[ICE] TURN tidak dikonfigurasi, menggunakan STUN publik saja.');
+    }
+
+    return { iceServers };
+}
 
 async function generateLiveKitToken(apiKey, apiSecret, roomName, identity) {
     const header = {
@@ -5400,11 +5432,21 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
                 isFloating: isFloating,
                 connected: false,
                 isLiveKit: true,
-                audioUnmuted: true
+                audioUnmuted: true,
+                subscribedTracks: []
             };
 
             room.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication, participant) => {
                 console.log(`[LiveKit] Subscribed to track: ${track.kind} from ${participant.identity}`);
+                if (activePeerConnections[uid]) {
+                    if (!activePeerConnections[uid].subscribedTracks) {
+                        activePeerConnections[uid].subscribedTracks = [];
+                    }
+                    if (!activePeerConnections[uid].subscribedTracks.includes(track)) {
+                        activePeerConnections[uid].subscribedTracks.push(track);
+                    }
+                }
+
                 const videoEl = isFloating
                     ? document.getElementById(`live-float-video-${uid}`)
                     : document.getElementById(`video-${uid}`);
@@ -5429,6 +5471,12 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
 
             room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
                 console.log(`[LiveKit] Unsubscribed track: ${track.kind}`);
+                if (activePeerConnections[uid] && activePeerConnections[uid].subscribedTracks) {
+                    const idx = activePeerConnections[uid].subscribedTracks.indexOf(track);
+                    if (idx !== -1) {
+                        activePeerConnections[uid].subscribedTracks.splice(idx, 1);
+                    }
+                }
                 const videoEl = isFloating
                     ? document.getElementById(`live-float-video-${uid}`)
                     : document.getElementById(`video-${uid}`);
@@ -5477,7 +5525,7 @@ async function startWebRTCReceiver(uid, fullName, isFloating) {
     }
 
     try {
-        const pc = new RTCPeerConnection(iceConfiguration);
+        const pc = new RTCPeerConnection(getIceConfiguration());
         const remoteStream = new MediaStream();
         const pendingCandidates = [];
         let remoteDescSet = false;
