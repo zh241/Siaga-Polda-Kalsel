@@ -2649,6 +2649,29 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
 
     // Catat data misi ke tabel Riwayat Pengguna
     final DateTime endTime = DateTime.now();
+
+    final List<Map<String, double>> routePointsData = [];
+    if (_sessionTrackingPositions.isNotEmpty) {
+      final int total = _sessionTrackingPositions.length;
+      final int maxPoints = 300;
+      final int step = (total > maxPoints) ? (total / maxPoints).ceil() : 1;
+      for (int i = 0; i < total; i += step) {
+        final pos = _sessionTrackingPositions[i];
+        routePointsData.add({
+          'lat': pos.latitude,
+          'lng': pos.longitude,
+        });
+      }
+      if (routePointsData.isEmpty ||
+          routePointsData.last['lat'] != _sessionTrackingPositions.last.latitude ||
+          routePointsData.last['lng'] != _sessionTrackingPositions.last.longitude) {
+        routePointsData.add({
+          'lat': _sessionTrackingPositions.last.latitude,
+          'lng': _sessionTrackingPositions.last.longitude,
+        });
+      }
+    }
+
     _dbRef.child('users/${widget.user.uid}/history').push().set({
       'opCode': opCodeText.isNotEmpty ? opCodeText : 'OPS-SIAGA-001',
       'activityType': activityTypeText.isNotEmpty ? activityTypeText : 'Pengamanan Wilayah',
@@ -2661,6 +2684,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       'durationSeconds': actualDurationSeconds,
       'distance': _sessionDistanceTraveled,
       'pointsCount': _sessionTrackingPositions.length,
+      'routePoints': routePointsData,
       'status': 'COMPLETED'
     }).catchError((err) {
       debugPrint('Error writing history: $err');
@@ -6736,10 +6760,22 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
           identity: identity,
         );
 
-        final room = lk.Room();
+        // Buat Room dengan kualitas video tinggi di RoomOptions
+        final room = lk.Room(
+          roomOptions: const lk.RoomOptions(
+            defaultVideoPublishOptions: lk.VideoPublishOptions(
+              videoEncoding: lk.VideoEncoding(
+                maxBitrate: 3000000, // 3 Mbps — kualitas tinggi
+                maxFramerate: 30,
+              ),
+              simulcast: false, // Fokus 1 kualitas terbaik, tidak dibagi-bagi
+            ),
+          ),
+        );
         _lkRoom = room;
         await room.connect(websocketUrl, token);
 
+        // Dengarkan event room (status koneksi, track terbit)
         _lkRoom!.addListener(() {
           if (mounted) {
             setState(() {
@@ -6747,12 +6783,28 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
               _statusText = _lkRoom!.connectionState == lk.ConnectionState.connected
                   ? 'LIVEKIT AKTIF'
                   : 'Koneksi LiveKit: ${_lkRoom!.connectionState.name.toUpperCase()}';
+              // Ambil track video lokal setiap kali ada perubahan room
+              final videoPub = _lkRoom!.localParticipant?.videoTrackPublications.firstOrNull;
+              if (videoPub?.track != null) {
+                _lkLocalVideoTrack = videoPub!.track as lk.VideoTrack?;
+              }
             });
           }
         });
 
-        await _lkRoom!.localParticipant?.setCameraEnabled(true);
+        // Aktifkan kamera dengan resolusi tinggi: 1080p 30fps
+        await _lkRoom!.localParticipant?.setCameraEnabled(
+          true,
+          cameraCaptureOptions: const lk.CameraCaptureOptions(
+            maxFrameRate: 30,
+            params: lk.VideoParametersPresets.h1080_169,
+          ),
+        );
+        // Aktifkan mikrofon
         await _lkRoom!.localParticipant?.setMicrophoneEnabled(true);
+
+        // Tunggu sebentar agar track siap lalu perbarui UI
+        await Future.delayed(const Duration(milliseconds: 800));
 
         if (mounted) {
           setState(() {
@@ -7253,7 +7305,16 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
           Positioned.fill(
             child: _isLiveKit
                 ? (_lkLocalVideoTrack != null
-                    ? lk.VideoTrackRenderer(_lkLocalVideoTrack!, fit: lk.VideoViewFit.cover)
+                    // Gunakan Transform untuk mirror kamera depan, kamera belakang tidak di-mirror
+                    ? Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.identity()
+                          ..scale(_isFrontCamera ? -1.0 : 1.0, 1.0, 1.0),
+                        child: lk.VideoTrackRenderer(
+                          _lkLocalVideoTrack!,
+                          fit: lk.VideoViewFit.cover,
+                        ),
+                      )
                     : Container(
                         color: Colors.black87,
                         child: const Center(

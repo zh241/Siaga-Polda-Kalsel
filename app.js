@@ -1421,6 +1421,7 @@ window.redrawMapMarkers = function () {
                         <p class="mb-2 text-muted" style="font-size: 10px;">NRP: ${u.nrp} | ${u.satker}</p>
                         <hr style="margin: 6px 0; border-color: var(--border-color);">
                         <div class="d-flex justify-content-between mb-1" style="font-size: 11px;"><span>Aktivitas:</span> <b class="text-primary">${u.jenis_giat || 'Pengamanan'}</b></div>
+                        ${u.description ? `<div class="d-flex justify-content-between mb-1" style="font-size: 11px;"><span>Keterangan:</span> <b class="text-white">${u.description}</b></div>` : ''}
                         <div class="d-flex justify-content-between mb-1" style="font-size: 11px;"><span>Kendaraan:</span> <b>${u.vehicle || '-'}</b></div>
                         <div class="d-flex justify-content-between mb-1" style="font-size: 11px;"><span>Komandan:</span> <b>${u.commander || 'Mandiri'}</b></div>
                         <div class="d-flex justify-content-between mb-1" style="font-size: 11px;"><span>Kekuatan:</span> <b>${u.jumlah_personel || 1} Anggota</b></div>
@@ -1843,12 +1844,14 @@ window.renderRiwayat = function () {
                         userNama: `${u.pangkat || ''} ${u.nama || ''}`.trim() || 'Anggota',
                         opCode: h.opCode || 'OPS-SIAGA-001',
                         jenisGiat: h.activityType || h.jenisGiat || 'Pengamanan Wilayah',
+                        description: h.description || '',
                         waktuMulai: h.startTime || h.waktuMulai || '',
                         waktuSelesai: h.endTime || h.waktuSelesai || '',
                         durasiDetik: h.durationSeconds !== undefined ? h.durationSeconds : (h.durasiDetik || 0),
                         jarakMeter: h.distance !== undefined ? h.distance : (h.jarakMeter || 0),
                         commander: h.commander || 'Mandiri',
                         personnelCount: h.personnelCount || 1,
+                        routePoints: h.routePoints || []
                     });
                 }
             }
@@ -1901,10 +1904,12 @@ window.renderRiwayat = function () {
             statDurasi.innerHTML = `${avgDurasiMin} <small class="fs-6">Menit</small>`;
         }
 
+        window.currentPagedHistoryList = pagedHistory;
+
         if (pagedHistory.length === 0) {
             tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Tidak ada riwayat operasi ditemukan.</td></tr>`;
         } else {
-            pagedHistory.forEach(h => {
+            pagedHistory.forEach((h, idx) => {
                 const durasiMin = Math.round(h.durasiDetik / 60);
                 const jarakKm = (h.jarakMeter / 1000).toFixed(2);
 
@@ -1923,7 +1928,7 @@ window.renderRiwayat = function () {
                 };
 
                 tbody.innerHTML += `
-                    <tr onclick="window.tampilkanRuteMisi('${h.userNrp}', '${h.userNama.replace(/'/g, "\\'")}', '${h.opCode}', ${h.durasiDetik}, ${h.jarakMeter}, '${h.waktuMulai}')" style="cursor: pointer;">
+                    <tr onclick="window.tampilkanRuteMisiByIndex(${idx})" style="cursor: pointer;">
                         <td>
                             <div class="fw-bold">${formatTanggal(h.waktuMulai)}</div>
                             <div class="text-muted small">${formatWaktu(h.waktuMulai)} - ${h.waktuSelesai ? formatWaktu(h.waktuSelesai) : 'Selesai'}</div>
@@ -1933,7 +1938,10 @@ window.renderRiwayat = function () {
                             <div class="fw-bold">${h.userNama}</div>
                             <div class="text-muted small">NRP: ${h.userNrp}</div>
                         </td>
-                        <td>${h.jenisGiat}</td>
+                        <td>
+                            <div class="fw-bold">${h.jenisGiat}</div>
+                            ${h.description ? `<div class="text-muted small">${h.description}</div>` : ''}
+                        </td>
                         <td><b>${h.commander || 'Mandiri'}</b></td>
                         <td>${h.personnelCount || 1} Orang</td>
                         <td>
@@ -2011,10 +2019,13 @@ window.prosesUnduhCSV = function () {
                         userNama: `${u.pangkat || ''} ${u.nama || ''}`.trim() || 'Anggota',
                         opCode: h.opCode || 'OPS-SIAGA-001',
                         jenisGiat: h.activityType || h.jenisGiat || 'Pengamanan Wilayah',
+                        description: h.description || '',
                         waktuMulai: h.startTime || h.waktuMulai || '',
                         waktuSelesai: h.endTime || h.waktuSelesai || '',
                         durasiDetik: h.durationSeconds !== undefined ? h.durationSeconds : (h.durasiDetik || 0),
                         jarakMeter: h.distance !== undefined ? h.distance : (h.jarakMeter || 0),
+                        commander: h.commander || 'Mandiri',
+                        personnelCount: h.personnelCount || 1,
                     });
                 }
             }
@@ -2054,6 +2065,7 @@ window.prosesUnduhCSV = function () {
             NRP: h.userNrp,
             Nama: h.userNama,
             Giat: h.jenisGiat,
+            Keterangan: h.description || '-',
             Komandan: h.commander || 'Mandiri',
             Kekuatan: (h.personnelCount || 1) + ' Orang',
             DurasiMenit: Math.round(h.durasiDetik / 60),
@@ -2241,12 +2253,24 @@ if (memberSearchInput && memberSearchResults) {
     });
 }
 
-// D. Route Visualizer - Menampilkan info misi tanpa data rute dummy
-window.tampilkanRuteMisi = function (nrp, nama, opCode, durasiDetik, jarakMeter, waktuMulai) {
+// D. Route Visualizer - Menampilkan rute lintasan tugas pada peta
+window.tampilkanRuteMisiByIndex = function (idx) {
+    if (!window.currentPagedHistoryList || !window.currentPagedHistoryList[idx]) return;
+    const item = window.currentPagedHistoryList[idx];
+    window.tampilkanRuteMisiItem(item);
+};
+
+window.tampilkanRuteMisiItem = function (item) {
     const modalEl = document.getElementById('routeVisualModal');
     if (!modalEl) return;
     const routeModal = new bootstrap.Modal(modalEl);
     routeModal.show();
+
+    const nrp = item.userNrp || '-';
+    const nama = item.userNama || 'Anggota';
+    const jarakMeter = item.jarakMeter || 0;
+    const durasiDetik = item.durasiDetik || 0;
+    const routePoints = item.routePoints || [];
 
     document.getElementById('route-user-name').innerText = nama;
     document.getElementById('route-user-nrp').innerText = nrp;
@@ -2269,20 +2293,67 @@ window.tampilkanRuteMisi = function (nrp, nama, opCode, durasiDetik, jarakMeter,
         }
         window.routeLayerGroup.clearLayers();
 
-        // Tampilkan pesan: data GPS tracking tidak tersimpan sebagai rute
-        const infoPopup = L.popup({ closeButton: false, autoClose: false, closeOnClick: false })
-            .setLatLng([-3.4428, 114.8306])
-            .setContent(`
-                <div style="font-family:'Inter',sans-serif;padding:8px;text-align:center;min-width:200px">
-                    <i class="fa-solid fa-location-crosshairs" style="color:#ef4444;font-size:24px;display:block;margin-bottom:8px"></i>
-                    <b style="font-size:13px">Data Rute GPS</b>
-                    <p style="font-size:11px;color:#6b7280;margin:6px 0 0">Rute perjalanan real-time hanya tersimpan selama sesi aktif di perangkat HP. Data statistik (jarak & durasi) tercatat di database.</p>
-                </div>
-            `)
-            .addTo(window.modalRouteMap);
+        if (Array.isArray(routePoints) && routePoints.length > 0) {
+            const latLngs = routePoints.map(p => [p.lat, p.lng]);
+            
+            // Gambar garis lintasan rute (Polyline glowing hijau)
+            const polyline = L.polyline(latLngs, {
+                color: '#10b981',
+                weight: 5,
+                opacity: 0.95,
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).addTo(window.routeLayerGroup);
 
-        window.modalRouteMap.setView([-3.4428, 114.8306], 13);
+            // Marker Titik Awal (Start)
+            const startIcon = L.divIcon({
+                className: 'route-marker-start',
+                html: `<div style="background:#10b981;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.5);"><i class="fa-solid fa-play" style="font-size:11px;"></i></div>`,
+                iconSize: [28, 28],
+                iconAnchor: [14, 14]
+            });
+            L.marker(latLngs[0], { icon: startIcon }).bindPopup(`<b>Titik Awal (Start)</b><br>${item.waktuMulai || ''}`).addTo(window.routeLayerGroup);
+
+            // Marker Titik Akhir (Finish)
+            if (latLngs.length > 1) {
+                const finishIcon = L.divIcon({
+                    className: 'route-marker-finish',
+                    html: `<div style="background:#ef4444;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.5);"><i class="fa-solid fa-flag-checkered" style="font-size:12px;"></i></div>`,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+                L.marker(latLngs[latLngs.length - 1], { icon: finishIcon }).bindPopup(`<b>Titik Akhir (Finish)</b><br>${item.waktuSelesai || ''}`).addTo(window.routeLayerGroup);
+            }
+
+            // Zoom otomatis agar seluruh rute terlihat jelas
+            window.modalRouteMap.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+        } else {
+            // Tampilkan info jika data rute lintasan belum tercatat di riwayat lama
+            const infoPopup = L.popup({ closeButton: false, autoClose: false, closeOnClick: false })
+                .setLatLng([-3.4428, 114.8306])
+                .setContent(`
+                    <div style="font-family:'Inter',sans-serif;padding:8px;text-align:center;min-width:220px">
+                        <i class="fa-solid fa-route" style="color:#ef4444;font-size:24px;display:block;margin-bottom:8px"></i>
+                        <b style="font-size:13px">Peta Lintasan Rute</b>
+                        <p style="font-size:11px;color:#6b7280;margin:6px 0 0">Rute perjalanan belum tercatat pada riwayat lama ini.<br><br>Seluruh siaran/tugas baru dari aplikasi HP yang telah diperbarui akan otomatis merekam jalur lintasan lengkap di peta ini!</p>
+                    </div>
+                `)
+                .addTo(window.routeLayerGroup);
+
+            window.modalRouteMap.setView([-3.4428, 114.8306], 13);
+        }
     }, 300);
+};
+
+window.tampilkanRuteMisi = function (nrp, nama, opCode, durasiDetik, jarakMeter, waktuMulai) {
+    window.tampilkanRuteMisiItem({
+        userNrp: nrp,
+        userNama: nama,
+        opCode: opCode,
+        durasiDetik: durasiDetik,
+        jarakMeter: jarakMeter,
+        waktuMulai: waktuMulai
+    });
 };
 
 // E. Chart.js initializers
@@ -2852,6 +2923,7 @@ window.prosesCetakPDF = function () {
                         userNama: `${u.pangkat || ''} ${u.nama || ''}`.trim() || 'Anggota',
                         opCode: h.opCode || 'OPS-SIAGA-001',
                         jenisGiat: h.activityType || h.jenisGiat || 'Pengamanan Wilayah',
+                        description: h.description || '',
                         waktuMulai: h.startTime || h.waktuMulai || '',
                         waktuSelesai: h.endTime || h.waktuSelesai || '',
                         durasiDetik: h.durationSeconds !== undefined ? h.durationSeconds : (h.durasiDetik || 0),
@@ -2918,7 +2990,10 @@ window.prosesCetakPDF = function () {
                         <b>${h.userNama}</b><br>
                         <small style="color: #666;">NRP: ${h.userNrp}</small>
                     </td>
-                    <td>${h.jenisGiat}</td>
+                    <td>
+                        <b>${h.jenisGiat}</b>
+                        ${h.description ? `<br><small style="color: #666;">${h.description}</small>` : ''}
+                    </td>
                     <td>${h.commander || 'Mandiri'}</td>
                     <td>${h.personnelCount || 1} Orang</td>
                     <td>${durasiMin} Menit / ${jarakKm} Km</td>
