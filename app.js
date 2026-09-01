@@ -769,8 +769,8 @@ document.getElementById('btnThemeToggle').addEventListener('click', () => {
 
     // Update Leaflet tile layers dynamically without reloading page
     const newTileUrl = newTheme === 'dark'
-        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+        : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
     if (typeof mapTaktis !== 'undefined') mapTaktis.setUrl(newTileUrl);
     if (typeof mapGeoTaktis !== 'undefined') mapGeoTaktis.setUrl(newTileUrl);
@@ -1210,9 +1210,8 @@ window.kirimBroadcast = function () {
 // 5. PETA & GEOFENCE INTERAKTIF (LEAFLET JS)
 // =========================================================================
 
-// Base layers for main Map
-const mapTaktis = L.tileLayer(currentTheme === 'dark' ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; CARTO'
+const mapTaktis = L.tileLayer(currentTheme === 'dark' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}' : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; Esri / OpenStreetMap'
 });
 const mapOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
@@ -2280,8 +2279,8 @@ window.tampilkanRuteMisiItem = function (item) {
     if (!window.modalRouteMap) {
         window.modalRouteMap = L.map('map-route', { zoomControl: false }).setView([-3.4428, 114.8306], 14);
         L.control.zoom({ position: 'bottomright' }).addTo(window.modalRouteMap);
-        L.tileLayer(currentTheme === 'dark' ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; CARTO'
+        L.tileLayer(currentTheme === 'dark' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}' : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; Esri / OpenStreetMap'
         }).addTo(window.modalRouteMap);
     }
 
