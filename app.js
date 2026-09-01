@@ -1596,8 +1596,6 @@ onValue(refGeofence, (snapshot) => {
         }
     }
 
-    renderGeofenceList();
-
     // Validasi agar activeZoneKey tidak tersangkut di key yang sudah didelete
     if (activeZoneKey && !zones[activeZoneKey]) {
         activeZoneKey = null;
