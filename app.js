@@ -1365,6 +1365,7 @@ window.redrawMapMarkers = function () {
     activeOperationsList = [];
     let opCodes = new Set();
 
+    let activeCoords = [];
     if (data) {
         for (let key in data) {
             let u = data[key];
@@ -1387,6 +1388,7 @@ window.redrawMapMarkers = function () {
 
             // Render to Map
             if (u.koordinat && u.koordinat.lat && u.koordinat.lng) {
+                activeCoords.push([u.koordinat.lat, u.koordinat.lng]);
                 const vehicleIconClass = getVehicleIconClass(u.vehicle);
 
                 // Check if user is live streaming
@@ -1432,6 +1434,16 @@ window.redrawMapMarkers = function () {
                 `);
                 markerGroup.addLayer(m);
             }
+        }
+    }
+
+    // Auto-center camera to fit active personnel on initial load
+    if (activeCoords.length > 0 && !window.hasAutoCenteredMap && typeof map !== 'undefined') {
+        window.hasAutoCenteredMap = true;
+        if (activeCoords.length === 1) {
+            map.setView(activeCoords[0], 14, { animate: true });
+        } else {
+            map.fitBounds(L.latLngBounds(activeCoords), { padding: [50, 50], maxZoom: 15, animate: true });
         }
     }
 
@@ -1572,6 +1584,19 @@ onValue(refGeofence, (snapshot) => {
             cGeo.on('click', () => { window.setActiveZone(key); });
         }
     }
+
+    // Auto-center camera to fit geofence zones on initial load
+    const zoneCoords = Object.values(zones).map(z => [z.lat, z.lng]);
+    if (zoneCoords.length > 0 && !window.hasAutoCenteredGeoMap && typeof mapGeo !== 'undefined') {
+        window.hasAutoCenteredGeoMap = true;
+        if (zoneCoords.length === 1) {
+            mapGeo.setView(zoneCoords[0], 13, { animate: true });
+        } else {
+            mapGeo.fitBounds(L.latLngBounds(zoneCoords), { padding: [50, 50], maxZoom: 14, animate: true });
+        }
+    }
+
+    renderGeofenceList();
 
     // Validasi agar activeZoneKey tidak tersangkut di key yang sudah didelete
     if (activeZoneKey && !zones[activeZoneKey]) {
