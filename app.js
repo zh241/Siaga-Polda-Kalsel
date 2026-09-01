@@ -770,7 +770,7 @@ document.getElementById('btnThemeToggle').addEventListener('click', () => {
     // Update Leaflet tile layers dynamically without reloading page
     const newTileUrl = newTheme === 'dark'
         ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
-        : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+        : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}';
 
     if (typeof mapTaktis !== 'undefined') mapTaktis.setUrl(newTileUrl);
     if (typeof mapGeoTaktis !== 'undefined') mapGeoTaktis.setUrl(newTileUrl);
@@ -1210,8 +1210,8 @@ window.kirimBroadcast = function () {
 // 5. PETA & GEOFENCE INTERAKTIF (LEAFLET JS)
 // =========================================================================
 
-const mapTaktis = L.tileLayer(currentTheme === 'dark' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}' : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; Esri / OpenStreetMap'
+const mapTaktis = L.tileLayer(currentTheme === 'dark' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}' : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '&copy; Esri'
 });
 const mapOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
@@ -1238,8 +1238,8 @@ L.control.layers(baseMaps, null, { position: 'bottomright' }).addTo(map);
 L.control.zoom({ position: 'bottomright' }).addTo(map);
 
 // Base layers for Geofence Map
-const mapGeoTaktis = L.tileLayer(currentTheme === 'dark' ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; CARTO'
+const mapGeoTaktis = L.tileLayer(currentTheme === 'dark' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}' : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '&copy; Esri'
 });
 const mapGeoOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'

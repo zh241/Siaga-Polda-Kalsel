@@ -6346,7 +6346,7 @@ class _TacticalMapTabState extends State<TacticalMapTab> {
           default:
             mapUrl = isDarkMode
                 ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
-                : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+                : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}';
             break;
         }
 
