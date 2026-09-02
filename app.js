@@ -1211,13 +1211,19 @@ window.kirimBroadcast = function () {
 // =========================================================================
 
 const mapTaktis = L.tileLayer(currentTheme === 'dark' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}' : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-    attribution: '&copy; Esri'
+    attribution: '&copy; Esri',
+    maxZoom: 19,
+    maxNativeZoom: 16
 });
 const mapOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 19,
+    maxNativeZoom: 19
 });
 const mapSatelit = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri'
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri',
+    maxZoom: 19,
+    maxNativeZoom: 18
 });
 
 const baseMaps = {
@@ -1226,7 +1232,7 @@ const baseMaps = {
     "<span class='text-muted small fw-bold'><i class='fa-solid fa-globe me-1'></i> ESRI World Imagery</span>": mapSatelit
 };
 
-const map = L.map('map', { zoomControl: false }).setView([-3.4428, 114.8306], 13);
+const map = L.map('map', { zoomControl: false, maxZoom: 19 }).setView([-3.4428, 114.8306], 13);
 
 // Set default tile base according to current theme
 mapTaktis.addTo(map);
@@ -1239,13 +1245,19 @@ L.control.zoom({ position: 'bottomright' }).addTo(map);
 
 // Base layers for Geofence Map
 const mapGeoTaktis = L.tileLayer(currentTheme === 'dark' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}' : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-    attribution: '&copy; Esri'
+    attribution: '&copy; Esri',
+    maxZoom: 19,
+    maxNativeZoom: 16
 });
 const mapGeoOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 19,
+    maxNativeZoom: 19
 });
 const mapGeoSatelit = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles &copy; Esri'
+    attribution: 'Tiles &copy; Esri',
+    maxZoom: 19,
+    maxNativeZoom: 18
 });
 
 const baseMapsGeo = {
@@ -2302,8 +2314,10 @@ window.tampilkanRuteMisiItem = function (item) {
     if (!window.modalRouteMap) {
         window.modalRouteMap = L.map('map-route', { zoomControl: false }).setView([-3.4428, 114.8306], 14);
         L.control.zoom({ position: 'bottomright' }).addTo(window.modalRouteMap);
-        L.tileLayer(currentTheme === 'dark' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}' : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; Esri / OpenStreetMap'
+        L.tileLayer(currentTheme === 'dark' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}' : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; Esri',
+            maxZoom: 19,
+            maxNativeZoom: 16
         }).addTo(window.modalRouteMap);
     }
 
